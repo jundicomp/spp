@@ -74,6 +74,9 @@ export default function Sidebar() {
             <Item to="/guru" canAccess={canAccess('guru')}>Data Guru &amp; Staff</Item>
             <Item to="/siswa" canAccess={canAccess('siswa')}>Data Siswa (Ringkas)</Item>
           </NavGroup>
+          <NavGroup id="pgt-system" label="🖥️ SYSTEM" sub open={openGroups['pgt-system']} onToggle={toggle}>
+            <Item to="/koneksi-sheets" canAccess={canAccess('koneksi-sheets')}>Pengaturan Koneksi</Item>
+          </NavGroup>
         </NavGroup>
       </nav>
 

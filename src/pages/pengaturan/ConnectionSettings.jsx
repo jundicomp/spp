@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { getSheetsConfig, saveSheetsConfig, fetchSiswaFromSheet } from '../../services/googleSheets';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ConnectionSettings({ onConnected }) {
+  const { canAccess } = useAuth();
+  const allowed = canAccess('koneksi-sheets');
   const [open, setOpen] = useState(!getSheetsConfig().url);
   const [url, setUrl] = useState(getSheetsConfig().url);
   const [secret, setSecret] = useState(getSheetsConfig().secret);
@@ -24,6 +27,22 @@ export default function ConnectionSettings({ onConnected }) {
   }
 
   const configured = !!getSheetsConfig().url;
+
+  if (!allowed) {
+    return (
+      <div className="card">
+        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>🔒</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13.5 }}>Pengaturan Koneksi Google Sheets</div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+              {configured ? 'Sudah tersambung.' : 'Belum tersambung.'} Hanya <strong>Admin</strong> yang bisa mengubah pengaturan ini.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card">

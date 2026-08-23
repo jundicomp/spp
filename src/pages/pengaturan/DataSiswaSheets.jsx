@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import Page from '../../components/layout/Page';
-import ConnectionSettings from './ConnectionSettings';
 import ManualForm from './ManualForm';
 import ExcelUpload from './ExcelUpload';
 import StoredDataTable from './StoredDataTable';
+import { isConfigured } from '../../services/googleSheets';
 
 export default function DataSiswaSheets() {
   const [tab, setTab] = useState('manual');
@@ -12,8 +12,12 @@ export default function DataSiswaSheets() {
 
   return (
     <Page pageId="siswa" title="Data Siswa (Ringkas)" path="Pengaturan / Modul / Data Siswa">
-      <ConnectionSettings onConnected={bump} />
-
+      {!isConfigured() && (
+        <div className="card"><div className="card-body" style={{ fontSize: 13, color: 'var(--muted)' }}>
+          ℹ️ Belum tersambung ke Google Sheets. Minta <strong>Admin</strong> mengatur koneksi lewat menu
+          <strong> Pengaturan &gt; System &gt; Pengaturan Koneksi</strong> dulu.
+        </div></div>
+      )}
       <div className="card">
         <div className="seg-tabs">
           <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>

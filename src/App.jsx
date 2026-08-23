@@ -6,6 +6,9 @@ import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import SppPesertaDidik from './pages/spp/SppPesertaDidik';
 import DataSiswaSheets from './pages/pengaturan/DataSiswaSheets';
+import ManajemenUser from './pages/pengaturan/ManajemenUser';
+import ManajemenHakAkses from './pages/pengaturan/ManajemenHakAkses';
+import KoneksiSheets from './pages/pengaturan/KoneksiSheets';
 import ComingSoon from './pages/ComingSoon';
 
 const PLACEHOLDER_PAGES = [
@@ -17,8 +20,6 @@ const PLACEHOLDER_PAGES = [
   { path: '/profil', pageId: 'profil', title: 'Profil Sekolah & Tahun Ajaran', menu: 'Pengaturan / Profil Sekolah' },
   { path: '/kelas', pageId: 'kelas', title: 'Data Kelas & Rombel', menu: 'Pengaturan / Data Kelas & Rombel' },
   { path: '/guru', pageId: 'guru', title: 'Data Guru & Staff', menu: 'Pengaturan / Data Guru & Staff' },
-  { path: '/manajemen-user', pageId: 'manajemen-user', title: 'Manajemen User', menu: 'Pengaturan / User / Manajemen User' },
-  { path: '/hakakses', pageId: 'hakakses', title: 'Manajemen Hak Akses', menu: 'Pengaturan / User / Manajemen Hak Akses' },
 ];
 
 function Gate() {
@@ -31,6 +32,9 @@ function Gate() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/spp" element={<SppPesertaDidik />} />
         <Route path="/siswa" element={<DataSiswaSheets />} />
+        <Route path="/manajemen-user" element={<ManajemenUser />} />
+        <Route path="/hakakses" element={<ManajemenHakAkses />} />
+        <Route path="/koneksi-sheets" element={<KoneksiSheets />} />
         {PLACEHOLDER_PAGES.map(p => (
           <Route key={p.path} path={p.path} element={<ComingSoon pageId={p.pageId} title={p.title} path={p.menu} />} />
         ))}

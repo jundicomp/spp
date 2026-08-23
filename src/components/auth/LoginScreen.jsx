@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
-  const { login, loginError } = useAuth();
+  const { login, loginError, loggingIn } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
-    login(username, password);
+    await login(username, password);
   }
   function fillDemo(u, p) {
     setUsername(u);
@@ -33,7 +33,9 @@ export default function LoginScreen() {
             <label>Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Masuk</button>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loggingIn}>
+            {loggingIn ? 'Memeriksa akun...' : 'Masuk'}
+          </button>
         </form>
         {loginError && <p className="login-error">{loginError}</p>}
         <div className="login-demo-hint">
@@ -41,6 +43,7 @@ export default function LoginScreen() {
           <div className="login-demo-item" onClick={() => fillDemo('kepsek', 'kepsek123')}><span>Kepala Sekolah</span><code>kepsek</code></div>
           <div className="login-demo-item" onClick={() => fillDemo('bendahara', 'bendahara123')}><span>Bendahara / TU</span><code>bendahara</code></div>
           <div className="login-demo-item" onClick={() => fillDemo('staftu', 'staftu123')}><span>Staf TU</span><code>staftu</code></div>
+          <div className="login-demo-item" onClick={() => fillDemo('admin', 'admin123')}><span>Admin</span><code>admin</code></div>
         </div>
       </div>
     </div>

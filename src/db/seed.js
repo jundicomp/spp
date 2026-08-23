@@ -62,6 +62,7 @@ export const usersSeed = [
   { id: 'U01', nama: 'Ahmad Fauzi Rahman', role: 'Kepala Sekolah', username: 'kepsek', password: 'kepsek123', email: 'kepsek@miikhlasiyah.sch.id' },
   { id: 'U02', nama: 'Yusuf Hidayat', role: 'Bendahara / TU', username: 'bendahara', password: 'bendahara123', email: 'bendahara@miikhlasiyah.sch.id' },
   { id: 'U03', nama: 'Rina Marlina', role: 'Staf TU', username: 'staftu', password: 'staftu123', email: 'staftu@miikhlasiyah.sch.id' },
+  { id: 'U04', nama: 'Admin Sistem', role: 'Admin', username: 'admin', password: 'admin123', email: 'admin@miikhlasiyah.sch.id' },
 ];
 
 // ---- Profil Sekolah ----

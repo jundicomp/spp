@@ -21,14 +21,21 @@ const HAK_AKSES_PAGES = [
   { id: 'siswa', label: 'Data Siswa (Ringkas)', grup: 'Pengaturan' },
   { id: 'manajemen-user', label: 'Manajemen User', grup: 'Pengaturan' },
   { id: 'hakakses', label: 'Manajemen Hak Akses', grup: 'Pengaturan' },
+  { id: 'koneksi-sheets', label: 'Pengaturan Koneksi Google Sheets', grup: 'Pengaturan' },
 ];
+
+const ADMIN_ONLY_PAGES = ['koneksi-sheets'];
 
 function buildDefaultPermissions() {
   const perms = {};
   permissionRoles.forEach(role => {
     perms[role] = {};
     HAK_AKSES_PAGES.forEach(p => {
-      perms[role][p.id] = !(halamanSensitif.includes(p.id) && !['Kepala Sekolah', 'Admin'].includes(role));
+      if (ADMIN_ONLY_PAGES.includes(p.id)) {
+        perms[role][p.id] = role === 'Admin';
+      } else {
+        perms[role][p.id] = !(halamanSensitif.includes(p.id) && !['Kepala Sekolah', 'Admin'].includes(role));
+      }
     });
   });
   return perms;
@@ -79,7 +86,7 @@ export function AppProvider({ children }) {
     pemutihan, setPemutihan, logHapus, setLogHapus,
     siswaById, kelasById, tagihanTerbayar,
     toast, toasts,
-    HAK_AKSES_PAGES, permissionRoles, halamanSensitif,
+    HAK_AKSES_PAGES, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

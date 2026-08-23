@@ -17,17 +17,21 @@ export function isConfigured() {
   return !!url;
 }
 
-export async function fetchSiswaFromSheet() {
+/**
+ * sheetName: 'siswa' | 'users'
+ */
+export async function fetchFromSheet(sheetName = 'siswa') {
   const { url } = getSheetsConfig();
   if (!url) throw new Error('URL Apps Script belum diatur. Buka Pengaturan Koneksi dulu.');
-  const res = await fetch(url, { method: 'GET' });
+  const sep = url.includes('?') ? '&' : '?';
+  const res = await fetch(url + sep + 'sheet=' + sheetName, { method: 'GET' });
   if (!res.ok) throw new Error('Gagal menghubungi Apps Script (HTTP ' + res.status + ').');
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');
   return json.data;
 }
 
-export async function addSiswaToSheet(row) {
+export async function addToSheet(sheetName, row) {
   const { url, secret } = getSheetsConfig();
   if (!url) throw new Error('URL Apps Script belum diatur. Buka Pengaturan Koneksi dulu.');
   // Content-Type: text/plain sengaja dipakai (bukan application/json) supaya browser
@@ -35,22 +39,31 @@ export async function addSiswaToSheet(row) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'add', secret, row }),
+    body: JSON.stringify({ action: 'add', secret, sheet: sheetName, row }),
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal menyimpan data.');
   return json;
 }
 
-export async function bulkAddSiswaToSheet(rows) {
+export async function bulkAddToSheet(sheetName, rows) {
   const { url, secret } = getSheetsConfig();
   if (!url) throw new Error('URL Apps Script belum diatur. Buka Pengaturan Koneksi dulu.');
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'bulkAdd', secret, rows }),
+    body: JSON.stringify({ action: 'bulkAdd', secret, sheet: sheetName, rows }),
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengunggah data.');
   return json;
 }
+
+// ---- Alias khusus siswa (dipakai halaman Data Siswa, biar kode lama tetap jalan) ----
+export const fetchSiswaFromSheet = () => fetchFromSheet('siswa');
+export const addSiswaToSheet = (row) => addToSheet('siswa', row);
+export const bulkAddSiswaToSheet = (rows) => bulkAddToSheet('siswa', rows);
+
+// ---- Alias khusus users ----
+export const fetchUsersFromSheet = () => fetchFromSheet('users');
+export const addUserToSheet = (row) => addToSheet('users', row);
