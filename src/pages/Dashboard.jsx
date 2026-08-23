@@ -1,58 +1,72 @@
 import { useMemo } from 'react';
 import Page from '../components/layout/Page';
 import { useAppData } from '../context/AppContext';
-import { formatRupiah } from '../db/helpers';
 
 export default function Dashboard() {
-  const { siswa, guru, kelas, tagihanSpp, tagihanLain, tagihanTerbayar, tahunAjaranAktif } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, tahunAjaranAktif } = useAppData();
 
   const stats = useMemo(() => {
-    const siswaAktif = siswa.filter(s => s.status === 'Aktif').length;
-    let totalTagihan = 0, totalTerbayar = 0;
-    tagihanSpp.forEach(t => { totalTagihan += t.nominal; totalTerbayar += tagihanTerbayar('SPP', t.id); });
-    tagihanLain.forEach(t => { totalTagihan += t.nominal; totalTerbayar += tagihanTerbayar('LAIN', t.id); });
-    return { siswaAktif, totalTagihan, totalTerbayar, sisa: totalTagihan - totalTerbayar };
-  }, [siswa, tagihanSpp, tagihanLain, tagihanTerbayar]);
+    const perTingkat = {};
+    const perGender = { 'Laki-laki': 0, 'Perempuan': 0, '-': 0 };
+    siswa.forEach(s => {
+      const t = s.kelasTingkat || '-';
+      perTingkat[t] = (perTingkat[t] || 0) + 1;
+      const g = s.jenisKelamin === 'Laki-laki' || s.jenisKelamin === 'Perempuan' ? s.jenisKelamin : '-';
+      perGender[g] += 1;
+    });
+    return { total: siswa.length, perTingkat, perGender };
+  }, [siswa]);
+
+  const tingkatList = Object.keys(stats.perTingkat).sort();
 
   return (
     <Page pageId="dashboard" title="Dashboard" path="Dashboard">
-      <div className="info-grid" style={{ marginBottom: 20 }}>
-        <div className="info-card c-green">
-          <div className="info-value">{stats.siswaAktif}</div>
-          <div className="info-label">Siswa Aktif</div>
-          <div className="info-sub">Tahun Ajaran {tahunAjaranAktif?.label}</div>
-        </div>
-        <div className="info-card c-blue">
-          <div className="info-value">{guru.length}</div>
-          <div className="info-label">Guru &amp; Staff</div>
-        </div>
-        <div className="info-card c-purple">
-          <div className="info-value">{kelas.length}</div>
-          <div className="info-label">Kelas &amp; Rombel</div>
-        </div>
-        <div className="info-card c-red">
-          <div className="info-value" style={{ fontSize: 17 }}>{formatRupiah(stats.sisa)}</div>
-          <div className="info-label">Total Piutang</div>
-        </div>
-      </div>
-
       <div className="card">
         <div className="card-head">
-          <div><h3>Ringkasan Keuangan</h3><p>Seluruh tahun ajaran, seluruh siswa.</p></div>
+          <div><h3>📋 Data Siswa</h3><p>Diambil langsung dari Google Sheets — tahun ajaran aktif {tahunAjaranAktif?.label}.</p></div>
+          <button className="btn btn-sm" onClick={refreshSiswa} disabled={siswaLoading}>{siswaLoading ? 'Memuat...' : '↻ Muat Ulang'}</button>
         </div>
         <div className="card-body">
-          <div className="info-grid">
-            <div><div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Total Tagihan</div><div style={{ fontSize: 20, fontWeight: 800 }}>{formatRupiah(stats.totalTagihan)}</div></div>
-            <div><div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Total Diterima</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--green-dark)' }}>{formatRupiah(stats.totalTerbayar)}</div></div>
-            <div><div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Sisa / Piutang</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--red)' }}>{formatRupiah(stats.sisa)}</div></div>
-          </div>
+          {siswaLoading && !siswaLoaded && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Memuat data siswa...</p>}
+          {siswaError && <p style={{ color: 'var(--red)', fontSize: 13 }}>Gagal memuat: {siswaError}</p>}
+          {!siswaLoading && siswaLoaded && siswa.length === 0 && (
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Belum ada data siswa tersimpan. Tambahkan lewat menu Data Siswa.</p>
+          )}
+          {siswaLoaded && siswa.length > 0 && (
+            <>
+              <div className="info-grid" style={{ marginBottom: 20 }}>
+                <div className="info-card c-green">
+                  <div className="info-value">{stats.total}</div>
+                  <div className="info-label">Total Siswa</div>
+                </div>
+                <div className="info-card c-blue">
+                  <div className="info-value">{stats.perGender['Laki-laki']}</div>
+                  <div className="info-label">Laki-laki</div>
+                </div>
+                <div className="info-card c-purple">
+                  <div className="info-value">{stats.perGender['Perempuan']}</div>
+                  <div className="info-label">Perempuan</div>
+                </div>
+              </div>
+
+              <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 10 }}>Sebaran per Kelas / Tingkat</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {tingkatList.map(t => (
+                  <div key={t} style={{ padding: '10px 16px', background: 'var(--green-soft)', borderRadius: 8, minWidth: 90, textAlign: 'center' }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green-dark)' }}>{stats.perTingkat[t]}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Kelas {t}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       <div className="card">
         <div className="card-body" style={{ fontSize: 13, color: 'var(--muted)' }}>
-          👋 Ini putaran pertama migrasi ke React — modul <strong>SPP Peserta Didik</strong> sudah dimigrasi penuh di sidebar.
-          Modul lain (Keuangan, Sarpras, Pengaturan) menyusul di putaran berikutnya, mengikuti pola satu-modul-per-putaran yang sama seperti pembangunan versi HTML-nya.
+          ℹ️ Modul <strong>Keuangan</strong> dan <strong>Sarpras</strong> belum tersambung ke Google Sheets — statistik keuangan
+          akan tampil di sini begitu modul tersebut selesai dimigrasi.
         </div>
       </div>
     </Page>

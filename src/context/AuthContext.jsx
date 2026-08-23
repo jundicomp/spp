@@ -1,22 +1,26 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useAppData } from './AppContext';
 import { isConfigured, fetchUsersFromSheet } from '../services/googleSheets';
+import { MASTER_ADMIN } from '../config/masterAdmin';
 
 const AuthContext = createContext(null);
 
 function normalizeSheetUser(u, idx) {
   return {
-    id: 'SHEET-' + (u['No'] ?? idx),
-    nama: u['Nama'],
-    role: u['Role'],
-    username: u['Username'],
-    password: u['Password'],
-    email: u['Email'],
+    id: 'USER-' + (u['No'] ?? idx),
+    nama: String(u['Nama'] ?? '').trim(),
+    role: String(u['Role'] ?? '').trim(),
+    // String(...) sengaja dipakai -- Google Sheets bisa mengembalikan username/password
+    // sebagai NUMBER kalau isinya cuma digit (mis. password "123456"), padahal form
+    // login selalu mengirim STRING. Tanpa ini, "123456" (teks) !== 123456 (angka) -> gagal login.
+    username: String(u['Username'] ?? '').trim(),
+    password: String(u['Password'] ?? '').trim(),
+    email: String(u['Email'] ?? '').trim(),
   };
 }
 
 export function AuthProvider({ children }) {
-  const { users, permissions } = useAppData();
+  const { permissions } = useAppData();
   const [currentUser, setCurrentUser] = useState(null);
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
@@ -24,17 +28,34 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     setLoggingIn(true);
     setLoginError('');
-    let allUsers = users; // akun demo lokal -- selalu tersedia sbg cadangan
-    if (isConfigured()) {
-      try {
-        const sheetUsers = await fetchUsersFromSheet();
-        allUsers = [...users, ...sheetUsers.map(normalizeSheetUser)];
-      } catch (err) {
-        // Sheets gagal dihubungi -> tetap coba login pakai akun demo lokal saja, jangan blokir user
-        console.warn('Gagal mengambil daftar user dari Google Sheets:', err.message);
-      }
+
+    const uname = String(username).trim();
+    const pass = String(password).trim();
+
+    // ---- Akun Admin Induk: SELALU bisa login, tak peduli status Google Sheets ----
+    if (uname === MASTER_ADMIN.username && pass === MASTER_ADMIN.password) {
+      setLoggingIn(false);
+      setCurrentUser({ id: 'MASTER-ADMIN', nama: MASTER_ADMIN.nama, role: MASTER_ADMIN.role, username: MASTER_ADMIN.username, email: MASTER_ADMIN.email });
+      return true;
     }
-    const user = allUsers.find(u => u.username === username && u.password === password);
+
+    if (!isConfigured()) {
+      setLoggingIn(false);
+      setLoginError('Aplikasi belum tersambung ke Google Sheets. Hubungi Admin untuk mengatur koneksi.');
+      return false;
+    }
+
+    let sheetUsers = [];
+    try {
+      const rows = await fetchUsersFromSheet();
+      sheetUsers = rows.map(normalizeSheetUser);
+    } catch (err) {
+      setLoggingIn(false);
+      setLoginError('Gagal menghubungi Google Sheets: ' + err.message);
+      return false;
+    }
+
+    const user = sheetUsers.find(u => u.username === uname && u.password === pass);
     setLoggingIn(false);
     if (!user) {
       setLoginError('Username atau password salah. Coba lagi.');
@@ -42,7 +63,7 @@ export function AuthProvider({ children }) {
     }
     setCurrentUser(user);
     return true;
-  }, [users]);
+  }, []);
 
   const logout = useCallback(() => setCurrentUser(null), []);
 

@@ -1,9 +1,7 @@
-import { createContext, useContext, useMemo, useState, useCallback } from 'react';
-import {
-  tahunAjaranList, kelasList, guruList, siswaList, tarifList,
-  tagihanSppList, tagihanLainList, pembayaranSeed, asetSeed,
-  profilSekolahSeed, permissionRoles, halamanSensitif, usersSeed,
-} from '../db/seed';
+import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
+import { tahunAjaranList, permissionRoles, halamanSensitif } from '../db/seed';
+import { normalizeSheetSiswa } from '../db/siswaFields';
+import { isConfigured, fetchSiswaFromSheet } from '../services/googleSheets';
 
 const AppDataContext = createContext(null);
 
@@ -43,20 +41,35 @@ function buildDefaultPermissions() {
 
 export function AppProvider({ children }) {
   const [tahunAjaran, setTahunAjaran] = useState(tahunAjaranList);
-  const [kelas] = useState(kelasList);
-  const [guru] = useState(guruList);
-  const [siswa] = useState(siswaList);
-  const [tarif, setTarif] = useState(tarifList);
-  const [tagihanSpp] = useState(tagihanSppList);
-  const [tagihanLain] = useState(tagihanLainList);
-  const [pembayaran, setPembayaran] = useState(pembayaranSeed);
-  const [aset] = useState(asetSeed);
-  const [profilSekolah, setProfilSekolah] = useState(profilSekolahSeed);
-  const [users, setUsers] = useState(usersSeed);
   const [permissions, setPermissions] = useState(buildDefaultPermissions());
-  const [pemutihan, setPemutihan] = useState([]);
-  const [logHapus, setLogHapus] = useState([]);
   const [toasts, setToasts] = useState([]);
+
+  // ---- Data Siswa: SUMBER ASLINYA Google Sheets, bukan lagi data dami ----
+  const [siswa, setSiswaRaw] = useState([]);
+  const [siswaLoading, setSiswaLoading] = useState(false);
+  const [siswaError, setSiswaError] = useState(null);
+  const [siswaLoaded, setSiswaLoaded] = useState(false);
+
+  const refreshSiswa = useCallback(async () => {
+    if (!isConfigured()) {
+      setSiswaRaw([]);
+      setSiswaLoaded(false);
+      return;
+    }
+    setSiswaLoading(true);
+    setSiswaError(null);
+    try {
+      const rows = await fetchSiswaFromSheet();
+      setSiswaRaw(rows.map(normalizeSheetSiswa));
+      setSiswaLoaded(true);
+    } catch (err) {
+      setSiswaError(err.message);
+    } finally {
+      setSiswaLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refreshSiswa(); }, [refreshSiswa]);
 
   const toast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -67,11 +80,6 @@ export function AppProvider({ children }) {
   const tahunAjaranAktifObj = useMemo(() => tahunAjaran.find(t => t.aktif), [tahunAjaran]);
 
   const siswaById = useCallback((id) => siswa.find(s => s.id === id), [siswa]);
-  const kelasById = useCallback((id) => kelas.find(k => k.id === id), [kelas]);
-
-  const tagihanTerbayar = useCallback((refType, refId) => {
-    return pembayaran.filter(p => p.refType === refType && p.refId === refId).reduce((s, p) => s + p.nominal, 0);
-  }, [pembayaran]);
 
   const setTahunAjaranAktif = useCallback((id) => {
     setTahunAjaran(list => list.map(t => ({ ...t, aktif: t.id === id })));
@@ -79,12 +87,8 @@ export function AppProvider({ children }) {
 
   const value = {
     tahunAjaran, setTahunAjaran, tahunAjaranAktif: tahunAjaranAktifObj, setTahunAjaranAktif,
-    kelas, guru, siswa, tarif, setTarif,
-    tagihanSpp, tagihanLain, pembayaran, setPembayaran,
-    aset, profilSekolah, setProfilSekolah,
-    users, setUsers, permissions, setPermissions,
-    pemutihan, setPemutihan, logHapus, setLogHapus,
-    siswaById, kelasById, tagihanTerbayar,
+    siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, siswaById,
+    permissions, setPermissions,
     toast, toasts,
     HAK_AKSES_PAGES, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,
   };

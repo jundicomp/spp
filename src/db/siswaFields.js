@@ -30,6 +30,30 @@ export function emptySiswaRow() {
   return row;
 }
 
+// Ubah baris mentah dari Google Sheets (header bhs Indonesia apa adanya)
+// jadi objek dgn field konsisten yg dipakai di seluruh aplikasi (Dashboard, SPP Peserta Didik, dst).
+export function normalizeSheetSiswa(row, idx) {
+  return {
+    id: 'SISWA-' + (row['No'] ?? idx),
+    no: row['No'],
+    nama: String(row['Nama Lengkap'] ?? '').trim(),
+    nisn: String(row['NISN'] ?? '').trim(),
+    nik: String(row['NIK'] ?? '').trim(),
+    kelasTingkat: String(row['Kelas/Tingkat'] ?? '').trim(),
+    jenisKelamin: String(row['Jenis Kelamin'] ?? '').trim(),
+    tempatLahir: String(row['Tempat Lahir'] ?? '').trim(),
+    tanggalLahir: String(row['Tanggal Lahir'] ?? '').trim(),
+    alamat: String(row['Alamat'] ?? '').trim(),
+    namaAyah: String(row['Nama Ayah Kandung'] ?? '').trim(),
+    namaIbu: String(row['Nama Ibu Kandung'] ?? '').trim(),
+    pekerjaan: String(row['Pekerjaan'] ?? '').trim(),
+    npsn: String(row['NPSN'] ?? '').trim(),
+    nsm: String(row['NSM'] ?? '').trim(),
+    jenjang: String(row['Jenjang'] ?? '').trim(),
+    kabupatenKota: String(row['Kabupaten/Kota'] ?? '').trim(),
+  };
+}
+
 // Cocokkan header file Excel yg diupload user (bisa beda kapitalisasi/spasi)
 // dengan header baku di atas.
 export function normalizeHeaderKey(rawHeader) {

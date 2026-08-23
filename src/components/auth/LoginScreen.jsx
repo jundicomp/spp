@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import ConnectionStatusBadge from './ConnectionStatusBadge';
 
 export default function LoginScreen() {
   const { login, loginError, loggingIn } = useAuth();
@@ -9,10 +10,6 @@ export default function LoginScreen() {
   async function submit(e) {
     e.preventDefault();
     await login(username, password);
-  }
-  function fillDemo(u, p) {
-    setUsername(u);
-    setPassword(p);
   }
 
   return (
@@ -24,10 +21,13 @@ export default function LoginScreen() {
         </svg>
         <h2>MI Ikhlasiyah</h2>
         <p className="login-sub">SPP dan Sarpras</p>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
+          <ConnectionStatusBadge />
+        </div>
         <form onSubmit={submit}>
           <div className="field" style={{ marginBottom: 14, textAlign: 'left' }}>
             <label>Username</label>
-            <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="mis. bendahara" />
+            <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username Anda" />
           </div>
           <div className="field" style={{ marginBottom: 14, textAlign: 'left' }}>
             <label>Password</label>
@@ -38,13 +38,6 @@ export default function LoginScreen() {
           </button>
         </form>
         {loginError && <p className="login-error">{loginError}</p>}
-        <div className="login-demo-hint">
-          <p>Akun Demo (klik untuk isi otomatis)</p>
-          <div className="login-demo-item" onClick={() => fillDemo('kepsek', 'kepsek123')}><span>Kepala Sekolah</span><code>kepsek</code></div>
-          <div className="login-demo-item" onClick={() => fillDemo('bendahara', 'bendahara123')}><span>Bendahara / TU</span><code>bendahara</code></div>
-          <div className="login-demo-item" onClick={() => fillDemo('staftu', 'staftu123')}><span>Staf TU</span><code>staftu</code></div>
-          <div className="login-demo-item" onClick={() => fillDemo('admin', 'admin123')}><span>Admin</span><code>admin</code></div>
-        </div>
       </div>
     </div>
   );

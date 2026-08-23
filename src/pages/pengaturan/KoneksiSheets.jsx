@@ -1,7 +1,9 @@
 import Page from '../../components/layout/Page';
 import ConnectionSettings from './ConnectionSettings';
+import { useAppData } from '../../context/AppContext';
 
 export default function KoneksiSheets() {
+  const { refreshSiswa } = useAppData();
   return (
     <Page pageId="koneksi-sheets" title="Pengaturan Koneksi Google Sheets" path="Pengaturan / System / Pengaturan Koneksi">
       <div className="card">
@@ -10,7 +12,7 @@ export default function KoneksiSheets() {
           data sekolah (siswa, user, dst) — jadi sengaja dibatasi supaya tidak sembarang orang bisa mengubahnya.
         </div>
       </div>
-      <ConnectionSettings />
+      <ConnectionSettings onConnected={refreshSiswa} />
     </Page>
   );
 }
