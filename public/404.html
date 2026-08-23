@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SPP & Sarpras — MI Ikhlasiyah</title>
+  <script>
+    // Trik standar SPA di GitHub Pages: ubah path biasa (mis. /spp)
+    // jadi rute hash (/#/spp) lalu redirect balik ke index.html.
+    var path = location.pathname.replace(/^\/+/, '');
+    location.replace('/#/' + path + location.search);
+  </script>
+</head>
+<body></body>
+</html>
