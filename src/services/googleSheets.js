@@ -96,6 +96,18 @@ export const deleteSiswaFromSheet = (no) => deleteFromSheet('siswa', no);
 export const fetchUsersFromSheet = () => fetchFromSheet('users');
 export const addUserToSheet = (row) => addToSheet('users', row);
 
+// ---- Alias khusus kelas ----
+export const fetchKelasFromSheet = () => fetchFromSheet('kelas');
+export const addKelasToSheet = (row) => addToSheet('kelas', row);
+export const updateKelasInSheet = (row) => updateInSheet('kelas', row);
+export const deleteKelasFromSheet = (no) => deleteFromSheet('kelas', no);
+
+// ---- Alias khusus guru ----
+export const fetchGuruFromSheet = () => fetchFromSheet('guru');
+export const addGuruToSheet = (row) => addToSheet('guru', row);
+export const updateGuruInSheet = (row) => updateInSheet('guru', row);
+export const deleteGuruFromSheet = (no) => deleteFromSheet('guru', no);
+
 // ---- Alias khusus log aktivitas ----
 export const fetchLogFromSheet = () => fetchFromSheet('log');
 export async function addLogEntry({ username, namaUser, aksi, modul, detail }) {

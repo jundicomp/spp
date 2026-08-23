@@ -17,8 +17,10 @@
  * WAJIB redeploy (Deploy -> Manage deployments -> ikon pensil -> Version:
  * New version -> Deploy) supaya action baru (update/delete/addLog) aktif.
  *
- * Script ini melayani TIGA "tabel" sekaligus dalam satu Spreadsheet:
+ * Script ini melayani LIMA "tabel" sekaligus dalam satu Spreadsheet:
  *   - sheet=siswa -> tab "Data Siswa"    (data induk siswa)
+ *   - sheet=kelas -> tab "Data Kelas"    (kelas & rombel)
+ *   - sheet=guru  -> tab "Data Guru"     (guru & staf)
  *   - sheet=users -> tab "Users"         (akun login aplikasi)
  *   - sheet=log   -> tab "LogAktivitas"  (riwayat edit/hapus data)
  * ===================================================================
@@ -35,6 +37,14 @@ const SHEETS = {
       'Nama Lengkap', 'NISN', 'NIK', 'Tempat Lahir', 'Tanggal Lahir',
       'Jenis Kelamin', 'Alamat', 'Nama Ayah Kandung', 'Nama Ibu Kandung', 'Pekerjaan',
     ],
+  },
+  kelas: {
+    name: 'Data Kelas',
+    headers: ['No', 'Nama Kelas', 'Tingkat', 'Wali Kelas', 'Ruang', 'Kapasitas'],
+  },
+  guru: {
+    name: 'Data Guru',
+    headers: ['No', 'Nama Lengkap', 'NIP/NUPTK', 'Jabatan', 'Mata Pelajaran', 'No HP', 'Email', 'Status'],
   },
   users: {
     name: 'Users',

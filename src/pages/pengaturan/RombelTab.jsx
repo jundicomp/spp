@@ -3,8 +3,14 @@ import { hitungUsia } from '../../db/helpers';
 import { useAppData } from '../../context/AppContext';
 
 export default function RombelTab() {
-  const { siswa, siswaLoading, siswaLoaded } = useAppData();
+  const { siswa, siswaLoading, siswaLoaded, kelas } = useAppData();
   const [filterKelas, setFilterKelas] = useState('Semua');
+
+  const waliKelasByTingkat = useMemo(() => {
+    const map = {};
+    kelas.forEach(k => { if (k.tingkat && k.waliKelas) map[k.tingkat] = k.waliKelas; });
+    return map;
+  }, [kelas]);
 
   const daftarKelas = useMemo(() => {
     const set = new Set(siswa.map(s => s.kelasTingkat).filter(Boolean));
@@ -40,6 +46,7 @@ export default function RombelTab() {
                 {filtered.map((s, idx) => {
                   const usia = hitungUsia(s.tanggalLahir);
                   const lp = s.jenisKelamin === 'Laki-laki' ? 'L' : s.jenisKelamin === 'Perempuan' ? 'P' : '-';
+                  const wali = waliKelasByTingkat[s.kelasTingkat];
                   return (
                     <tr key={s.id}>
                       <td>{idx + 1}</td>
@@ -48,7 +55,7 @@ export default function RombelTab() {
                       <td>{s.nik || '-'}</td>
                       <td>{usia !== null ? `${usia} tahun` : '-'}</td>
                       <td>{lp}</td>
-                      <td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>Belum ditentukan</td>
+                      <td style={wali ? undefined : { color: 'var(--muted)', fontStyle: 'italic' }}>{wali || 'Belum ditentukan'}</td>
                     </tr>
                   );
                 })}

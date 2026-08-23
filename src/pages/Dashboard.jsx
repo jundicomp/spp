@@ -3,7 +3,7 @@ import Page from '../components/layout/Page';
 import { useAppData } from '../context/AppContext';
 
 export default function Dashboard() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, tahunAjaranAktif } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, kelas, guru, tahunAjaranAktif } = useAppData();
 
   const stats = useMemo(() => {
     const perTingkat = {};
@@ -21,6 +21,19 @@ export default function Dashboard() {
 
   return (
     <Page pageId="dashboard" title="Dashboard" path="Dashboard">
+      {(kelas.length > 0 || guru.length > 0) && (
+        <div className="info-grid" style={{ marginBottom: 20 }}>
+          <div className="info-card c-blue">
+            <div className="info-value">{guru.filter(g => g.status === 'Aktif').length}</div>
+            <div className="info-label">Guru &amp; Staff Aktif</div>
+          </div>
+          <div className="info-card c-purple">
+            <div className="info-value">{kelas.length}</div>
+            <div className="info-label">Kelas &amp; Rombel</div>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <div className="card-head">
           <div><h3>📋 Data Siswa</h3><p>Diambil langsung dari Google Sheets — tahun ajaran aktif {tahunAjaranAktif?.label}.</p></div>

@@ -1,7 +1,10 @@
-import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useMemo, useState, useCallback } from 'react';
 import { tahunAjaranList, permissionRoles, halamanSensitif } from '../db/seed';
 import { normalizeSheetSiswa } from '../db/siswaFields';
-import { isConfigured, fetchSiswaFromSheet } from '../services/googleSheets';
+import { normalizeSheetKelas } from '../db/kelasFields';
+import { normalizeSheetGuru } from '../db/guruFields';
+import { fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet } from '../services/googleSheets';
+import useSheetResource from '../hooks/useSheetResource';
 
 const AppDataContext = createContext(null);
 
@@ -46,32 +49,10 @@ export function AppProvider({ children }) {
   const [permissions, setPermissions] = useState(buildDefaultPermissions());
   const [toasts, setToasts] = useState([]);
 
-  // ---- Data Siswa: SUMBER ASLINYA Google Sheets, bukan lagi data dami ----
-  const [siswa, setSiswaRaw] = useState([]);
-  const [siswaLoading, setSiswaLoading] = useState(false);
-  const [siswaError, setSiswaError] = useState(null);
-  const [siswaLoaded, setSiswaLoaded] = useState(false);
-
-  const refreshSiswa = useCallback(async () => {
-    if (!isConfigured()) {
-      setSiswaRaw([]);
-      setSiswaLoaded(false);
-      return;
-    }
-    setSiswaLoading(true);
-    setSiswaError(null);
-    try {
-      const rows = await fetchSiswaFromSheet();
-      setSiswaRaw(rows.map(normalizeSheetSiswa));
-      setSiswaLoaded(true);
-    } catch (err) {
-      setSiswaError(err.message);
-    } finally {
-      setSiswaLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { refreshSiswa(); }, [refreshSiswa]);
+  // ---- Data induk: SUMBER ASLINYA Google Sheets, bukan lagi data dami ----
+  const siswaRes = useSheetResource(fetchSiswaFromSheet, normalizeSheetSiswa);
+  const kelasRes = useSheetResource(fetchKelasFromSheet, normalizeSheetKelas);
+  const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru);
 
   const toast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -81,7 +62,7 @@ export function AppProvider({ children }) {
 
   const tahunAjaranAktifObj = useMemo(() => tahunAjaran.find(t => t.aktif), [tahunAjaran]);
 
-  const siswaById = useCallback((id) => siswa.find(s => s.id === id), [siswa]);
+  const siswaById = useCallback((id) => siswaRes.data.find(s => s.id === id), [siswaRes.data]);
 
   const setTahunAjaranAktif = useCallback((id) => {
     setTahunAjaran(list => list.map(t => ({ ...t, aktif: t.id === id })));
@@ -89,7 +70,9 @@ export function AppProvider({ children }) {
 
   const value = {
     tahunAjaran, setTahunAjaran, tahunAjaranAktif: tahunAjaranAktifObj, setTahunAjaranAktif,
-    siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, siswaById,
+    siswa: siswaRes.data, siswaLoading: siswaRes.loading, siswaError: siswaRes.error, siswaLoaded: siswaRes.loaded, refreshSiswa: siswaRes.refresh, siswaById,
+    kelas: kelasRes.data, kelasLoading: kelasRes.loading, kelasError: kelasRes.error, kelasLoaded: kelasRes.loaded, refreshKelas: kelasRes.refresh,
+    guru: guruRes.data, guruLoading: guruRes.loading, guruError: guruRes.error, guruLoaded: guruRes.loaded, refreshGuru: guruRes.refresh,
     permissions, setPermissions,
     toast, toasts,
     HAK_AKSES_PAGES, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,
