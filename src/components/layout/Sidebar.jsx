@@ -72,10 +72,11 @@ export default function Sidebar() {
             <Item to="/profil" canAccess={canAccess('profil')}>Profil Sekolah &amp; Tahun Ajaran</Item>
             <Item to="/kelas" canAccess={canAccess('kelas')}>Data Kelas &amp; Rombel</Item>
             <Item to="/guru" canAccess={canAccess('guru')}>Data Guru &amp; Staff</Item>
-            <Item to="/siswa" canAccess={canAccess('siswa')}>Data Siswa (Ringkas)</Item>
+            <Item to="/siswa" canAccess={canAccess('siswa')}>Data Siswa</Item>
           </NavGroup>
           <NavGroup id="pgt-system" label="🖥️ SYSTEM" sub open={openGroups['pgt-system']} onToggle={toggle}>
             <Item to="/koneksi-sheets" canAccess={canAccess('koneksi-sheets')}>Pengaturan Koneksi</Item>
+            <Item to="/log-histori" canAccess={canAccess('log-histori')}>Log Histori</Item>
           </NavGroup>
         </NavGroup>
       </nav>

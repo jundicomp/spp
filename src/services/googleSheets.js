@@ -59,11 +59,58 @@ export async function bulkAddToSheet(sheetName, rows) {
   return json;
 }
 
+export async function updateInSheet(sheetName, row) {
+  const { url, secret } = getSheetsConfig();
+  if (!url) throw new Error('URL Apps Script belum diatur. Buka Pengaturan Koneksi dulu.');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'update', secret, sheet: sheetName, row }),
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Gagal memperbarui data.');
+  return json;
+}
+
+export async function deleteFromSheet(sheetName, no) {
+  const { url, secret } = getSheetsConfig();
+  if (!url) throw new Error('URL Apps Script belum diatur. Buka Pengaturan Koneksi dulu.');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'delete', secret, sheet: sheetName, no }),
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Gagal menghapus data.');
+  return json;
+}
+
 // ---- Alias khusus siswa (dipakai halaman Data Siswa, biar kode lama tetap jalan) ----
 export const fetchSiswaFromSheet = () => fetchFromSheet('siswa');
 export const addSiswaToSheet = (row) => addToSheet('siswa', row);
 export const bulkAddSiswaToSheet = (rows) => bulkAddToSheet('siswa', rows);
+export const updateSiswaInSheet = (row) => updateInSheet('siswa', row);
+export const deleteSiswaFromSheet = (no) => deleteFromSheet('siswa', no);
 
 // ---- Alias khusus users ----
 export const fetchUsersFromSheet = () => fetchFromSheet('users');
 export const addUserToSheet = (row) => addToSheet('users', row);
+
+// ---- Alias khusus log aktivitas ----
+export const fetchLogFromSheet = () => fetchFromSheet('log');
+export async function addLogEntry({ username, namaUser, aksi, modul, detail }) {
+  const row = {
+    Waktu: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),
+    Username: username,
+    'Nama User': namaUser,
+    Aksi: aksi,
+    Modul: modul,
+    Detail: detail || '',
+  };
+  try {
+    await addToSheet('log', row);
+  } catch (err) {
+    // Log gagal tersimpan JANGAN sampai membatalkan aksi utama (edit/hapus) yg sudah terjadi.
+    console.warn('Gagal mencatat log aktivitas:', err.message);
+  }
+}

@@ -13,9 +13,14 @@
  * 6. Salin URL Web App yang muncul (diakhiri /exec) -> tempel di
  *    aplikasi React, bagian Pengaturan Koneksi (khusus Admin).
  *
- * Script ini melayani DUA "tabel" sekaligus dalam satu Spreadsheet:
- *   - sheet=siswa  -> tab "Data Siswa"  (data induk siswa)
- *   - sheet=users  -> tab "Users"       (akun login aplikasi)
+ * PENTING kalau update dari versi sebelumnya: setelah tempel ulang kode ini,
+ * WAJIB redeploy (Deploy -> Manage deployments -> ikon pensil -> Version:
+ * New version -> Deploy) supaya action baru (update/delete/addLog) aktif.
+ *
+ * Script ini melayani TIGA "tabel" sekaligus dalam satu Spreadsheet:
+ *   - sheet=siswa -> tab "Data Siswa"    (data induk siswa)
+ *   - sheet=users -> tab "Users"         (akun login aplikasi)
+ *   - sheet=log   -> tab "LogAktivitas"  (riwayat edit/hapus data)
  * ===================================================================
  */
 
@@ -35,10 +40,14 @@ const SHEETS = {
     name: 'Users',
     headers: ['No', 'Nama', 'Role', 'Username', 'Password', 'Email'],
   },
+  log: {
+    name: 'LogAktivitas',
+    headers: ['No', 'Waktu', 'Username', 'Nama User', 'Aksi', 'Modul', 'Detail'],
+  },
 };
 
 function doGet(e) {
-  const which = (e.parameter && e.parameter.sheet === 'users') ? 'users' : 'siswa';
+  const which = SHEETS[e.parameter && e.parameter.sheet] ? e.parameter.sheet : 'siswa';
   const cfg = SHEETS[which];
   const sheet = getSheet_(cfg);
   const data = sheet.getDataRange().getValues();
@@ -56,7 +65,7 @@ function doPost(e) {
     if (body.secret !== SECRET) {
       return jsonResponse_({ ok: false, error: 'Kata sandi tidak cocok. Cek pengaturan koneksi.' });
     }
-    const which = (body.sheet === 'users') ? 'users' : 'siswa';
+    const which = SHEETS[body.sheet] ? body.sheet : 'siswa';
     const cfg = SHEETS[which];
     const sheet = getSheet_(cfg);
 
@@ -67,6 +76,16 @@ function doPost(e) {
     if (body.action === 'bulkAdd') {
       body.rows.forEach(row => appendRow_(sheet, cfg.headers, row));
       return jsonResponse_({ ok: true, count: body.rows.length });
+    }
+    if (body.action === 'update') {
+      const found = updateRow_(sheet, cfg.headers, body.row);
+      if (!found) return jsonResponse_({ ok: false, error: 'Baris dengan No=' + body.row['No'] + ' tidak ditemukan.' });
+      return jsonResponse_({ ok: true });
+    }
+    if (body.action === 'delete') {
+      const found = deleteRow_(sheet, cfg.headers, body.no);
+      if (!found) return jsonResponse_({ ok: false, error: 'Baris dengan No=' + body.no + ' tidak ditemukan.' });
+      return jsonResponse_({ ok: true });
     }
     return jsonResponse_({ ok: false, error: 'Aksi "' + body.action + '" tidak dikenal.' });
   } catch (err) {
@@ -86,6 +105,38 @@ function appendRow_(sheet, headers, rowObj) {
   const nextNo = sheet.getLastRow(); // baris 1 = header, jadi ini otomatis nomor urut berikutnya
   const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
   sheet.appendRow(row);
+}
+
+// Cari baris via kolom "No", timpa semua kolom lain dgn nilai baru. "No" sendiri tidak berubah.
+function updateRow_(sheet, headers, rowObj) {
+  const noCol = headers.indexOf('No') + 1;
+  const targetNo = String(rowObj['No']);
+  const lastRow = sheet.getLastRow();
+  for (let r = 2; r <= lastRow; r++) {
+    const cellVal = String(sheet.getRange(r, noCol).getValue());
+    if (cellVal === targetNo) {
+      const newRow = headers.map(h => (h === 'No' ? rowObj['No'] : (rowObj[h] !== undefined ? rowObj[h] : '')));
+      sheet.getRange(r, 1, 1, headers.length).setValues([newRow]);
+      return true;
+    }
+  }
+  return false;
+}
+
+// Cari baris via kolom "No", hapus barisnya. Nomor baris lain SENGAJA tidak digeser ulang
+// (No hanya perlu unik, tidak harus berurutan tanpa celah).
+function deleteRow_(sheet, headers, targetNoRaw) {
+  const noCol = headers.indexOf('No') + 1;
+  const targetNo = String(targetNoRaw);
+  const lastRow = sheet.getLastRow();
+  for (let r = 2; r <= lastRow; r++) {
+    const cellVal = String(sheet.getRange(r, noCol).getValue());
+    if (cellVal === targetNo) {
+      sheet.deleteRow(r);
+      return true;
+    }
+  }
+  return false;
 }
 
 function jsonResponse_(obj) {

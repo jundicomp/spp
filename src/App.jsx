@@ -9,6 +9,8 @@ import DataSiswaSheets from './pages/pengaturan/DataSiswaSheets';
 import ManajemenUser from './pages/pengaturan/ManajemenUser';
 import ManajemenHakAkses from './pages/pengaturan/ManajemenHakAkses';
 import KoneksiSheets from './pages/pengaturan/KoneksiSheets';
+import LogHistori from './pages/pengaturan/LogHistori';
+import ProfilSaya from './pages/pengaturan/ProfilSaya';
 import ComingSoon from './pages/ComingSoon';
 
 const PLACEHOLDER_PAGES = [
@@ -35,6 +37,8 @@ function Gate() {
         <Route path="/manajemen-user" element={<ManajemenUser />} />
         <Route path="/hakakses" element={<ManajemenHakAkses />} />
         <Route path="/koneksi-sheets" element={<KoneksiSheets />} />
+        <Route path="/log-histori" element={<LogHistori />} />
+        <Route path="/profil-saya" element={<ProfilSaya />} />
         {PLACEHOLDER_PAGES.map(p => (
           <Route key={p.path} path={p.path} element={<ComingSoon pageId={p.pageId} title={p.title} path={p.menu} />} />
         ))}

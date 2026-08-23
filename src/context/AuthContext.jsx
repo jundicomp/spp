@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
     // ---- Akun Admin Induk: SELALU bisa login, tak peduli status Google Sheets ----
     if (uname === MASTER_ADMIN.username && pass === MASTER_ADMIN.password) {
       setLoggingIn(false);
-      setCurrentUser({ id: 'MASTER-ADMIN', nama: MASTER_ADMIN.nama, role: MASTER_ADMIN.role, username: MASTER_ADMIN.username, email: MASTER_ADMIN.email });
+      setCurrentUser({ id: 'MASTER-ADMIN', nama: MASTER_ADMIN.nama, role: MASTER_ADMIN.role, username: MASTER_ADMIN.username, email: MASTER_ADMIN.email, password: MASTER_ADMIN.password });
       return true;
     }
 
@@ -67,6 +67,11 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => setCurrentUser(null), []);
 
+  const verifyPassword = useCallback((password) => {
+    if (!currentUser) return false;
+    return String(password).trim() === String(currentUser.password).trim();
+  }, [currentUser]);
+
   const canAccess = useCallback((pageId) => {
     if (!currentUser) return false;
     const roleperm = permissions[currentUser.role];
@@ -75,7 +80,7 @@ export function AuthProvider({ children }) {
   }, [currentUser, permissions]);
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, loginError, loggingIn, canAccess }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, loginError, loggingIn, canAccess, verifyPassword }}>
       {children}
     </AuthContext.Provider>
   );

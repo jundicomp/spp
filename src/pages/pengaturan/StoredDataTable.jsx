@@ -1,14 +1,31 @@
 import { useEffect, useState, useCallback } from 'react';
 import DataTable from '../../components/common/DataTable';
+import PasswordConfirmModal from '../../components/common/PasswordConfirmModal';
 import { SISWA_HEADERS } from '../../db/siswaFields';
-import { fetchSiswaFromSheet, isConfigured } from '../../services/googleSheets';
+import { fetchSiswaFromSheet, deleteSiswaFromSheet, addLogEntry, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import EditSiswaModal from './EditSiswaModal';
+
+const ICON_EDIT = (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+  </svg>
+);
+const ICON_DELETE = (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6" />
+  </svg>
+);
 
 export default function StoredDataTable({ refreshKey }) {
-  const { toast } = useAppData();
+  const { toast, refreshSiswa } = useAppData();
+  const { currentUser } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [editRow, setEditRow] = useState(null);
+  const [deleteRow, setDeleteRow] = useState(null);
 
   const load = useCallback(async () => {
     if (!isConfigured()) return;
@@ -26,16 +43,48 @@ export default function StoredDataTable({ refreshKey }) {
 
   useEffect(() => { load(); }, [load, refreshKey]);
 
-  const columns = SISWA_HEADERS.filter(h => h !== 'No').map(h => ({ key: h, label: h, accessor: (r) => r[h] }));
+  async function doDelete() {
+    try {
+      await deleteSiswaFromSheet(deleteRow['No']);
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Hapus Data',
+        modul: 'Data Siswa',
+        detail: `Menghapus data siswa "${deleteRow['Nama Lengkap']}" (No. ${deleteRow['No']})`,
+      });
+      toast('Data siswa berhasil dihapus.');
+      setDeleteRow(null);
+      load();
+      refreshSiswa();
+    } catch (err) {
+      toast(err.message, 'error');
+      throw err;
+    }
+  }
+
+  const columns = [
+    ...SISWA_HEADERS.filter(h => h !== 'No').map(h => ({ key: h, label: h, accessor: (r) => r[h] })),
+    {
+      key: 'aksi',
+      label: 'Aksi',
+      render: (r) => (
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button className="btn-icon" title="Edit" onClick={() => setEditRow(r)}>{ICON_EDIT}</button>
+          <button className="btn-icon danger" title="Hapus" onClick={() => setDeleteRow(r)}>{ICON_DELETE}</button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="card">
       <div className="card-head">
-        <div><h3>Data Siswa Tersimpan</h3><p>Diambil langsung dari Google Sheets.</p></div>
+        <div><h3>Data Siswa (Tabel)</h3><p>Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini.</p></div>
         <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
       </div>
       <div className="card-body">
-        {!isConfigured() && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Atur koneksi Google Sheets dulu di bagian atas untuk melihat data.</p>}
+        {!isConfigured() && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Atur koneksi Google Sheets dulu untuk melihat data.</p>}
         {isConfigured() && loaded && (
           <DataTable
             columns={columns}
@@ -46,6 +95,20 @@ export default function StoredDataTable({ refreshKey }) {
           />
         )}
       </div>
+
+      {editRow && (
+        <EditSiswaModal row={editRow} onClose={() => setEditRow(null)} onSaved={load} />
+      )}
+
+      {deleteRow && (
+        <PasswordConfirmModal
+          title="Konfirmasi Hapus Data"
+          message={`Anda akan menghapus data siswa "${deleteRow['Nama Lengkap']}". Tindakan ini tidak bisa dibatalkan.`}
+          danger
+          onConfirm={doDelete}
+          onClose={() => setDeleteRow(null)}
+        />
+      )}
     </div>
   );
 }

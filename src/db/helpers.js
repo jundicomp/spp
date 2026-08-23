@@ -34,3 +34,38 @@ export function tagihanStatus(nominal, terbayar){
   if(terbayar >= nominal) return 'Lunas';
   return 'Sebagian';
 }
+
+// Parse tanggal dari berbagai format yang mungkin masuk dari Excel/Sheets:
+// "10/05/2017" (dd/mm/yyyy, format Indonesia -- dari toLocaleDateString('id-ID')),
+// "2017-05-10" (ISO), atau objek Date asli. Return null kalau tidak bisa diparse.
+export function parseTanggalFleksibel(input){
+  if(!input) return null;
+  if(input instanceof Date && !isNaN(input)) return input;
+  const s = String(input).trim();
+  if(!s) return null;
+  // dd/mm/yyyy atau dd-mm-yyyy
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m){
+    const d = new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+    return isNaN(d) ? null : d;
+  }
+  // yyyy-mm-dd (ISO)
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){
+    const d = new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+    return isNaN(d) ? null : d;
+  }
+  const fallback = new Date(s);
+  return isNaN(fallback) ? null : fallback;
+}
+
+export function hitungUsia(tanggalLahirInput){
+  const lahir = parseTanggalFleksibel(tanggalLahirInput);
+  if(!lahir) return null;
+  const now = new Date();
+  let usia = now.getFullYear() - lahir.getFullYear();
+  const belumUlangTahun = (now.getMonth() < lahir.getMonth()) ||
+    (now.getMonth() === lahir.getMonth() && now.getDate() < lahir.getDate());
+  if(belumUlangTahun) usia--;
+  return usia >= 0 ? usia : null;
+}
