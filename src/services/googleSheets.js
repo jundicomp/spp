@@ -108,6 +108,31 @@ export const addGuruToSheet = (row) => addToSheet('guru', row);
 export const updateGuruInSheet = (row) => updateInSheet('guru', row);
 export const deleteGuruFromSheet = (no) => deleteFromSheet('guru', no);
 
+// ---- Alias khusus Profil Sekolah (SELALU 1 baris, No=1) ----
+export const fetchProfilFromSheet = () => fetchFromSheet('profil');
+export async function saveProfilToSheet(row, exists) {
+  const payload = { ...row, No: 1 };
+  return exists ? updateInSheet('profil', payload) : addToSheet('profil', payload);
+}
+
+// ---- Alias khusus Tahun Ajaran ----
+export const fetchTahunAjaranFromSheet = () => fetchFromSheet('tahunAjaran');
+export const addTahunAjaranToSheet = (row) => addToSheet('tahunAjaran', row);
+export const updateTahunAjaranInSheet = (row) => updateInSheet('tahunAjaran', row);
+export const deleteTahunAjaranFromSheet = (no) => deleteFromSheet('tahunAjaran', no);
+export async function setActiveTahunAjaranOnSheet(no) {
+  const { url, secret } = getSheetsConfig();
+  if (!url) throw new Error('URL Apps Script belum diatur. Buka Pengaturan Koneksi dulu.');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'setActiveTahunAjaran', secret, sheet: 'tahunAjaran', no }),
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Gagal mengaktifkan tahun ajaran.');
+  return json;
+}
+
 // ---- Alias khusus log aktivitas ----
 export const fetchLogFromSheet = () => fetchFromSheet('log');
 export async function addLogEntry({ username, namaUser, aksi, modul, detail }) {

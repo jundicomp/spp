@@ -19,7 +19,7 @@ const ICON_DELETE = (
 
 export default function GenericStoredTable({
   title, subtitle, headers, fields, fetchFn, updateFn, deleteFn,
-  moduleLabel, labelKey, searchFn, onChanged,
+  moduleLabel, labelKey, searchFn, onChanged, extraActions, refreshSignal,
 }) {
   const { toast } = useAppData();
   const { currentUser } = useAuth();
@@ -43,7 +43,7 @@ export default function GenericStoredTable({
     }
   }, [toast, fetchFn]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshSignal]);
 
   async function doDelete() {
     try {
@@ -71,7 +71,8 @@ export default function GenericStoredTable({
       key: 'aksi',
       label: 'Aksi',
       render: (r) => (
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {extraActions && extraActions(r)}
           <button className="btn-icon" title="Edit" onClick={() => setEditRow(r)}>{ICON_EDIT}</button>
           <button className="btn-icon danger" title="Hapus" onClick={() => setDeleteRow(r)}>{ICON_DELETE}</button>
         </div>

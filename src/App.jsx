@@ -8,6 +8,7 @@ import SppPesertaDidik from './pages/spp/SppPesertaDidik';
 import DataSiswaSheets from './pages/pengaturan/DataSiswaSheets';
 import DataKelas from './pages/pengaturan/DataKelas';
 import DataGuru from './pages/pengaturan/DataGuru';
+import ProfilSekolahDanTahunAjaran from './pages/pengaturan/ProfilSekolahDanTahunAjaran';
 import ManajemenUser from './pages/pengaturan/ManajemenUser';
 import ManajemenHakAkses from './pages/pengaturan/ManajemenHakAkses';
 import KoneksiSheets from './pages/pengaturan/KoneksiSheets';
@@ -21,7 +22,6 @@ const PLACEHOLDER_PAGES = [
   { path: '/tunggakan', pageId: 'tunggakan', title: 'Rekap Tunggakan', menu: 'Keuangan / Rekap Tunggakan' },
   { path: '/laporan-keuangan', pageId: 'laporan-keuangan', title: 'Laporan Keuangan', menu: 'Keuangan / Laporan Keuangan' },
   { path: '/aset', pageId: 'aset', title: 'Data Aset & Inventaris', menu: 'Sarpras / Data Aset & Inventaris' },
-  { path: '/profil', pageId: 'profil', title: 'Profil Sekolah & Tahun Ajaran', menu: 'Pengaturan / Profil Sekolah' },
 ];
 
 function Gate() {
@@ -36,6 +36,7 @@ function Gate() {
         <Route path="/siswa" element={<DataSiswaSheets />} />
         <Route path="/kelas" element={<DataKelas />} />
         <Route path="/guru" element={<DataGuru />} />
+        <Route path="/profil" element={<ProfilSekolahDanTahunAjaran />} />
         <Route path="/manajemen-user" element={<ManajemenUser />} />
         <Route path="/hakakses" element={<ManajemenHakAkses />} />
         <Route path="/koneksi-sheets" element={<KoneksiSheets />} />

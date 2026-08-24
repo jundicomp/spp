@@ -1,9 +1,15 @@
-import { createContext, useContext, useMemo, useState, useCallback } from 'react';
-import { tahunAjaranList, permissionRoles, halamanSensitif } from '../db/seed';
+import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
+import { permissionRoles, halamanSensitif } from '../db/seed';
 import { normalizeSheetSiswa } from '../db/siswaFields';
 import { normalizeSheetKelas } from '../db/kelasFields';
 import { normalizeSheetGuru } from '../db/guruFields';
-import { fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet } from '../services/googleSheets';
+import { normalizeSheetTahunAjaran } from '../db/tahunAjaranFields';
+import { normalizeSheetProfil } from '../db/profilFields';
+import {
+  fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
+  fetchTahunAjaranFromSheet, fetchProfilFromSheet,
+  setActiveTahunAjaranOnSheet, isConfigured,
+} from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
 
 const AppDataContext = createContext(null);
@@ -45,7 +51,6 @@ function buildDefaultPermissions() {
 }
 
 export function AppProvider({ children }) {
-  const [tahunAjaran, setTahunAjaran] = useState(tahunAjaranList);
   const [permissions, setPermissions] = useState(buildDefaultPermissions());
   const [toasts, setToasts] = useState([]);
 
@@ -53,6 +58,29 @@ export function AppProvider({ children }) {
   const siswaRes = useSheetResource(fetchSiswaFromSheet, normalizeSheetSiswa);
   const kelasRes = useSheetResource(fetchKelasFromSheet, normalizeSheetKelas);
   const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru);
+  const tahunAjaranRes = useSheetResource(fetchTahunAjaranFromSheet, normalizeSheetTahunAjaran);
+
+  // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
+  const [profilSekolah, setProfilSekolahRaw] = useState(null);
+  const [profilLoading, setProfilLoading] = useState(false);
+  const [profilExists, setProfilExists] = useState(false);
+  const refreshProfil = useCallback(async () => {
+    if (!isConfigured()) { setProfilSekolahRaw(null); return; }
+    setProfilLoading(true);
+    try {
+      const rows = await fetchProfilFromSheet();
+      if (rows.length > 0) {
+        setProfilSekolahRaw(normalizeSheetProfil(rows[0]));
+        setProfilExists(true);
+      } else {
+        setProfilSekolahRaw(null);
+        setProfilExists(false);
+      }
+    } finally {
+      setProfilLoading(false);
+    }
+  }, []);
+  useEffect(() => { refreshProfil(); }, [refreshProfil]);
 
   const toast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -60,19 +88,23 @@ export function AppProvider({ children }) {
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3200);
   }, []);
 
-  const tahunAjaranAktifObj = useMemo(() => tahunAjaran.find(t => t.aktif), [tahunAjaran]);
+  const tahunAjaranAktifObj = useMemo(() => tahunAjaranRes.data.find(t => t.aktif), [tahunAjaranRes.data]);
 
   const siswaById = useCallback((id) => siswaRes.data.find(s => s.id === id), [siswaRes.data]);
 
-  const setTahunAjaranAktif = useCallback((id) => {
-    setTahunAjaran(list => list.map(t => ({ ...t, aktif: t.id === id })));
-  }, []);
+  const setTahunAjaranAktif = useCallback(async (no) => {
+    await setActiveTahunAjaranOnSheet(no);
+    await tahunAjaranRes.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tahunAjaranRes.refresh]);
 
   const value = {
-    tahunAjaran, setTahunAjaran, tahunAjaranAktif: tahunAjaranAktifObj, setTahunAjaranAktif,
+    tahunAjaran: tahunAjaranRes.data, tahunAjaranLoading: tahunAjaranRes.loading, tahunAjaranLoaded: tahunAjaranRes.loaded, refreshTahunAjaran: tahunAjaranRes.refresh,
+    tahunAjaranAktif: tahunAjaranAktifObj, setTahunAjaranAktif,
     siswa: siswaRes.data, siswaLoading: siswaRes.loading, siswaError: siswaRes.error, siswaLoaded: siswaRes.loaded, refreshSiswa: siswaRes.refresh, siswaById,
     kelas: kelasRes.data, kelasLoading: kelasRes.loading, kelasError: kelasRes.error, kelasLoaded: kelasRes.loaded, refreshKelas: kelasRes.refresh,
     guru: guruRes.data, guruLoading: guruRes.loading, guruError: guruRes.error, guruLoaded: guruRes.loaded, refreshGuru: guruRes.refresh,
+    profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions, setPermissions,
     toast, toasts,
     HAK_AKSES_PAGES, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,

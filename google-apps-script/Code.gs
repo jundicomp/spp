@@ -17,12 +17,14 @@
  * WAJIB redeploy (Deploy -> Manage deployments -> ikon pensil -> Version:
  * New version -> Deploy) supaya action baru (update/delete/addLog) aktif.
  *
- * Script ini melayani LIMA "tabel" sekaligus dalam satu Spreadsheet:
- *   - sheet=siswa -> tab "Data Siswa"    (data induk siswa)
- *   - sheet=kelas -> tab "Data Kelas"    (kelas & rombel)
- *   - sheet=guru  -> tab "Data Guru"     (guru & staf)
- *   - sheet=users -> tab "Users"         (akun login aplikasi)
- *   - sheet=log   -> tab "LogAktivitas"  (riwayat edit/hapus data)
+ * Script ini melayani TUJUH "tabel" sekaligus dalam satu Spreadsheet:
+ *   - sheet=siswa       -> tab "Data Siswa"     (data induk siswa)
+ *   - sheet=kelas       -> tab "Data Kelas"     (kelas & rombel)
+ *   - sheet=guru        -> tab "Data Guru"      (guru & staf)
+ *   - sheet=profil      -> tab "Profil Sekolah" (1 baris saja -- identitas sekolah)
+ *   - sheet=tahunAjaran -> tab "Tahun Ajaran"   (daftar tahun ajaran, 1 yg aktif)
+ *   - sheet=users       -> tab "Users"          (akun login aplikasi)
+ *   - sheet=log         -> tab "LogAktivitas"   (riwayat edit/hapus data)
  * ===================================================================
  */
 
@@ -45,6 +47,14 @@ const SHEETS = {
   guru: {
     name: 'Data Guru',
     headers: ['No', 'Nama Lengkap', 'NIP/NUPTK', 'Jabatan', 'Mata Pelajaran', 'No HP', 'Email', 'Status'],
+  },
+  profil: {
+    name: 'Profil Sekolah',
+    headers: ['No', 'Nama Sekolah', 'NPSN', 'Alamat', 'Kepala Sekolah', 'Telepon', 'Email', 'Logo'],
+  },
+  tahunAjaran: {
+    name: 'Tahun Ajaran',
+    headers: ['No', 'Label', 'Mulai', 'Selesai', 'Aktif'],
   },
   users: {
     name: 'Users',
@@ -97,6 +107,10 @@ function doPost(e) {
       if (!found) return jsonResponse_({ ok: false, error: 'Baris dengan No=' + body.no + ' tidak ditemukan.' });
       return jsonResponse_({ ok: true });
     }
+    if (body.action === 'setActiveTahunAjaran') {
+      setActiveTahunAjaran_(sheet, cfg.headers, body.no);
+      return jsonResponse_({ ok: true });
+    }
     return jsonResponse_({ ok: false, error: 'Aksi "' + body.action + '" tidak dikenal.' });
   } catch (err) {
     return jsonResponse_({ ok: false, error: String(err) });
@@ -147,6 +161,19 @@ function deleteRow_(sheet, headers, targetNoRaw) {
     }
   }
   return false;
+}
+
+// Set kolom "Aktif" = TRUE utk baris dgn No=targetNo, dan FALSE utk semua baris lain.
+// Dilakukan dalam satu operasi supaya tidak pernah ada 0 atau 2 tahun ajaran aktif sekaligus.
+function setActiveTahunAjaran_(sheet, headers, targetNo) {
+  const noCol = headers.indexOf('No') + 1;
+  const aktifCol = headers.indexOf('Aktif') + 1;
+  const lastRow = sheet.getLastRow();
+  const target = String(targetNo);
+  for (let r = 2; r <= lastRow; r++) {
+    const cellVal = String(sheet.getRange(r, noCol).getValue());
+    sheet.getRange(r, aktifCol).setValue(cellVal === target ? 'TRUE' : 'FALSE');
+  }
 }
 
 function jsonResponse_(obj) {
