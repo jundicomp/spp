@@ -1,10 +1,72 @@
 import { useMemo, useState } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
-import { initials, avatarColor } from '../../db/helpers';
+import { statusTagihan } from '../../db/tagihanHelpers';
+import { initials, avatarColor, BULAN_ID } from '../../db/helpers';
+
+function formatRupiah(n) {
+  return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+}
+
+function StatusBadge({ status }) {
+  const map = { Lunas: 'badge-green', Sebagian: 'badge-gold', 'Belum Lunas': 'badge-red' };
+  return <span className={`badge ${map[status] || 'badge-muted'}`}>{status}</span>;
+}
+
+function TahunCard({ tahunAjaran, items, defaultOpen }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  const spp = items.filter(t => t.refType === 'SPP').sort((a, b) => (a.tahunKalender - b.tahunKalender) || (BULAN_ID.indexOf(a.bulan) - BULAN_ID.indexOf(b.bulan)));
+  const lain = items.filter(t => t.refType === 'LAIN');
+  const totalTagihan = items.reduce((s, t) => s + t.nominal, 0);
+  const totalBayar = items.reduce((s, t) => s + t.terbayar, 0);
+  const sisa = totalTagihan - totalBayar;
+  const statusTahun = statusTagihan(totalTagihan, totalBayar);
+
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, marginBottom: 10, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#F6F8F5', cursor: 'pointer' }}>
+        <strong style={{ fontSize: 13.5 }}>Tahun Pelajaran {tahunAjaran}</strong>
+        <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><StatusBadge status={statusTahun} /> {open ? '▴' : '▾'}</span>
+      </div>
+      {open && (
+        <div style={{ padding: 16 }}>
+          {spp.length > 0 && (
+            <table>
+              <thead><tr><th>No</th><th>Bulan</th><th>Nominal</th><th>Status</th></tr></thead>
+              <tbody>
+                {spp.map((t, idx) => (
+                  <tr key={t.id}><td>{idx + 1}</td><td>{t.bulan} {t.tahunKalender}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {lain.length > 0 && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 13, margin: '14px 0 8px' }}>Biaya Lain Tahun Ini</div>
+              <table>
+                <thead><tr><th>Jenis Biaya</th><th>Nominal</th><th>Status</th></tr></thead>
+                <tbody>
+                  {lain.map(t => (
+                    <tr key={t.id}><td>{t.label}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          <div className="info-grid" style={{ marginTop: 14 }}>
+            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Total Tagihan</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalTagihan)}</div></div>
+            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sudah Dibayar</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalBayar)}</div></div>
+            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sisa</div><div style={{ fontWeight: 800 }}>{formatRupiah(sisa)}</div></div>
+            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Status</div><StatusBadge status={statusTahun} /></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SppPesertaDidik() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded } = useAppData();
   const [term, setTerm] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
@@ -15,6 +77,33 @@ export default function SppPesertaDidik() {
   }, [term, siswa]);
 
   const selected = siswa.find(s => s.id === selectedId);
+
+  const riwayatSiswa = useMemo(() => {
+    if (!selected) return [];
+    return allTagihan
+      .filter(t => t.nisn === selected.nisn)
+      .map(t => {
+        const terbayar = tagihanTerbayar(t.refType, t.no);
+        return { ...t, terbayar, status: statusTagihan(t.nominal, terbayar) };
+      });
+  }, [selected, allTagihan, tagihanTerbayar]);
+
+  const perTahunAjaran = useMemo(() => {
+    const map = {};
+    riwayatSiswa.forEach(t => {
+      if (!map[t.tahunAjaran]) map[t.tahunAjaran] = [];
+      map[t.tahunAjaran].push(t);
+    });
+    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0])); // terbaru dulu
+  }, [riwayatSiswa]);
+
+  const totalKeseluruhan = useMemo(() => {
+    const totalTagihan = riwayatSiswa.reduce((s, t) => s + t.nominal, 0);
+    const totalBayar = riwayatSiswa.reduce((s, t) => s + t.terbayar, 0);
+    return { totalTagihan, totalBayar, sisa: totalTagihan - totalBayar };
+  }, [riwayatSiswa]);
+
+  const keuanganSiap = tagihanSppLoaded || tagihanLainLoaded;
 
   return (
     <Page pageId="spp" title="SPP Peserta Didik" path="SPP / SPP Peserta Didik">
@@ -73,19 +162,32 @@ export default function SppPesertaDidik() {
                 <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
                   NISN: {selected.nisn || '-'} &nbsp;·&nbsp; Kelas: {selected.kelasTingkat || '-'} &nbsp;·&nbsp; Jenis Kelamin: {selected.jenisKelamin || '-'}
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>
-                  Tempat, Tgl Lahir: {selected.tempatLahir || '-'}, {selected.tanggalLahir || '-'}
-                </div>
+                {keuanganSiap && (
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="badge badge-gold">Total Tagihan: {formatRupiah(totalKeseluruhan.totalTagihan)}</span>
+                    <span className="badge badge-green">Terbayar: {formatRupiah(totalKeseluruhan.totalBayar)}</span>
+                    <span className={`badge ${totalKeseluruhan.sisa > 0 ? 'badge-red' : 'badge-green'}`}>Sisa: {formatRupiah(totalKeseluruhan.sisa)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-body" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
-              📋 Riwayat SPP untuk siswa ini belum tersedia — modul <strong>Keuangan</strong> belum tersambung ke Google Sheets.
-              <br />Bagian ini akan otomatis terisi begitu modul Keuangan selesai dimigrasi.
-            </div>
-          </div>
+          {!keuanganSiap && (
+            <div className="card"><div className="card-body" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
+              📋 Memuat riwayat SPP...
+            </div></div>
+          )}
+
+          {keuanganSiap && perTahunAjaran.length === 0 && (
+            <div className="card"><div className="card-body" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
+              Belum ada tagihan untuk siswa ini. Terbitkan SPP dulu lewat menu <strong>Tagihan &amp; Biaya</strong>.
+            </div></div>
+          )}
+
+          {keuanganSiap && perTahunAjaran.map(([ta, items], idx) => (
+            <TahunCard key={ta} tahunAjaran={ta} items={items} defaultOpen={idx === 0} />
+          ))}
         </>
       )}
 
