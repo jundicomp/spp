@@ -19,7 +19,7 @@ const ICON_DELETE = (
 
 export default function GenericStoredTable({
   title, subtitle, headers, fields, fetchFn, updateFn, deleteFn,
-  moduleLabel, labelKey, searchFn, onChanged, extraActions, refreshSignal,
+  moduleLabel, labelKey, searchFn, onChanged, extraActions, refreshSignal, target = 'master',
 }) {
   const { toast } = useAppData();
   const { currentUser } = useAuth();
@@ -30,7 +30,7 @@ export default function GenericStoredTable({
   const [deleteRow, setDeleteRow] = useState(null);
 
   const load = useCallback(async () => {
-    if (!isConfigured()) return;
+    if (!isConfigured(target)) return;
     setLoading(true);
     try {
       const data = await fetchFn();
@@ -87,8 +87,8 @@ export default function GenericStoredTable({
         <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
       </div>
       <div className="card-body">
-        {!isConfigured() && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Atur koneksi Google Sheets dulu untuk melihat data.</p>}
-        {isConfigured() && loaded && (
+        {!isConfigured(target) && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Atur koneksi Google Sheets dulu untuk melihat data.</p>}
+        {isConfigured(target) && loaded && (
           <DataTable
             columns={columns}
             data={rows}

@@ -4,15 +4,16 @@ import { isConfigured } from '../services/googleSheets';
 /**
  * Hook generik: ambil satu "resource" dari Google Sheets, dengan state loading/error,
  * dan fungsi refresh yang bisa dipanggil ulang kapan saja (mis. setelah tambah/edit/hapus).
+ * target: 'master' (default) | 'keuangan' -- menentukan koneksi mana yg dicek/dipakai.
  */
-export default function useSheetResource(fetchFn, normalizeFn) {
+export default function useSheetResource(fetchFn, normalizeFn, target = 'master') {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!isConfigured()) {
+    if (!isConfigured(target)) {
       setData([]);
       setLoaded(false);
       return;

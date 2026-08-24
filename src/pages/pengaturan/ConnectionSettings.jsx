@@ -1,22 +1,34 @@
 import { useState } from 'react';
-import { getSheetsConfig, saveSheetsConfig, fetchSiswaFromSheet } from '../../services/googleSheets';
+import { getSheetsConfig, saveSheetsConfig, fetchFromSheet } from '../../services/googleSheets';
 import { useAuth } from '../../context/AuthContext';
 
-export default function ConnectionSettings({ onConnected }) {
-  const { canAccess } = useAuth();
-  const allowed = canAccess('koneksi-sheets');
-  const [open, setOpen] = useState(!getSheetsConfig().url);
-  const [url, setUrl] = useState(getSheetsConfig().url);
-  const [secret, setSecret] = useState(getSheetsConfig().secret);
+const TARGET_META = {
+  master: {
+    title: '🔗 Koneksi Data Induk',
+    desc: 'Siswa, Kelas, Guru, Profil Sekolah, Tahun Ajaran, User, Log Aktivitas — semua dalam SATU file Sheets.',
+    testSheet: 'siswa',
+  },
+  keuangan: {
+    title: '💰 Koneksi Data Keuangan',
+    desc: 'Tarif, Tagihan, Pembayaran, dst — SENGAJA di file Sheets terpisah karena data ini terus bertambah tiap bulan (beda karakter dari data induk yang relatif tetap).',
+    testSheet: 'tarif',
+  },
+};
+
+function ConnectionCard({ target, onConnected }) {
+  const meta = TARGET_META[target];
+  const [open, setOpen] = useState(!getSheetsConfig(target).url);
+  const [url, setUrl] = useState(getSheetsConfig(target).url);
+  const [secret, setSecret] = useState(getSheetsConfig(target).secret);
   const [testing, setTesting] = useState(false);
-  const [result, setResult] = useState(null); // { ok, message }
+  const [result, setResult] = useState(null);
 
   async function testAndSave() {
     setTesting(true);
     setResult(null);
-    saveSheetsConfig({ url: url.trim(), secret: secret.trim() });
+    saveSheetsConfig({ url: url.trim(), secret: secret.trim() }, target);
     try {
-      const rows = await fetchSiswaFromSheet();
+      const rows = await fetchFromSheet(meta.testSheet, target);
       setResult({ ok: true, message: `Berhasil tersambung — ditemukan ${rows.length} baris data di Sheet.` });
       onConnected && onConnected();
     } catch (err) {
@@ -26,30 +38,17 @@ export default function ConnectionSettings({ onConnected }) {
     }
   }
 
-  const configured = !!getSheetsConfig().url;
-
-  if (!allowed) {
-    return (
-      <div className="card">
-        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 20 }}>🔒</span>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13.5 }}>Pengaturan Koneksi Google Sheets</div>
-            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-              {configured ? 'Sudah tersambung.' : 'Belum tersambung.'} Hanya <strong>Admin</strong> yang bisa mengubah pengaturan ini.
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const configured = !!getSheetsConfig(target).url;
 
   return (
     <div className="card">
       <div className="card-head" style={{ cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
         <div>
-          <h3>🔗 Pengaturan Koneksi Google Sheets</h3>
-          <p>{configured ? 'Sudah diatur — klik untuk ubah.' : 'Belum diatur. Tempel URL Apps Script Anda di sini dulu.'}</p>
+          <h3>{meta.title}</h3>
+          <p>{meta.desc}</p>
+          <p style={{ marginTop: 4, fontWeight: 600, color: configured ? 'var(--green-dark)' : 'var(--red)' }}>
+            {configured ? '✓ Sudah diatur — klik untuk ubah.' : '✕ Belum diatur.'}
+          </p>
         </div>
         <span style={{ fontSize: 18 }}>{open ? '▴' : '▾'}</span>
       </div>
@@ -61,7 +60,7 @@ export default function ConnectionSettings({ onConnected }) {
               <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/xxxxx/exec" />
             </div>
             <div className="field span2">
-              <label>Kata Sandi (SECRET, sama seperti di Code.gs)</label>
+              <label>Kata Sandi (SECRET, sama seperti di Code.gs file ini)</label>
               <input type="password" value={secret} onChange={e => setSecret(e.target.value)} placeholder="••••••••" />
             </div>
           </div>
@@ -75,11 +74,40 @@ export default function ConnectionSettings({ onConnected }) {
               </span>
             )}
           </div>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12 }}>
-            Belum punya URL? Lihat panduan di <code>google-apps-script/README.md</code> pada source code proyek ini.
-          </p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function ConnectionSettings({ onConnected, onConnectedKeuangan }) {
+  const { canAccess } = useAuth();
+  const allowed = canAccess('koneksi-sheets');
+
+  if (!allowed) {
+    return (
+      <div className="card">
+        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>🔒</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13.5 }}>Pengaturan Koneksi Google Sheets</div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Hanya <strong>Admin</strong> yang bisa mengubah pengaturan ini.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <ConnectionCard target="master" onConnected={onConnected} />
+      <ConnectionCard target="keuangan" onConnected={onConnectedKeuangan} />
+      <div className="card">
+        <div className="card-body" style={{ fontSize: 12, color: 'var(--muted)' }}>
+          Belum punya URL? Lihat panduan di <code>google-apps-script/README.md</code> (data induk) dan{' '}
+          <code>google-apps-script/Code-Keuangan.gs</code> (data keuangan) pada source code proyek ini.
+        </div>
+      </div>
+    </>
   );
 }

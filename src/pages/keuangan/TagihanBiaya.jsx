@@ -1,0 +1,31 @@
+import { useState } from 'react';
+import Page from '../../components/layout/Page';
+import PenerbitanSppTab from './PenerbitanSppTab';
+import TarifTab from './TarifTab';
+import { isConfigured } from '../../services/googleSheets';
+
+export default function TagihanBiaya() {
+  const [tab, setTab] = useState('penerbitan');
+
+  return (
+    <Page pageId="tagihan" title="Tagihan & Biaya" path="Keuangan / Tagihan & Biaya">
+      {!isConfigured('keuangan') && (
+        <div className="card"><div className="card-body" style={{ fontSize: 13, color: 'var(--muted)' }}>
+          ℹ️ Belum tersambung ke Google Sheets Keuangan. Minta <strong>Admin</strong> mengatur koneksi lewat menu
+          <strong> Pengaturan &gt; System &gt; Pengaturan Koneksi</strong> — bagian "Koneksi Data Keuangan".
+        </div></div>
+      )}
+
+      <div className="card">
+        <div className="seg-tabs">
+          <button className={`seg-tab ${tab === 'penerbitan' ? 'active' : ''}`} onClick={() => setTab('penerbitan')}>📅 PENERBITAN SPP</button>
+          <button className={`seg-tab ${tab === 'tarif' ? 'active' : ''}`} onClick={() => setTab('tarif')}>💰 TARIF</button>
+        </div>
+        <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
+          {tab === 'penerbitan' && <PenerbitanSppTab />}
+          {tab === 'tarif' && <TarifTab />}
+        </div>
+      </div>
+    </Page>
+  );
+}

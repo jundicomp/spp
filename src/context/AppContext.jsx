@@ -5,9 +5,10 @@ import { normalizeSheetKelas } from '../db/kelasFields';
 import { normalizeSheetGuru } from '../db/guruFields';
 import { normalizeSheetTahunAjaran } from '../db/tahunAjaranFields';
 import { normalizeSheetProfil } from '../db/profilFields';
+import { normalizeSheetTarif } from '../db/tarifFields';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
-  fetchTahunAjaranFromSheet, fetchProfilFromSheet,
+  fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
@@ -59,6 +60,7 @@ export function AppProvider({ children }) {
   const kelasRes = useSheetResource(fetchKelasFromSheet, normalizeSheetKelas);
   const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru);
   const tahunAjaranRes = useSheetResource(fetchTahunAjaranFromSheet, normalizeSheetTahunAjaran);
+  const tarifRes = useSheetResource(fetchTarifFromSheet, normalizeSheetTarif, 'keuangan');
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
   const [profilSekolah, setProfilSekolahRaw] = useState(null);
@@ -104,6 +106,7 @@ export function AppProvider({ children }) {
     siswa: siswaRes.data, siswaLoading: siswaRes.loading, siswaError: siswaRes.error, siswaLoaded: siswaRes.loaded, refreshSiswa: siswaRes.refresh, siswaById,
     kelas: kelasRes.data, kelasLoading: kelasRes.loading, kelasError: kelasRes.error, kelasLoaded: kelasRes.loaded, refreshKelas: kelasRes.refresh,
     guru: guruRes.data, guruLoading: guruRes.loading, guruError: guruRes.error, guruLoaded: guruRes.loaded, refreshGuru: guruRes.refresh,
+    tarif: tarifRes.data, tarifLoading: tarifRes.loading, tarifError: tarifRes.error, tarifLoaded: tarifRes.loaded, refreshTarif: tarifRes.refresh,
     profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions, setPermissions,
     toast, toasts,
