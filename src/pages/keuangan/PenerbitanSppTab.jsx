@@ -18,10 +18,13 @@ export default function PenerbitanSppTab() {
   const [issuing, setIssuing] = useState(null); // index bulan yg sedang diproses
   const [progress, setProgress] = useState(null); // { current, total, label } | null
 
-  // Semua tingkat kelas yang genuinely ada siswanya saat ini.
+  // HANYA siswa berstatus Aktif yang ditagih -- siswa Lulus/Pindah/Berhenti dikecualikan.
+  const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
+
+  // Semua tingkat kelas yang genuinely ada siswa AKTIF-nya saat ini.
   const tingkatDipakai = useMemo(
-    () => Array.from(new Set(siswa.map(s => s.kelasTingkat).filter(Boolean))).sort(),
-    [siswa]
+    () => Array.from(new Set(siswaAktif.map(s => s.kelasTingkat).filter(Boolean))).sort(),
+    [siswaAktif]
   );
 
   // Cek cakupan tarif: tiap tingkat kelas HARUS punya tarif SPP yang berlaku
@@ -62,14 +65,14 @@ export default function PenerbitanSppTab() {
 
   async function terbitkan(item) {
     if (!semuaTingkatPunyaTarif) { toast('Ada kelas yang belum punya Tarif SPP. Lengkapi dulu di tab Tarif.', 'error'); return; }
-    if (siswa.length === 0) { toast('Belum ada data siswa.', 'error'); return; }
+    if (siswaAktif.length === 0) { toast('Belum ada siswa aktif.', 'error'); return; }
     setIssuing(item.monthIdx);
-    const total = siswa.length;
+    const total = siswaAktif.length;
     setProgress({ current: 0, total, label: `Menerbitkan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear}` });
     try {
       let totalTerbit = 0;
-      for (let i = 0; i < siswa.length; i += UKURAN_KELOMPOK) {
-        const kelompok = siswa.slice(i, i + UKURAN_KELOMPOK);
+      for (let i = 0; i < siswaAktif.length; i += UKURAN_KELOMPOK) {
+        const kelompok = siswaAktif.slice(i, i + UKURAN_KELOMPOK);
         const rows = kelompok.map(s => {
           const tarifSiswa = cariTarifSppUntukKelas(tarif, tahunAjaranAktif.label, s.kelasTingkat);
           return {

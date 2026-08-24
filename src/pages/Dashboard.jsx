@@ -1,26 +1,31 @@
 import { useMemo } from 'react';
 import Page from '../components/layout/Page';
 import { useAppData } from '../context/AppContext';
+import NotifikasiSiswaPerluTindakLanjut from '../components/common/NotifikasiSiswaPerluTindakLanjut';
 
 export default function Dashboard() {
   const { siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, kelas, guru, tahunAjaranAktif } = useAppData();
 
+  const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
+
   const stats = useMemo(() => {
     const perTingkat = {};
     const perGender = { 'Laki-laki': 0, 'Perempuan': 0, '-': 0 };
-    siswa.forEach(s => {
+    siswaAktif.forEach(s => {
       const t = s.kelasTingkat || '-';
       perTingkat[t] = (perTingkat[t] || 0) + 1;
       const g = s.jenisKelamin === 'Laki-laki' || s.jenisKelamin === 'Perempuan' ? s.jenisKelamin : '-';
       perGender[g] += 1;
     });
-    return { total: siswa.length, perTingkat, perGender };
-  }, [siswa]);
+    return { total: siswaAktif.length, perTingkat, perGender };
+  }, [siswaAktif]);
 
   const tingkatList = Object.keys(stats.perTingkat).sort();
 
   return (
     <Page pageId="dashboard" title="Dashboard" path="Dashboard">
+      <NotifikasiSiswaPerluTindakLanjut />
+
       {(kelas.length > 0 || guru.length > 0) && (
         <div className="info-grid" style={{ marginBottom: 20 }}>
           <div className="info-card c-blue">
@@ -42,15 +47,15 @@ export default function Dashboard() {
         <div className="card-body">
           {siswaLoading && !siswaLoaded && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Memuat data siswa...</p>}
           {siswaError && <p style={{ color: 'var(--red)', fontSize: 13 }}>Gagal memuat: {siswaError}</p>}
-          {!siswaLoading && siswaLoaded && siswa.length === 0 && (
-            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Belum ada data siswa tersimpan. Tambahkan lewat menu Data Siswa.</p>
+          {!siswaLoading && siswaLoaded && siswaAktif.length === 0 && (
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Belum ada siswa aktif tersimpan. Tambahkan lewat menu Data Siswa.</p>
           )}
-          {siswaLoaded && siswa.length > 0 && (
+          {siswaLoaded && siswaAktif.length > 0 && (
             <>
               <div className="info-grid" style={{ marginBottom: 20 }}>
                 <div className="info-card c-green">
                   <div className="info-value">{stats.total}</div>
-                  <div className="info-label">Total Siswa</div>
+                  <div className="info-label">Total Siswa Aktif</div>
                 </div>
                 <div className="info-card c-blue">
                   <div className="info-value">{stats.perGender['Laki-laki']}</div>

@@ -4,6 +4,8 @@ import ManualForm from './ManualForm';
 import ExcelUpload from './ExcelUpload';
 import StoredDataTable from './StoredDataTable';
 import RombelTab from './RombelTab';
+import RiwayatSiswaTab from './RiwayatSiswaTab';
+import NotifikasiSiswaPerluTindakLanjut from '../../components/common/NotifikasiSiswaPerluTindakLanjut';
 import { useAppData } from '../../context/AppContext';
 import { isConfigured } from '../../services/googleSheets';
 
@@ -13,25 +15,29 @@ export default function DataSiswaSheets() {
   const [refreshKey, setRefreshKey] = useState(0);
   const bump = () => { setRefreshKey(k => k + 1); refreshSiswa(); };
 
+  // Statistik atas HANYA menghitung siswa Aktif -- yg Lulus/Pindah/Berhenti ada di tab Riwayat Siswa.
+  const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
   const stats = useMemo(() => {
     const perTingkat = {};
-    siswa.forEach(s => {
+    siswaAktif.forEach(s => {
       const t = s.kelasTingkat || '-';
       perTingkat[t] = (perTingkat[t] || 0) + 1;
     });
-    return { total: siswa.length, perTingkat };
-  }, [siswa]);
+    return { total: siswaAktif.length, perTingkat };
+  }, [siswaAktif]);
   const tingkatList = Object.keys(stats.perTingkat).sort();
 
   return (
     <Page pageId="siswa" title="Data Siswa" path="Pengaturan / Modul / Data Siswa">
-      {siswaLoaded && siswa.length > 0 && (
+      <NotifikasiSiswaPerluTindakLanjut />
+
+      {siswaLoaded && siswaAktif.length > 0 && (
         <div className="card">
           <div className="card-body">
             <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ padding: '10px 20px', background: 'var(--green-soft)', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--green-dark)' }}>{stats.total}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Total Siswa</div>
+                <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Siswa Aktif</div>
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 8, color: 'var(--muted)' }}>SEBARAN PER KELAS / TINGKAT</div>
@@ -52,6 +58,7 @@ export default function DataSiswaSheets() {
         <div className="seg-tabs">
           <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA SISWA (TABEL)</button>
           <button className={`seg-tab ${tab === 'rombel' ? 'active' : ''}`} onClick={() => setTab('rombel')}>🏫 ROMBEL</button>
+          <button className={`seg-tab ${tab === 'riwayat' ? 'active' : ''}`} onClick={() => setTab('riwayat')}>🎓 RIWAYAT SISWA</button>
           <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>
           <button className={`seg-tab ${tab === 'excel' ? 'active' : ''}`} onClick={() => setTab('excel')}>📊 UPLOAD EXCEL</button>
         </div>
@@ -64,6 +71,7 @@ export default function DataSiswaSheets() {
           )}
           {tab === 'tabel' && <StoredDataTable refreshKey={refreshKey} />}
           {tab === 'rombel' && <RombelTab />}
+          {tab === 'riwayat' && <RiwayatSiswaTab />}
           {tab === 'manual' && <ManualForm onSaved={bump} />}
           {tab === 'excel' && <ExcelUpload onSaved={bump} />}
         </div>

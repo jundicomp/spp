@@ -6,6 +6,9 @@ export default function RombelTab() {
   const { siswa, siswaLoading, siswaLoaded, kelas } = useAppData();
   const [filterKelas, setFilterKelas] = useState('Semua');
 
+  // Rombel hanya utk siswa Aktif -- yg Lulus/Pindah/Berhenti ada di tab Riwayat Siswa.
+  const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
+
   const waliKelasByTingkat = useMemo(() => {
     const map = {};
     kelas.forEach(k => { if (k.tingkat && k.waliKelas) map[k.tingkat] = k.waliKelas; });
@@ -13,14 +16,14 @@ export default function RombelTab() {
   }, [kelas]);
 
   const daftarKelas = useMemo(() => {
-    const set = new Set(siswa.map(s => s.kelasTingkat).filter(Boolean));
+    const set = new Set(siswaAktif.map(s => s.kelasTingkat).filter(Boolean));
     return Array.from(set).sort();
-  }, [siswa]);
+  }, [siswaAktif]);
 
   const filtered = useMemo(() => {
-    const list = filterKelas === 'Semua' ? siswa : siswa.filter(s => s.kelasTingkat === filterKelas);
+    const list = filterKelas === 'Semua' ? siswaAktif : siswaAktif.filter(s => s.kelasTingkat === filterKelas);
     return list.slice().sort((a, b) => a.nama.localeCompare(b.nama));
-  }, [siswa, filterKelas]);
+  }, [siswaAktif, filterKelas]);
 
   return (
     <div className="card">
