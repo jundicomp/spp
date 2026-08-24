@@ -11,7 +11,17 @@ export default function EditSiswaModal({ row, onClose, onSaved }) {
   const { currentUser } = useAuth();
   const [form, setForm] = useState(() => {
     const initial = {};
-    SISWA_FIELDS.forEach(f => { initial[f.key] = row[f.key] ?? ''; });
+    SISWA_FIELDS.forEach(f => {
+      let val = row[f.key] ?? '';
+      // Data siswa lama (dibuat sebelum field Status/Jenis Pendaftaran ada) sel-nya kosong --
+      // form Edit ikut menganggapnya default, konsisten dgn logika di seluruh app (normalizeSheetSiswa),
+      // supaya tidak memaksa user pilih manual padahal cuma mau edit field lain.
+      if (!val) {
+        if (f.key === 'Status') val = 'Aktif';
+        if (f.key === 'Jenis Pendaftaran') val = 'Siswa Baru';
+      }
+      initial[f.key] = val;
+    });
     return initial;
   });
   const [step, setStep] = useState('form'); // 'form' | 'confirm'
