@@ -23,6 +23,7 @@
  *   - sheet=tarif       -> tab "Tarif"        (SPP bulanan & biaya lain per tahun ajaran)
  *   - sheet=tagihanSpp  -> tab "Tagihan SPP"   (tagihan SPP bulanan per siswa)
  *   - sheet=tagihanLain -> tab "Tagihan Lain"  (uang pangkal, seragam, dst)
+ *   - sheet=pembayaran  -> tab "Pembayaran"    (riwayat pembayaran, 1 baris = 1 kwitansi)
  * ===================================================================
  */
 
@@ -32,7 +33,10 @@ const SECRET = 'GANTI_DENGAN_KATA_SANDI_RAHASIA_KEUANGAN';
 const SHEETS = {
   tarif: {
     name: 'Tarif',
-    headers: ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib'],
+    // "Kelas/Tingkat" ditaruh di AKHIR supaya kompatibel mundur dgn sheet lama --
+    // kalau baris lama tidak punya nilai di kolom ini, otomatis kosong (React
+    // menganggapnya "Semua Kelas", perilaku lama tetap jalan sama persis).
+    headers: ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat'],
   },
   tagihanSpp: {
     name: 'Tagihan SPP',
@@ -41,6 +45,10 @@ const SHEETS = {
   tagihanLain: {
     name: 'Tagihan Lain',
     headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo'],
+  },
+  pembayaran: {
+    name: 'Pembayaran',
+    headers: ['No', 'RefType', 'RefNo', 'NISN', 'Nama Siswa', 'Jenis', 'Nominal', 'Tanggal Bayar', 'Metode'],
   },
 };
 

@@ -67,6 +67,8 @@ a{text-decoration:none;color:inherit;}
 .btn-icon{background:none;border:none;padding:6px;border-radius:6px;color:var(--muted);}
 .btn-icon:hover{background:var(--green-soft);color:var(--green-dark);}
 .btn-icon.danger:hover{background:var(--red-soft);color:var(--red);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn:disabled:hover{transform:none;}
 
 /* ---------- Table ---------- */
 table{width:100%;border-collapse:collapse;font-size:13.5px;}

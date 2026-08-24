@@ -15,10 +15,10 @@ import KoneksiSheets from './pages/pengaturan/KoneksiSheets';
 import LogHistori from './pages/pengaturan/LogHistori';
 import ProfilSaya from './pages/pengaturan/ProfilSaya';
 import TagihanBiaya from './pages/keuangan/TagihanBiaya';
+import PembayaranInvoice from './pages/keuangan/PembayaranInvoice';
 import ComingSoon from './pages/ComingSoon';
 
 const PLACEHOLDER_PAGES = [
-  { path: '/pembayaran', pageId: 'pembayaran', title: 'Pembayaran & Invoice', menu: 'Keuangan / Pembayaran & Invoice' },
   { path: '/tunggakan', pageId: 'tunggakan', title: 'Rekap Tunggakan', menu: 'Keuangan / Rekap Tunggakan' },
   { path: '/laporan-keuangan', pageId: 'laporan-keuangan', title: 'Laporan Keuangan', menu: 'Keuangan / Laporan Keuangan' },
   { path: '/aset', pageId: 'aset', title: 'Data Aset & Inventaris', menu: 'Sarpras / Data Aset & Inventaris' },
@@ -43,6 +43,7 @@ function Gate() {
         <Route path="/log-histori" element={<LogHistori />} />
         <Route path="/profil-saya" element={<ProfilSaya />} />
         <Route path="/tagihan" element={<TagihanBiaya />} />
+        <Route path="/pembayaran" element={<PembayaranInvoice />} />
         {PLACEHOLDER_PAGES.map(p => (
           <Route key={p.path} path={p.path} element={<ComingSoon pageId={p.pageId} title={p.title} path={p.menu} />} />
         ))}

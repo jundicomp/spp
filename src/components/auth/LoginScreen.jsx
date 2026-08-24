@@ -6,6 +6,7 @@ export default function LoginScreen() {
   const { login, loginError, loggingIn } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [checkingConnection, setCheckingConnection] = useState(true);
 
   async function submit(e) {
     e.preventDefault();
@@ -22,21 +23,29 @@ export default function LoginScreen() {
         <h2>MI Ikhlasiyah</h2>
         <p className="login-sub">SPP dan Sarpras</p>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
-          <ConnectionStatusBadge />
+          <ConnectionStatusBadge onDone={() => setCheckingConnection(false)} />
         </div>
-        <form onSubmit={submit}>
-          <div className="field" style={{ marginBottom: 14, textAlign: 'left' }}>
-            <label>Username</label>
-            <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username Anda" />
+
+        {checkingConnection ? (
+          <div style={{ padding: '18px 0 6px', textAlign: 'center' }}>
+            <p style={{ fontSize: 12.5, color: 'var(--muted)' }}>Memeriksa koneksi sebelum masuk...</p>
           </div>
-          <div className="field" style={{ marginBottom: 14, textAlign: 'left' }}>
-            <label>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loggingIn}>
-            {loggingIn ? 'Memeriksa akun...' : 'Masuk'}
-          </button>
-        </form>
+        ) : (
+          <form onSubmit={submit}>
+            <div className="field" style={{ marginBottom: 14, textAlign: 'left' }}>
+              <label>Username</label>
+              <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username Anda" />
+            </div>
+            <div className="field" style={{ marginBottom: 14, textAlign: 'left' }}>
+              <label>Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loggingIn}>
+              {loggingIn ? 'Memeriksa akun...' : 'Masuk'}
+            </button>
+          </form>
+        )}
+
         {loginError && <p className="login-error">{loginError}</p>}
       </div>
     </div>

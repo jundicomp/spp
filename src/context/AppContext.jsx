@@ -6,9 +6,12 @@ import { normalizeSheetGuru } from '../db/guruFields';
 import { normalizeSheetTahunAjaran } from '../db/tahunAjaranFields';
 import { normalizeSheetProfil } from '../db/profilFields';
 import { normalizeSheetTarif } from '../db/tarifFields';
+import { normalizeSheetTagihanSpp, normalizeSheetTagihanLain, hitungTerbayar } from '../db/tagihanHelpers';
+import { normalizeSheetPembayaran } from '../db/pembayaranFields';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
   fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet,
+  fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
@@ -61,6 +64,9 @@ export function AppProvider({ children }) {
   const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru);
   const tahunAjaranRes = useSheetResource(fetchTahunAjaranFromSheet, normalizeSheetTahunAjaran);
   const tarifRes = useSheetResource(fetchTarifFromSheet, normalizeSheetTarif, 'keuangan');
+  const tagihanSppRes = useSheetResource(fetchTagihanSppFromSheet, normalizeSheetTagihanSpp, 'keuangan');
+  const tagihanLainRes = useSheetResource(fetchTagihanLainFromSheet, normalizeSheetTagihanLain, 'keuangan');
+  const pembayaranRes = useSheetResource(fetchPembayaranFromSheet, normalizeSheetPembayaran, 'keuangan');
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
   const [profilSekolah, setProfilSekolahRaw] = useState(null);
@@ -94,6 +100,9 @@ export function AppProvider({ children }) {
 
   const siswaById = useCallback((id) => siswaRes.data.find(s => s.id === id), [siswaRes.data]);
 
+  const allTagihan = useMemo(() => [...tagihanSppRes.data, ...tagihanLainRes.data], [tagihanSppRes.data, tagihanLainRes.data]);
+  const tagihanTerbayar = useCallback((refType, refNo) => hitungTerbayar(pembayaranRes.data, refType, refNo), [pembayaranRes.data]);
+
   const setTahunAjaranAktif = useCallback(async (no) => {
     await setActiveTahunAjaranOnSheet(no);
     await tahunAjaranRes.refresh();
@@ -107,6 +116,10 @@ export function AppProvider({ children }) {
     kelas: kelasRes.data, kelasLoading: kelasRes.loading, kelasError: kelasRes.error, kelasLoaded: kelasRes.loaded, refreshKelas: kelasRes.refresh,
     guru: guruRes.data, guruLoading: guruRes.loading, guruError: guruRes.error, guruLoaded: guruRes.loaded, refreshGuru: guruRes.refresh,
     tarif: tarifRes.data, tarifLoading: tarifRes.loading, tarifError: tarifRes.error, tarifLoaded: tarifRes.loaded, refreshTarif: tarifRes.refresh,
+    tagihanSpp: tagihanSppRes.data, tagihanSppLoading: tagihanSppRes.loading, tagihanSppLoaded: tagihanSppRes.loaded, refreshTagihanSpp: tagihanSppRes.refresh,
+    tagihanLain: tagihanLainRes.data, tagihanLainLoading: tagihanLainRes.loading, tagihanLainLoaded: tagihanLainRes.loaded, refreshTagihanLain: tagihanLainRes.refresh,
+    pembayaran: pembayaranRes.data, pembayaranLoading: pembayaranRes.loading, pembayaranLoaded: pembayaranRes.loaded, refreshPembayaran: pembayaranRes.refresh,
+    allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions, setPermissions,
     toast, toasts,

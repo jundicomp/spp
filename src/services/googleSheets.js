@@ -163,3 +163,7 @@ export const fetchTagihanLainFromSheet = () => fetchFromSheet('tagihanLain', 'ke
 export const addTagihanLainToSheet = (row) => addToSheet('tagihanLain', row, 'keuangan');
 export const updateTagihanLainInSheet = (row) => updateInSheet('tagihanLain', row, 'keuangan');
 export const deleteTagihanLainFromSheet = (no) => deleteFromSheet('tagihanLain', no, 'keuangan');
+
+export const fetchPembayaranFromSheet = () => fetchFromSheet('pembayaran', 'keuangan');
+export const addPembayaranToSheet = (row) => addToSheet('pembayaran', row, 'keuangan');
+export const deletePembayaranFromSheet = (no) => deleteFromSheet('pembayaran', no, 'keuangan');
