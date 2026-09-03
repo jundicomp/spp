@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
  * pageSize: default 10
  * emptyMessage: teks saat data kosong
  */
-export default function DataTable({ columns, data, searchFn, pageSize = 10, emptyMessage = 'Tidak ada data.', defaultSortKey = null, defaultSortDir = 'asc', rowKey }) {
+export default function DataTable({ columns, data, searchFn, pageSize = 10, emptyMessage = 'Tidak ada data.', defaultSortKey = null, defaultSortDir = 'asc', rowKey, forceShowAll = false }) {
   const [term, setTerm] = useState('');
   const [sortKey, setSortKey] = useState(defaultSortKey);
   const [sortDir, setSortDir] = useState(defaultSortDir);
@@ -36,7 +36,9 @@ export default function DataTable({ columns, data, searchFn, pageSize = 10, empt
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageSafe = Math.min(page, totalPages);
-  const pageRows = filtered.slice((pageSafe - 1) * pageSize, pageSafe * pageSize);
+  // Mode cetak (forceShowAll): lewati paginasi sepenuhnya -- supaya PDF/print memuat SEMUA baris,
+  // bukan cuma halaman yg sedang tampil di layar.
+  const pageRows = forceShowAll ? filtered : filtered.slice((pageSafe - 1) * pageSize, pageSafe * pageSize);
 
   function handleSort(key) {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
@@ -47,7 +49,7 @@ export default function DataTable({ columns, data, searchFn, pageSize = 10, empt
   return (
     <div>
       {searchFn && (
-        <div className="search-box" style={{ marginBottom: 12 }}>
+        <div className="search-box no-print" style={{ marginBottom: 12 }}>
           <input
             type="text"
             placeholder="Cari..."
@@ -62,7 +64,7 @@ export default function DataTable({ columns, data, searchFn, pageSize = 10, empt
             <tr>
               <th>No</th>
               {columns.map(col => (
-                <th key={col.key} onClick={col.sortable ? () => handleSort(col.key) : undefined} style={col.sortable ? { cursor: 'pointer' } : undefined}>
+                <th key={col.key} className={col.headerClassName} onClick={col.sortable ? () => handleSort(col.key) : undefined} style={col.sortable ? { cursor: 'pointer' } : undefined}>
                   {col.label} {col.sortable && (sortKey === col.key ? (sortDir === 'asc' ? '▲' : '▼') : '⇅')}
                 </th>
               ))}
@@ -83,8 +85,8 @@ export default function DataTable({ columns, data, searchFn, pageSize = 10, empt
           </tbody>
         </table>
       </div>
-      {totalPages > 1 && (
-        <div className="pagination">
+      {totalPages > 1 && !forceShowAll && (
+        <div className="pagination no-print">
           <button disabled={pageSafe <= 1} onClick={() => setPage(p => p - 1)}>‹ Sebelumnya</button>
           <span style={{ alignSelf: 'center', fontSize: 12.5, color: 'var(--muted)' }}>Halaman {pageSafe} / {totalPages}</span>
           <button disabled={pageSafe >= totalPages} onClick={() => setPage(p => p + 1)}>Berikutnya ›</button>

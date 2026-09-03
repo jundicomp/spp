@@ -1,5 +1,7 @@
+import { useId } from 'react';
 import Modal from '../../components/common/Modal';
 import { useAppData } from '../../context/AppContext';
+import { printElementById } from '../../utils/exportTable';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -7,15 +9,16 @@ function formatRupiah(n) {
 
 export default function KwitansiModal({ pembayaran, onClose }) {
   const { profilSekolah } = useAppData();
+  const printId = 'print-kwitansi-' + useId().replace(/:/g, '');
 
   return (
     <Modal title="Kwitansi Pembayaran" subtitle={`No. ${pembayaran.no}`} onClose={onClose} actions={
       <>
-        <button className="btn" onClick={onClose}>Tutup</button>
-        <button className="btn btn-primary" onClick={() => window.print()}>🖨️ Cetak</button>
+        <button className="btn no-print" onClick={onClose}>Tutup</button>
+        <button className="btn btn-primary no-print" onClick={() => printElementById(printId)}>🖨️ Cetak</button>
       </>
     }>
-      <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 24 }}>
+      <div id={printId} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 24 }}>
         <div style={{ textAlign: 'center', marginBottom: 18, borderBottom: '2px solid var(--green-dark)', paddingBottom: 14 }}>
           <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--green-dark)' }}>{profilSekolah?.nama || 'Nama Sekolah'}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>{profilSekolah?.alamat || '-'}</div>

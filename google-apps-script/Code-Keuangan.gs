@@ -48,7 +48,12 @@ const SHEETS = {
   },
   pembayaran: {
     name: 'Pembayaran',
-    headers: ['No', 'RefType', 'RefNo', 'NISN', 'Nama Siswa', 'Jenis', 'Nominal', 'Tanggal Bayar', 'Metode'],
+    // "Keterangan" ditaruh di AKHIR (kompatibel mundur) -- dipakai khusus utk alasan Pemutihan Piutang.
+    headers: ['No', 'RefType', 'RefNo', 'NISN', 'Nama Siswa', 'Jenis', 'Nominal', 'Tanggal Bayar', 'Metode', 'Keterangan'],
+  },
+  pengeluaran: {
+    name: 'Pengeluaran',
+    headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'],
   },
 };
 

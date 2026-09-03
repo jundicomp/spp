@@ -12,17 +12,20 @@ import ProfilSekolahDanTahunAjaran from './pages/pengaturan/ProfilSekolahDanTahu
 import ManajemenUser from './pages/pengaturan/ManajemenUser';
 import ManajemenHakAkses from './pages/pengaturan/ManajemenHakAkses';
 import KoneksiSheets from './pages/pengaturan/KoneksiSheets';
+import PengaturanSistem from './pages/pengaturan/PengaturanSistem';
 import LogHistori from './pages/pengaturan/LogHistori';
 import ProfilSaya from './pages/pengaturan/ProfilSaya';
 import TagihanBiaya from './pages/keuangan/TagihanBiaya';
 import PembayaranInvoice from './pages/keuangan/PembayaranInvoice';
+import RekapTunggakan from './pages/keuangan/RekapTunggakan';
+import LaporanKeuangan from './pages/keuangan/LaporanKeuangan';
+import DataAset from './pages/sarpras/DataAset';
+import PeminjamanAset from './pages/sarpras/PeminjamanAset';
+import PemeliharaanAset from './pages/sarpras/PemeliharaanAset';
+import LaporanRekapAset from './pages/sarpras/LaporanRekapAset';
 import ComingSoon from './pages/ComingSoon';
 
-const PLACEHOLDER_PAGES = [
-  { path: '/tunggakan', pageId: 'tunggakan', title: 'Rekap Tunggakan', menu: 'Keuangan / Rekap Tunggakan' },
-  { path: '/laporan-keuangan', pageId: 'laporan-keuangan', title: 'Laporan Keuangan', menu: 'Keuangan / Laporan Keuangan' },
-  { path: '/aset', pageId: 'aset', title: 'Data Aset & Inventaris', menu: 'Sarpras / Data Aset & Inventaris' },
-];
+const PLACEHOLDER_PAGES = [];
 
 function Gate() {
   const { currentUser } = useAuth();
@@ -40,10 +43,17 @@ function Gate() {
         <Route path="/manajemen-user" element={<ManajemenUser />} />
         <Route path="/hakakses" element={<ManajemenHakAkses />} />
         <Route path="/koneksi-sheets" element={<KoneksiSheets />} />
+        <Route path="/pengaturan-sistem" element={<PengaturanSistem />} />
         <Route path="/log-histori" element={<LogHistori />} />
         <Route path="/profil-saya" element={<ProfilSaya />} />
         <Route path="/tagihan" element={<TagihanBiaya />} />
         <Route path="/pembayaran" element={<PembayaranInvoice />} />
+        <Route path="/tunggakan" element={<RekapTunggakan />} />
+        <Route path="/laporan-keuangan" element={<LaporanKeuangan />} />
+        <Route path="/aset" element={<DataAset />} />
+        <Route path="/peminjaman-aset" element={<PeminjamanAset />} />
+        <Route path="/pemeliharaan-aset" element={<PemeliharaanAset />} />
+        <Route path="/aset-laporan" element={<LaporanRekapAset />} />
         {PLACEHOLDER_PAGES.map(p => (
           <Route key={p.path} path={p.path} element={<ComingSoon pageId={p.pageId} title={p.title} path={p.menu} />} />
         ))}

@@ -41,11 +41,17 @@ export function normalizeSheetTarif(row, idx) {
 // Cari tarif SPP yang berlaku utk siswa kelas tertentu -- prioritas tarif SPESIFIK
 // kelas itu, baru fallback ke tarif 'Semua Kelas' kalau tidak ada yg spesifik.
 export function cariTarifSppUntukKelas(tarifList, tahunAjaran, kelasTingkat) {
+  return cariTarifUntukKelas(tarifList, tahunAjaran, 'Bulanan (SPP)', kelasTingkat);
+}
+
+// Versi generik -- dipakai jg utk Tagihan Lain (Uang Pangkal, Seragam, dst),
+// bukan cuma SPP. Prioritas: tarif spesifik kelas > tarif 'Semua Kelas'.
+export function cariTarifUntukKelas(tarifList, tahunAjaran, tipe, kelasTingkat) {
   const spesifik = tarifList.find(t =>
-    t.tahunAjaran === tahunAjaran && t.tipe === 'Bulanan (SPP)' && t.kelasTingkat === String(kelasTingkat)
+    t.tahunAjaran === tahunAjaran && t.tipe === tipe && t.kelasTingkat === String(kelasTingkat)
   );
   if (spesifik) return spesifik;
   return tarifList.find(t =>
-    t.tahunAjaran === tahunAjaran && t.tipe === 'Bulanan (SPP)' && t.kelasTingkat === 'Semua Kelas'
+    t.tahunAjaran === tahunAjaran && t.tipe === tipe && t.kelasTingkat === 'Semua Kelas'
   ) || null;
 }

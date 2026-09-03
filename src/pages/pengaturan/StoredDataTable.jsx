@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useId } from 'react';
 import DataTable from '../../components/common/DataTable';
 import PasswordConfirmModal from '../../components/common/PasswordConfirmModal';
 import { SISWA_HEADERS } from '../../db/siswaFields';
 import { fetchSiswaFromSheet, deleteSiswaFromSheet, addLogEntry, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { exportToExcel, printElementById } from '../../utils/exportTable';
 import EditSiswaModal from './EditSiswaModal';
 
 const ICON_EDIT = (
@@ -26,6 +27,8 @@ export default function StoredDataTable({ refreshKey }) {
   const [loaded, setLoaded] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
+  const [printingAll, setPrintingAll] = useState(false);
+  const printId = 'print-' + useId().replace(/:/g, '');
 
   const load = useCallback(async () => {
     if (!isConfigured()) return;
@@ -42,6 +45,16 @@ export default function StoredDataTable({ refreshKey }) {
   }, [toast]);
 
   useEffect(() => { load(); }, [load, refreshKey]);
+
+  function handlePrint() {
+    setPrintingAll(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        printElementById(printId);
+        setPrintingAll(false);
+      });
+    });
+  }
 
   async function doDelete() {
     try {
@@ -68,8 +81,9 @@ export default function StoredDataTable({ refreshKey }) {
     {
       key: 'aksi',
       label: 'Aksi',
+      headerClassName: 'no-print',
       render: (r) => (
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="no-print" style={{ display: 'flex', gap: 4 }}>
           <button className="btn-icon" title="Edit" onClick={() => setEditRow(r)}>{ICON_EDIT}</button>
           <button className="btn-icon danger" title="Hapus" onClick={() => setDeleteRow(r)}>{ICON_DELETE}</button>
         </div>
@@ -77,13 +91,19 @@ export default function StoredDataTable({ refreshKey }) {
     },
   ];
 
+  const exportHeaders = SISWA_HEADERS.filter(h => h !== 'No');
+
   return (
     <div className="card">
       <div className="card-head">
         <div><h3>Data Siswa (Tabel)</h3><p>Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini.</p></div>
-        <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, 'Data Siswa')} disabled={rows.length === 0}>📊 Excel</button>
+          <button className="btn btn-sm" onClick={handlePrint} disabled={rows.length === 0}>🖨️ PDF</button>
+          <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
+        </div>
       </div>
-      <div className="card-body">
+      <div className="card-body" id={printId}>
         {!isConfigured() && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Atur koneksi Google Sheets dulu untuk melihat data.</p>}
         {isConfigured() && loaded && (
           <DataTable
@@ -92,6 +112,7 @@ export default function StoredDataTable({ refreshKey }) {
             searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['NISN'] || '').toString().includes(t)}
             emptyMessage="Belum ada data siswa di Sheet."
             rowKey={(r, i) => r['No'] ?? i}
+            forceShowAll={printingAll}
           />
         )}
       </div>

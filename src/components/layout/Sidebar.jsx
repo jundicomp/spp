@@ -62,6 +62,9 @@ export default function Sidebar() {
 
         <NavGroup id="sarpras" label="🏫 SARPRAS" open={openGroups.sarpras} onToggle={toggle}>
           <Item to="/aset" canAccess={canAccess('aset')}>Data Aset &amp; Inventaris</Item>
+          <Item to="/peminjaman-aset" canAccess={canAccess('peminjaman-aset')}>Peminjaman Aset</Item>
+          <Item to="/pemeliharaan-aset" canAccess={canAccess('pemeliharaan-aset')}>Pemeliharaan Aset</Item>
+          <Item to="/aset-laporan" canAccess={canAccess('laporan-rekap-aset')}>Laporan Rekap Aset</Item>
         </NavGroup>
 
         <NavGroup id="pengaturan" label="⚙️ PENGATURAN" open={openGroups.pengaturan} onToggle={toggle}>
@@ -77,6 +80,7 @@ export default function Sidebar() {
           </NavGroup>
           <NavGroup id="pgt-system" label="🖥️ SYSTEM" sub open={openGroups['pgt-system']} onToggle={toggle}>
             <Item to="/koneksi-sheets" canAccess={canAccess('koneksi-sheets')}>Pengaturan Koneksi</Item>
+            <Item to="/pengaturan-sistem" canAccess={canAccess('pengaturan-sistem')}>Pengaturan Sistem</Item>
             <Item to="/log-histori" canAccess={canAccess('log-histori')}>Log Histori</Item>
           </NavGroup>
         </NavGroup>

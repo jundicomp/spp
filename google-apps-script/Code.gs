@@ -52,6 +52,18 @@ const SHEETS = {
     name: 'Data Guru',
     headers: ['No', 'Nama Lengkap', 'NIP/NUPTK', 'Jabatan', 'Mata Pelajaran', 'No HP', 'Email', 'Status'],
   },
+  aset: {
+    name: 'Data Aset',
+    headers: ['No', 'Nama Aset', 'Kategori', 'Lokasi', 'Kondisi', 'Jumlah', 'Tahun Perolehan', 'Keterangan'],
+  },
+  peminjaman: {
+    name: 'Peminjaman Aset',
+    headers: ['No', 'Nama Aset', 'Peminjam', 'Jenis Peminjam', 'Jumlah', 'Tanggal Pinjam', 'Rencana Kembali', 'Tanggal Dikembalikan', 'Status'],
+  },
+  pemeliharaan: {
+    name: 'Pemeliharaan Aset',
+    headers: ['No', 'Nama Aset', 'Tanggal', 'Jenis Pemeliharaan', 'Biaya', 'Keterangan', 'Status'],
+  },
   profil: {
     name: 'Profil Sekolah',
     headers: ['No', 'Nama Sekolah', 'NPSN', 'Alamat', 'Kepala Sekolah', 'Telepon', 'Email', 'Logo'],

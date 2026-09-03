@@ -1,10 +1,73 @@
 import { useEffect, useState, useCallback } from 'react';
 import Page from '../../components/layout/Page';
 import DataTable from '../../components/common/DataTable';
-import { fetchLogFromSheet, isConfigured } from '../../services/googleSheets';
+import { fetchLogFromSheet, addLogEntry, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { initials, avatarColor } from '../../db/helpers';
+
+function GantiPasswordCard() {
+  const { toast } = useAppData();
+  const { currentUser, changeOwnPassword } = useAuth();
+  const [lama, setLama] = useState('');
+  const [baru, setBaru] = useState('');
+  const [ulangi, setUlangi] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  if (currentUser?.isMasterAdmin) {
+    return (
+      <div className="card">
+        <div className="card-head"><div><h3>Ganti Password</h3></div></div>
+        <div className="card-body" style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+          Akun Admin Induk tersimpan di kode sumber aplikasi (bukan di Google Sheets), jadi tidak bisa diganti dari sini.
+          Untuk menggantinya, ubah nilai di file <code>src/config/masterAdmin.js</code> lalu build ulang.
+        </div>
+      </div>
+    );
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (String(lama).trim() !== String(currentUser.password).trim()) { toast('Password lama tidak cocok.', 'error'); return; }
+    if (!baru || baru.length < 4) { toast('Password baru minimal 4 karakter.', 'error'); return; }
+    if (baru !== ulangi) { toast('Konfirmasi password baru tidak sama.', 'error'); return; }
+    setSaving(true);
+    try {
+      await changeOwnPassword(baru);
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Ganti Password',
+        modul: 'Profil Saya',
+        detail: 'Mengganti password akun sendiri.',
+      });
+      toast('Password berhasil diganti. Gunakan password baru saat login berikutnya.');
+      setLama(''); setBaru(''); setUlangi('');
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-head"><div><h3>Ganti Password</h3><p>Password lama diverifikasi dulu sebelum diganti.</p></div></div>
+      <form onSubmit={submit}>
+        <div className="card-body">
+          <div className="form-grid">
+            <div className="field"><label>Password Lama</label><input type="password" value={lama} onChange={e => setLama(e.target.value)} /></div>
+            <div className="field"><label>Password Baru</label><input type="password" value={baru} onChange={e => setBaru(e.target.value)} /></div>
+            <div className="field"><label>Ulangi Password Baru</label><input type="password" value={ulangi} onChange={e => setUlangi(e.target.value)} /></div>
+          </div>
+        </div>
+        <div className="card-body" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Ganti Password'}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export default function ProfilSaya() {
   const { toast } = useAppData();
@@ -52,6 +115,8 @@ export default function ProfilSaya() {
           </div>
         </div>
       </div>
+
+      <GantiPasswordCard />
 
       <div className="card">
         <div className="card-head">

@@ -3,15 +3,17 @@ import { permissionRoles, halamanSensitif } from '../db/seed';
 import { normalizeSheetSiswa } from '../db/siswaFields';
 import { normalizeSheetKelas } from '../db/kelasFields';
 import { normalizeSheetGuru } from '../db/guruFields';
+import { normalizeSheetAset } from '../db/asetFields';
 import { normalizeSheetTahunAjaran } from '../db/tahunAjaranFields';
 import { normalizeSheetProfil } from '../db/profilFields';
 import { normalizeSheetTarif } from '../db/tarifFields';
 import { normalizeSheetTagihanSpp, normalizeSheetTagihanLain, hitungTerbayar } from '../db/tagihanHelpers';
 import { normalizeSheetPembayaran } from '../db/pembayaranFields';
+import { normalizeSheetPengeluaran } from '../db/pengeluaranFields';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
-  fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet,
-  fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet,
+  fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet, fetchAsetFromSheet,
+  fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
@@ -27,6 +29,9 @@ const HAK_AKSES_PAGES = [
   { id: 'tunggakan', label: 'Rekap Tunggakan', grup: 'Keuangan' },
   { id: 'laporan-keuangan', label: 'Laporan Keuangan', grup: 'Keuangan' },
   { id: 'aset', label: 'Data Aset & Inventaris', grup: 'Sarpras' },
+  { id: 'peminjaman-aset', label: 'Peminjaman Aset', grup: 'Sarpras' },
+  { id: 'pemeliharaan-aset', label: 'Pemeliharaan Aset', grup: 'Sarpras' },
+  { id: 'laporan-rekap-aset', label: 'Laporan Rekap Aset', grup: 'Sarpras' },
   { id: 'profil', label: 'Profil Sekolah & Tahun Ajaran', grup: 'Pengaturan' },
   { id: 'kelas', label: 'Data Kelas & Rombel', grup: 'Pengaturan' },
   { id: 'guru', label: 'Data Guru & Staff', grup: 'Pengaturan' },
@@ -34,10 +39,11 @@ const HAK_AKSES_PAGES = [
   { id: 'manajemen-user', label: 'Manajemen User', grup: 'Pengaturan' },
   { id: 'hakakses', label: 'Manajemen Hak Akses', grup: 'Pengaturan' },
   { id: 'koneksi-sheets', label: 'Pengaturan Koneksi Google Sheets', grup: 'Pengaturan' },
+  { id: 'pengaturan-sistem', label: 'Pengaturan Sistem', grup: 'Pengaturan' },
   { id: 'log-histori', label: 'Log Histori', grup: 'Pengaturan' },
 ];
 
-const ADMIN_ONLY_PAGES = ['koneksi-sheets'];
+const ADMIN_ONLY_PAGES = ['koneksi-sheets', 'pengaturan-sistem'];
 
 function buildDefaultPermissions() {
   const perms = {};
@@ -62,11 +68,13 @@ export function AppProvider({ children }) {
   const siswaRes = useSheetResource(fetchSiswaFromSheet, normalizeSheetSiswa);
   const kelasRes = useSheetResource(fetchKelasFromSheet, normalizeSheetKelas);
   const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru);
+  const asetRes = useSheetResource(fetchAsetFromSheet, normalizeSheetAset);
   const tahunAjaranRes = useSheetResource(fetchTahunAjaranFromSheet, normalizeSheetTahunAjaran);
   const tarifRes = useSheetResource(fetchTarifFromSheet, normalizeSheetTarif, 'keuangan');
   const tagihanSppRes = useSheetResource(fetchTagihanSppFromSheet, normalizeSheetTagihanSpp, 'keuangan');
   const tagihanLainRes = useSheetResource(fetchTagihanLainFromSheet, normalizeSheetTagihanLain, 'keuangan');
   const pembayaranRes = useSheetResource(fetchPembayaranFromSheet, normalizeSheetPembayaran, 'keuangan');
+  const pengeluaranRes = useSheetResource(fetchPengeluaranFromSheet, normalizeSheetPengeluaran, 'keuangan');
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
   const [profilSekolah, setProfilSekolahRaw] = useState(null);
@@ -115,10 +123,12 @@ export function AppProvider({ children }) {
     siswa: siswaRes.data, siswaLoading: siswaRes.loading, siswaError: siswaRes.error, siswaLoaded: siswaRes.loaded, refreshSiswa: siswaRes.refresh, siswaById,
     kelas: kelasRes.data, kelasLoading: kelasRes.loading, kelasError: kelasRes.error, kelasLoaded: kelasRes.loaded, refreshKelas: kelasRes.refresh,
     guru: guruRes.data, guruLoading: guruRes.loading, guruError: guruRes.error, guruLoaded: guruRes.loaded, refreshGuru: guruRes.refresh,
+    aset: asetRes.data, asetLoading: asetRes.loading, asetError: asetRes.error, asetLoaded: asetRes.loaded, refreshAset: asetRes.refresh,
     tarif: tarifRes.data, tarifLoading: tarifRes.loading, tarifError: tarifRes.error, tarifLoaded: tarifRes.loaded, refreshTarif: tarifRes.refresh,
     tagihanSpp: tagihanSppRes.data, tagihanSppLoading: tagihanSppRes.loading, tagihanSppLoaded: tagihanSppRes.loaded, refreshTagihanSpp: tagihanSppRes.refresh,
     tagihanLain: tagihanLainRes.data, tagihanLainLoading: tagihanLainRes.loading, tagihanLainLoaded: tagihanLainRes.loaded, refreshTagihanLain: tagihanLainRes.refresh,
     pembayaran: pembayaranRes.data, pembayaranLoading: pembayaranRes.loading, pembayaranLoaded: pembayaranRes.loaded, refreshPembayaran: pembayaranRes.refresh,
+    pengeluaran: pengeluaranRes.data, pengeluaranLoading: pengeluaranRes.loading, pengeluaranLoaded: pengeluaranRes.loaded, refreshPengeluaran: pengeluaranRes.refresh,
     allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions, setPermissions,

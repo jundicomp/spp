@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useId } from 'react';
 import DataTable from '../common/DataTable';
 import PasswordConfirmModal from '../common/PasswordConfirmModal';
 import GenericEditModal from './GenericEditModal';
 import { addLogEntry, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { exportToExcel, printElementById } from '../../utils/exportTable';
 
 const ICON_EDIT = (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -20,6 +21,7 @@ const ICON_DELETE = (
 export default function GenericStoredTable({
   title, subtitle, headers, fields, fetchFn, updateFn, deleteFn,
   moduleLabel, labelKey, searchFn, onChanged, extraActions, refreshSignal, target = 'master',
+  columnRenderers, headExtra,
 }) {
   const { toast } = useAppData();
   const { currentUser } = useAuth();
@@ -28,6 +30,21 @@ export default function GenericStoredTable({
   const [loaded, setLoaded] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
+  const [printingAll, setPrintingAll] = useState(false);
+  const printId = 'print-' + useId().replace(/:/g, '');
+
+  function handlePrint() {
+    // Nyalakan forceShowAll dulu (lewati paginasi), TUNGGU React selesai render ulang
+    // dgn semua baris, baru panggil print -- kalau langsung print, yg tercetak cuma
+    // halaman yg sedang tampil di layar.
+    setPrintingAll(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        printElementById(printId);
+        setPrintingAll(false);
+      });
+    });
+  }
 
   const load = useCallback(async () => {
     if (!isConfigured(target)) return;
@@ -66,12 +83,17 @@ export default function GenericStoredTable({
   }
 
   const columns = [
-    ...headers.filter(h => h !== 'No').map(h => ({ key: h, label: h, accessor: (r) => r[h] })),
+    ...headers.filter(h => h !== 'No').map(h => (
+      columnRenderers && columnRenderers[h]
+        ? { key: h, label: h, render: columnRenderers[h] }
+        : { key: h, label: h, accessor: (r) => r[h] }
+    )),
     {
       key: 'aksi',
       label: 'Aksi',
+      headerClassName: 'no-print',
       render: (r) => (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div className="no-print" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {extraActions && extraActions(r)}
           <button className="btn-icon" title="Edit" onClick={() => setEditRow(r)}>{ICON_EDIT}</button>
           <button className="btn-icon danger" title="Hapus" onClick={() => setDeleteRow(r)}>{ICON_DELETE}</button>
@@ -80,13 +102,20 @@ export default function GenericStoredTable({
     },
   ];
 
+  const exportHeaders = headers.filter(h => h !== 'No');
+
   return (
     <div className="card">
       <div className="card-head">
         <div><h3>{title}</h3><p>{subtitle}</p></div>
-        <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {headExtra}
+          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, moduleLabel)} disabled={rows.length === 0}>📊 Excel</button>
+          <button className="btn btn-sm" onClick={handlePrint} disabled={rows.length === 0}>🖨️ PDF</button>
+          <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
+        </div>
       </div>
-      <div className="card-body">
+      <div className="card-body" id={printId}>
         {!isConfigured(target) && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Atur koneksi Google Sheets dulu untuk melihat data.</p>}
         {isConfigured(target) && loaded && (
           <DataTable
@@ -95,6 +124,7 @@ export default function GenericStoredTable({
             searchFn={searchFn}
             emptyMessage="Belum ada data tersimpan."
             rowKey={(r, i) => r['No'] ?? i}
+            forceShowAll={printingAll}
           />
         )}
       </div>

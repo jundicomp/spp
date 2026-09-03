@@ -99,6 +99,8 @@ export const deleteSiswaFromSheet = (no) => deleteFromSheet('siswa', no);
 
 export const fetchUsersFromSheet = () => fetchFromSheet('users');
 export const addUserToSheet = (row) => addToSheet('users', row);
+export const updateUserInSheet = (row) => updateInSheet('users', row);
+export const deleteUserFromSheet = (no) => deleteFromSheet('users', no);
 
 export const fetchKelasFromSheet = () => fetchFromSheet('kelas');
 export const addKelasToSheet = (row) => addToSheet('kelas', row);
@@ -109,6 +111,21 @@ export const fetchGuruFromSheet = () => fetchFromSheet('guru');
 export const addGuruToSheet = (row) => addToSheet('guru', row);
 export const updateGuruInSheet = (row) => updateInSheet('guru', row);
 export const deleteGuruFromSheet = (no) => deleteFromSheet('guru', no);
+
+export const fetchAsetFromSheet = () => fetchFromSheet('aset');
+export const addAsetToSheet = (row) => addToSheet('aset', row);
+export const updateAsetInSheet = (row) => updateInSheet('aset', row);
+export const deleteAsetFromSheet = (no) => deleteFromSheet('aset', no);
+
+export const fetchPeminjamanFromSheet = () => fetchFromSheet('peminjaman');
+export const addPeminjamanToSheet = (row) => addToSheet('peminjaman', row);
+export const updatePeminjamanInSheet = (row) => updateInSheet('peminjaman', row);
+export const deletePeminjamanFromSheet = (no) => deleteFromSheet('peminjaman', no);
+
+export const fetchPemeliharaanFromSheet = () => fetchFromSheet('pemeliharaan');
+export const addPemeliharaanToSheet = (row) => addToSheet('pemeliharaan', row);
+export const updatePemeliharaanInSheet = (row) => updateInSheet('pemeliharaan', row);
+export const deletePemeliharaanFromSheet = (no) => deleteFromSheet('pemeliharaan', no);
 
 // ---- Profil Sekolah (SELALU 1 baris, No=1) ----
 export const fetchProfilFromSheet = () => fetchFromSheet('profil');
@@ -167,3 +184,8 @@ export const deleteTagihanLainFromSheet = (no) => deleteFromSheet('tagihanLain',
 export const fetchPembayaranFromSheet = () => fetchFromSheet('pembayaran', 'keuangan');
 export const addPembayaranToSheet = (row) => addToSheet('pembayaran', row, 'keuangan');
 export const deletePembayaranFromSheet = (no) => deleteFromSheet('pembayaran', no, 'keuangan');
+
+export const fetchPengeluaranFromSheet = () => fetchFromSheet('pengeluaran', 'keuangan');
+export const addPengeluaranToSheet = (row) => addToSheet('pengeluaran', row, 'keuangan');
+export const updatePengeluaranInSheet = (row) => updateInSheet('pengeluaran', row, 'keuangan');
+export const deletePengeluaranFromSheet = (no) => deleteFromSheet('pengeluaran', no, 'keuangan');

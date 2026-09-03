@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useAppData } from './AppContext';
-import { isConfigured, fetchUsersFromSheet } from '../services/googleSheets';
+import { isConfigured, fetchUsersFromSheet, updateUserInSheet } from '../services/googleSheets';
 import { MASTER_ADMIN } from '../config/masterAdmin';
 
 const AuthContext = createContext(null);
@@ -8,6 +8,7 @@ const AuthContext = createContext(null);
 function normalizeSheetUser(u, idx) {
   return {
     id: 'USER-' + (u['No'] ?? idx),
+    no: u['No'],
     nama: String(u['Nama'] ?? '').trim(),
     role: String(u['Role'] ?? '').trim(),
     // String(...) sengaja dipakai -- Google Sheets bisa mengembalikan username/password
@@ -35,7 +36,7 @@ export function AuthProvider({ children }) {
     // ---- Akun Admin Induk: SELALU bisa login, tak peduli status Google Sheets ----
     if (uname === MASTER_ADMIN.username && pass === MASTER_ADMIN.password) {
       setLoggingIn(false);
-      setCurrentUser({ id: 'MASTER-ADMIN', nama: MASTER_ADMIN.nama, role: MASTER_ADMIN.role, username: MASTER_ADMIN.username, email: MASTER_ADMIN.email, password: MASTER_ADMIN.password });
+      setCurrentUser({ id: 'MASTER-ADMIN', no: null, isMasterAdmin: true, nama: MASTER_ADMIN.nama, role: MASTER_ADMIN.role, username: MASTER_ADMIN.username, email: MASTER_ADMIN.email, password: MASTER_ADMIN.password });
       return true;
     }
 
@@ -72,6 +73,21 @@ export function AuthProvider({ children }) {
     return String(password).trim() === String(currentUser.password).trim();
   }, [currentUser]);
 
+  // Ganti password akun sendiri. TIDAK berlaku utk Admin Induk (kredensialnya
+  // hardcode di kode sumber, bukan di Sheets -- lihat src/config/masterAdmin.js).
+  const changeOwnPassword = useCallback(async (newPassword) => {
+    if (!currentUser || currentUser.isMasterAdmin) throw new Error('Akun Admin Induk tidak bisa ganti password lewat sini.');
+    await updateUserInSheet({
+      No: currentUser.no,
+      Nama: currentUser.nama,
+      Role: currentUser.role,
+      Username: currentUser.username,
+      Password: newPassword,
+      Email: currentUser.email,
+    });
+    setCurrentUser(u => ({ ...u, password: newPassword }));
+  }, [currentUser]);
+
   const canAccess = useCallback((pageId) => {
     if (!currentUser) return false;
     const roleperm = permissions[currentUser.role];
@@ -80,7 +96,7 @@ export function AuthProvider({ children }) {
   }, [currentUser, permissions]);
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, loginError, loggingIn, canAccess, verifyPassword }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, loginError, loggingIn, canAccess, verifyPassword, changeOwnPassword }}>
       {children}
     </AuthContext.Provider>
   );
