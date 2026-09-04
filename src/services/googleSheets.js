@@ -1,37 +1,14 @@
-const CONFIG_KEY = 'sheets_config_v2';
-const OLD_CONFIG_KEY = 'sheets_config_v1'; // versi lama (1 koneksi saja) -- dimigrasi otomatis
-const DEFAULT_CONFIG = {
-  master: { url: '', secret: '' },   // Data Siswa, Kelas, Guru, Profil, Tahun Ajaran, Users, Log
-  keuangan: { url: '', secret: '' }, // Tarif, Tagihan, Pembayaran, dst -- file Sheets TERPISAH (data transaksi, tumbuh terus)
-};
+import { DEFAULT_SHEETS_CONFIG } from '../config/sheetsDefaults';
 
-function readAllConfig() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(CONFIG_KEY));
-    if (saved) return { master: saved.master || { url: '', secret: '' }, keuangan: saved.keuangan || { url: '', secret: '' } };
-  } catch { /* lanjut ke migrasi di bawah */ }
-
-  // Migrasi otomatis dari versi lama (1 koneksi -> dipakai sbg "master")
-  try {
-    const old = JSON.parse(localStorage.getItem(OLD_CONFIG_KEY));
-    if (old && old.url) {
-      const migrated = { master: { url: old.url, secret: old.secret || '' }, keuangan: { url: '', secret: '' } };
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(migrated));
-      return migrated;
-    }
-  } catch { /* abaikan, pakai default */ }
-
-  return { ...DEFAULT_CONFIG };
-}
-
+// ---- Cara 1: koneksi ditanam permanen di kode, TIDAK ADA lagi override manual ----
 export function getSheetsConfig(target = 'master') {
-  return readAllConfig()[target] || { url: '', secret: '' };
+  return DEFAULT_SHEETS_CONFIG[target] || { url: '', secret: '' };
 }
 
-export function saveSheetsConfig(cfg, target = 'master') {
-  const all = readAllConfig();
-  all[target] = cfg;
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(all));
+export function saveSheetsConfig() {
+  // Sengaja dikosongkan -- sesuai keputusan Cara 1, pengaturan manual dinonaktifkan.
+  // Untuk ganti URL/sandi, edit src/config/sheetsDefaults.js lalu build ulang.
+  console.warn('Koneksi ditanam di kode (Cara 1). Ganti lewat src/config/sheetsDefaults.js, bukan dari sini.');
 }
 
 export function isConfigured(target = 'master') {
@@ -41,10 +18,10 @@ export function isConfigured(target = 'master') {
 const TARGET_LABEL = { master: 'Data Induk', keuangan: 'Keuangan' };
 
 export async function fetchFromSheet(sheetName = 'siswa', target = 'master') {
-  const { url } = getSheetsConfig(target);
+  const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
   const sep = url.includes('?') ? '&' : '?';
-  const res = await fetch(url + sep + 'sheet=' + sheetName, { method: 'GET' });
+  const res = await fetch(url + sep + 'sheet=' + encodeURIComponent(sheetName) + '&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
   if (!res.ok) throw new Error('Gagal menghubungi Apps Script (HTTP ' + res.status + ').');
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');

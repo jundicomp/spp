@@ -83,7 +83,13 @@ const SHEETS = {
 };
 
 function doGet(e) {
-  const which = SHEETS[e.parameter && e.parameter.sheet] ? e.parameter.sheet : 'siswa';
+  // PENTING (perbaikan keamanan): sebelumnya doGet TIDAK mengecek SECRET sama sekali,
+  // artinya siapa pun yang tahu URL ini bisa membaca SEMUA data (termasuk password
+  // di sheet Users) tanpa perlu tahu kata sandi apa pun. Sekarang wajib dicek dulu.
+  if (!e.parameter || e.parameter.secret !== SECRET) {
+    return jsonResponse_({ ok: false, error: 'Akses ditolak: kata sandi tidak cocok atau tidak disertakan.' });
+  }
+  const which = SHEETS[e.parameter.sheet] ? e.parameter.sheet : 'siswa';
   const cfg = SHEETS[which];
   const sheet = getSheet_(cfg);
   const data = sheet.getDataRange().getValues();
