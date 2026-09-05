@@ -50,7 +50,13 @@ const SHEETS = {
   },
   guru: {
     name: 'Data Guru',
-    headers: ['No', 'Nama Lengkap', 'NIP/NUPTK', 'Jabatan', 'Mata Pelajaran', 'No HP', 'Email', 'Status'],
+    // Kolom baru (Kategori dst) ditaruh di AKHIR -- kompatibel mundur dgn data lama.
+    headers: [
+      'No', 'Nama Lengkap', 'NIP/NUPTK', 'Jabatan', 'Mata Pelajaran', 'No HP', 'Email', 'Status',
+      'Kategori', 'Jenis Kelamin', 'Pangkat/Golongan', 'Tempat Lahir', 'Tanggal Lahir',
+      'Pendidikan Terakhir', 'Sertifikasi', 'Jumlah Jam Mengajar', 'TMT Mengajar', 'Tugas Tambahan',
+      'Status Kepegawaian',
+    ],
   },
   aset: {
     name: 'Data Aset',

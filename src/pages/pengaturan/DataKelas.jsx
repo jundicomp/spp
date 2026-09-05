@@ -11,7 +11,7 @@ export default function DataKelas() {
   const [tab, setTab] = useState('tabel');
 
   const waliKelasOptions = useMemo(
-    () => guru.filter(g => g.status === 'Aktif').map(g => g.nama).sort(),
+    () => guru.filter(g => g.status === 'Aktif' && g.kategori === 'Guru').map(g => g.nama).sort(),
     [guru]
   );
   const fields = useMemo(() => buildKelasFields(waliKelasOptions), [waliKelasOptions]);

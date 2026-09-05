@@ -28,7 +28,11 @@ export default function GenericEditModal({ row, fields, updateFn, moduleLabel, l
   async function doUpdate() {
     setSaving(true);
     try {
-      await updateFn({ ...form, No: row['No'] });
+      // PENTING: gabungkan dgn `row` ASLI dulu (semua kolom mentah dari Sheet), baru
+      // ditimpa `form` (field yg genuinely diedit). Kalau cuma kirim `form` saja,
+      // kolom yg TIDAK ditampilkan di form ini (mis. "Kategori" pada Data Guru/Staff)
+      // akan ikut tertimpa KOSONG karena tidak pernah ada di state form sama sekali.
+      await updateFn({ ...row, ...form, No: row['No'] });
       await addLogEntry({
         username: currentUser.username,
         namaUser: currentUser.nama,
