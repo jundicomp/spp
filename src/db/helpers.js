@@ -10,6 +10,15 @@ export function formatTanggal(d){
   const dt = (d instanceof Date) ? d : new Date(d);
   return dt.getDate() + ' ' + BULAN_ID[dt.getMonth()] + ' ' + dt.getFullYear();
 }
+// Ubah "yyyy-MM-dd" (format tersimpan, wajib begini krn dipakai <input type="date">)
+// jadi "dd-mm-yyyy" KHUSUS UNTUK TAMPILAN tabel/laporan. Sengaja manipulasi teks
+// langsung (bukan lewat objek Date) supaya TIDAK ada risiko geser zona waktu sama sekali.
+export function formatTanggalAngka(isoStr){
+  if(!isoStr) return '-';
+  const m = String(isoStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return isoStr; // format lain (mis. sudah d/m/yyyy dari data lama) -- tampilkan apa adanya
+}
 export function isoDate(d){
   const dt = (d instanceof Date) ? d : new Date(d);
   return dt.toISOString().slice(0,10);
@@ -57,6 +66,39 @@ export function parseTanggalFleksibel(input){
   }
   const fallback = new Date(s);
   return isNaN(fallback) ? null : fallback;
+}
+
+// Normalisasi nilai tanggal APA PUN jadi "yyyy-MM-dd" yg BENAR -- supaya <input
+// type="date"> selalu bisa menampilkan isinya, apa pun kondisi data mentahnya.
+// INI JARING PENGAMAN di sisi React: idealnya Apps Script sudah mengirim tanggal
+// bersih (lihat formatCellValue_ di Code.gs), tapi kalau BELUM sempat di-redeploy
+// (atau ada baris lama yg terlewat), fungsi ini tetap mengoreksi tampilannya dgn
+// benar -- bukan cuma "asal ambil 10 karakter pertama" yg bisa salah 1 hari, tapi
+// genuinely dikonversi ke zona WIB dulu spt yg seharusnya dilakukan Apps Script.
+export function normalisasiTanggalUntukInput(rawValue){
+  if(!rawValue) return '';
+  const s = String(rawValue).trim();
+  if(!s) return '';
+
+  // Sudah bersih, persis format yg dibutuhkan <input type="date">.
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // ISO lengkap dgn jam+zona (data "kotor" langsung dari sel Tanggal asli Sheets,
+  // sebelum/tanpa perbaikan Apps Script) -- parse sbg Date SUNGGUHAN, baca ulang
+  // dlm zona WIB supaya tanggalnya tidak bergeser mundur 1 hari akibat UTC.
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){
+    const d = new Date(s);
+    if(!isNaN(d)){
+      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' });
+      return formatter.format(d); // locale en-CA menghasilkan yyyy-MM-dd persis
+    }
+  }
+
+  // dd/mm/yyyy atau dd-mm-yyyy (data lama yg diketik manual dlm format Indonesia)
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+
+  return '';
 }
 
 export function hitungUsia(tanggalLahirInput){

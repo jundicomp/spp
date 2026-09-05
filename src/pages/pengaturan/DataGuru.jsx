@@ -5,8 +5,10 @@ import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 import { GURU_HEADERS, buildGuruFields, emptyGuruRow } from '../../db/guruFields';
 import { fetchGuruFromSheet, addGuruToSheet, updateGuruInSheet, deleteGuruFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import { formatTanggalAngka } from '../../db/helpers';
 
 const KOLOM_KHUSUS_GURU = ['Mata Pelajaran', 'Sertifikasi', 'Jumlah Jam Mengajar', 'TMT Mengajar'];
+const KOLOM_TANGGAL = ['Tanggal Lahir', 'TMT Mengajar'];
 
 function makeFetchByKategori(kategori) {
   return async () => {
@@ -48,6 +50,10 @@ function KategoriPanel({ kategori, onChanged }) {
             labelKey="Nama Lengkap"
             searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['Jabatan'] || '').toLowerCase().includes(t)}
             onChanged={onChanged}
+            columnRenderers={{
+              'Tanggal Lahir': (r) => formatTanggalAngka(r['Tanggal Lahir']),
+              'TMT Mengajar': (r) => formatTanggalAngka(r['TMT Mengajar']),
+            }}
           />
         )}
         {tab === 'manual' && (

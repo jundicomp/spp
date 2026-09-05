@@ -6,6 +6,7 @@ import { fetchSiswaFromSheet, deleteSiswaFromSheet, addLogEntry, isConfigured } 
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
+import { formatTanggalAngka } from '../../db/helpers';
 import EditSiswaModal from './EditSiswaModal';
 
 const ICON_EDIT = (
@@ -77,7 +78,10 @@ export default function StoredDataTable({ refreshKey }) {
   }
 
   const columns = [
-    ...SISWA_HEADERS.filter(h => h !== 'No').map(h => ({ key: h, label: h, accessor: (r) => r[h] })),
+    ...SISWA_HEADERS.filter(h => h !== 'No').map(h => ({
+      key: h, label: h,
+      accessor: (r) => h === 'Tanggal Lahir' ? formatTanggalAngka(r[h]) : r[h],
+    })),
     {
       key: 'aksi',
       label: 'Aksi',

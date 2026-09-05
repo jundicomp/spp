@@ -101,10 +101,24 @@ function doGet(e) {
   const data = sheet.getDataRange().getValues();
   const rows = data.slice(1).filter(r => r.some(cell => cell !== '')).map(row => {
     const obj = {};
-    cfg.headers.forEach((h, i) => { obj[h] = row[i]; });
+    cfg.headers.forEach((h, i) => { obj[h] = formatCellValue_(row[i]); });
     return obj;
   });
   return jsonResponse_({ ok: true, data: rows });
+}
+
+// Kalau sel diketik manual di Sheets dgn format yg dikenali sbg tanggal (mis. "8/22/1978"),
+// Google Sheets otomatis menyimpannya sbg tipe TANGGAL ASLI, bukan teks. Saat dibaca lewat
+// Apps Script, nilai itu jadi objek Date -- dan begitu di-JSON-kan, JavaScript otomatis
+// mengonversinya ke UTC, yg BISA BERGESER 1 HARI dibanding tanggal aslinya (krn WIB = UTC+7).
+// Fungsi ini memaksa tanggal diformat manual sbg teks "yyyy-MM-dd" sesuai zona waktu WIB,
+// SEBELUM dikirim sbg JSON -- supaya tanggalnya selalu benar & konsisten, apa pun cara
+// data itu awalnya dimasukkan ke Sheets (lewat aplikasi ATAU diketik manual).
+function formatCellValue_(value) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, 'Asia/Jakarta', 'yyyy-MM-dd');
+  }
+  return value;
 }
 
 function doPost(e) {

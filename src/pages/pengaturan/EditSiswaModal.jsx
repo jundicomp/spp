@@ -5,6 +5,7 @@ import { SISWA_FIELDS } from '../../db/siswaFields';
 import { updateSiswaInSheet, addLogEntry } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { normalisasiTanggalUntukInput } from '../../db/helpers';
 
 export default function EditSiswaModal({ row, onClose, onSaved }) {
   const { toast, refreshSiswa } = useAppData();
@@ -13,6 +14,7 @@ export default function EditSiswaModal({ row, onClose, onSaved }) {
     const initial = {};
     SISWA_FIELDS.forEach(f => {
       let val = row[f.key] ?? '';
+      if (f.type === 'date') val = normalisasiTanggalUntukInput(val);
       // Data siswa lama (dibuat sebelum field Status/Jenis Pendaftaran ada) sel-nya kosong --
       // form Edit ikut menganggapnya default, konsisten dgn logika di seluruh app (normalizeSheetSiswa),
       // supaya tidak memaksa user pilih manual padahal cuma mau edit field lain.

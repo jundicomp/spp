@@ -4,13 +4,17 @@ import PasswordConfirmModal from '../common/PasswordConfirmModal';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { addLogEntry } from '../../services/googleSheets';
+import { normalisasiTanggalUntukInput } from '../../db/helpers';
 
 export default function GenericEditModal({ row, fields, updateFn, moduleLabel, labelKey, onClose, onSaved }) {
   const { toast } = useAppData();
   const { currentUser } = useAuth();
   const [form, setForm] = useState(() => {
     const initial = {};
-    fields.forEach(f => { initial[f.key] = row[f.key] ?? ''; });
+    fields.forEach(f => {
+      const raw = row[f.key] ?? '';
+      initial[f.key] = f.type === 'date' ? normalisasiTanggalUntukInput(raw) : raw;
+    });
     return initial;
   });
   const [step, setStep] = useState('form');
