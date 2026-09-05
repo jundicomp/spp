@@ -112,7 +112,17 @@ function getSheet_(cfg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(cfg.name);
   if (!sheet) sheet = ss.insertSheet(cfg.name);
-  if (sheet.getLastRow() === 0) sheet.appendRow(cfg.headers);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(cfg.headers);
+  } else {
+    // Sinkronkan header row -- tambahkan kolom baru yg didefinisikan di kode tapi
+    // belum ada di Sheet (mis. setelah update fitur), di ujung kanan baris 1.
+    const existingHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+    const missing = cfg.headers.filter(h => existingHeaders.indexOf(h) === -1);
+    if (missing.length > 0) {
+      sheet.getRange(1, existingHeaders.length + 1, 1, missing.length).setValues([missing]);
+    }
+  }
   return sheet;
 }
 
