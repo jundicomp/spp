@@ -7,6 +7,7 @@ import { fetchPeminjamanFromSheet, fetchPemeliharaanFromSheet } from '../../serv
 import { formatRupiah, parseTanggalFleksibel, formatTanggalTampil, todayWIB } from '../../db/helpers';
 import { useAppData } from '../../context/AppContext';
 import { printElementById } from '../../utils/exportTable';
+import { exportLaporanKeWord } from '../../utils/exportWord';
 
 const KONDISI_LIST = ['Baik', 'Rusak Ringan', 'Rusak Berat'];
 
@@ -63,6 +64,37 @@ export default function LaporanRekapAset() {
     printElementById(printId);
   }
 
+  async function handleExportWord() {
+    const kategoriRows = Object.entries(perKategori).map(([k, v]) => [k, v['Baik'], v['Rusak Ringan'], v['Rusak Berat'], v.total]);
+    const pinjamRows = sedangDipinjam.map(p => [p.namaAset, `${p.peminjam} (${p.jenisPeminjam})`, p.jumlah, formatTanggalTampil(p.rencanaKembali), p.terlambat ? 'Terlambat' : 'Dipinjam']);
+
+    await exportLaporanKeWord({
+      judul: 'LAPORAN REKAP ASET',
+      subjudul: `${namaSekolah} — Dicetak ${todayWIB()}`,
+      filename: 'Laporan Rekap Aset',
+      bagian: [
+        {
+          judul: '1. Kondisi Aset per Kategori',
+          catatan: 'Jumlah unit dikelompokkan per kategori dan kondisi.',
+          headers: ['Kategori', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Total'],
+          rows: kategoriRows,
+          kosongMessage: 'Belum ada data aset.',
+        },
+        {
+          judul: '2. Aset Sedang Dipinjam',
+          catatan: `${sedangDipinjam.length} aset belum dikembalikan.`,
+          headers: ['Nama Aset', 'Peminjam', 'Jumlah', 'Rencana Kembali', 'Status'],
+          rows: pinjamRows,
+          kosongMessage: 'Tidak ada aset yang sedang dipinjam.',
+        },
+        {
+          judul: '3. Ringkasan Pemeliharaan',
+          ringkasanTeks: `Total Riwayat: ${ringkasanPemeliharaan.total} | Selesai: ${ringkasanPemeliharaan.selesai} | Dalam Proses: ${ringkasanPemeliharaan.prosesnya} | Total Biaya Pemeliharaan: ${formatRupiah(ringkasanPemeliharaan.totalBiaya)}`,
+        },
+      ],
+    });
+  }
+
   return (
     <Page pageId="laporan-rekap-aset" title="Laporan Rekap Aset" path="Sarpras / Laporan Rekap Aset">
       {!dataSiap && <div className="card"><div className="card-body" style={{ fontSize: 13, color: 'var(--muted)' }}>Memuat data...</div></div>}
@@ -70,7 +102,8 @@ export default function LaporanRekapAset() {
       {dataSiap && (
         <>
           <div className="card no-print">
-            <div className="card-body" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="card-body" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button className="btn" onClick={handleExportWord}>📝 Export Word</button>
               <button className="btn btn-primary" onClick={handleExportPdf}>🖨️ Export PDF</button>
             </div>
           </div>
