@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import ListField from '../common/ListField';
 
 export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, title, subtitle, target = 'master' }) {
   const { toast } = useAppData();
@@ -41,6 +42,8 @@ export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, ti
                     <option value="">— pilih —</option>
                     {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
+                ) : f.type === 'list' ? (
+                  <ListField value={form[f.key]} onChange={v => setField(f.key, v)} placeholder={f.placeholder} />
                 ) : (
                   <input type={f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder || ''} />
                 )}

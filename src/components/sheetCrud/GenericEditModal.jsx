@@ -5,6 +5,7 @@ import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { addLogEntry } from '../../services/googleSheets';
 import { normalisasiTanggalUntukInput } from '../../db/helpers';
+import ListField from '../common/ListField';
 
 export default function GenericEditModal({ row, fields, updateFn, moduleLabel, labelKey, onClose, onSaved }) {
   const { toast } = useAppData();
@@ -83,6 +84,8 @@ export default function GenericEditModal({ row, fields, updateFn, moduleLabel, l
                   <option value="">— pilih —</option>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
+              ) : f.type === 'list' ? (
+                <ListField value={form[f.key]} onChange={v => setField(f.key, v)} placeholder={f.placeholder} />
               ) : (
                 <input type={f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} />
               )}

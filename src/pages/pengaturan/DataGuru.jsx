@@ -2,17 +2,27 @@ import { useCallback, useMemo, useState } from 'react';
 import Page from '../../components/layout/Page';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
-import { GURU_HEADERS, GURU_FIELDS, emptyGuruRow, KATEGORI_OPTIONS } from '../../db/guruFields';
+import { GURU_HEADERS, GURU_FIELDS, emptyGuruRow } from '../../db/guruFields';
 import { fetchGuruFromSheet, addGuruToSheet, updateGuruInSheet, deleteGuruFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+
+const FILTER_OPTIONS = ['Guru', 'Staff']; // opsi filter cuma 2 -- "Guru & Staff" otomatis muncul di keduanya
+
+function cocokFilterKategori(kategoriBaris, filter) {
+  if (filter === 'Semua') return true;
+  const k = kategoriBaris || 'Guru';
+  if (k === 'Guru & Staff') return true; // orang ini genuinely masuk kedua kategori, selalu muncul
+  return k === filter;
+}
 
 export default function DataGuru() {
   const { guru, refreshGuru } = useAppData();
   const [tab, setTab] = useState('tabel');
   const [filterKategori, setFilterKategori] = useState('Semua');
 
-  const jumlahGuru = useMemo(() => guru.filter(g => g.kategori === 'Guru').length, [guru]);
-  const jumlahStaff = useMemo(() => guru.filter(g => g.kategori === 'Staff').length, [guru]);
+  // "Guru & Staff" dihitung di KEDUA statistik -- orang itu genuinely berperan ganda.
+  const jumlahGuru = useMemo(() => guru.filter(g => g.kategori === 'Guru' || g.kategori === 'Guru & Staff').length, [guru]);
+  const jumlahStaff = useMemo(() => guru.filter(g => g.kategori === 'Staff' || g.kategori === 'Guru & Staff').length, [guru]);
 
   // Filter dilakukan di sisi tampilan (bukan di fetch) -- 1 sheet yg sama, cukup
   // disaring lewat kolom Kategori. PENTING: dibungkus useCallback dgn dependency
@@ -21,8 +31,7 @@ export default function DataGuru() {
   // "berubah" di setiap render.
   const fetchFnTersaring = useCallback(async () => {
     const rows = await fetchGuruFromSheet();
-    if (filterKategori === 'Semua') return rows;
-    return rows.filter(r => (r['Kategori'] || 'Guru') === filterKategori);
+    return rows.filter(r => cocokFilterKategori(r['Kategori'], filterKategori));
   }, [filterKategori]);
 
   return (
@@ -51,13 +60,13 @@ export default function DataGuru() {
               deleteFn={deleteGuruFromSheet}
               moduleLabel="Data Guru & Staff"
               labelKey="Nama Lengkap"
-              searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['Jabatan'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['Tugas Tambahan'] || '').toLowerCase().includes(t)}
               onChanged={refreshGuru}
               refreshSignal={filterKategori}
               headExtra={
                 <select value={filterKategori} onChange={e => setFilterKategori(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
                   <option value="Semua">Semua (Guru & Staff)</option>
-                  {KATEGORI_OPTIONS.map(k => <option key={k} value={k}>{k} saja</option>)}
+                  {FILTER_OPTIONS.map(k => <option key={k} value={k}>{k} saja</option>)}
                 </select>
               }
             />

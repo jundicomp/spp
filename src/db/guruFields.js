@@ -2,28 +2,27 @@
 // mundur) -- data lama yg belum punya nilai di kolom2 ini otomatis dianggap
 // Kategori="Guru" (lihat normalizeSheetGuru), supaya tidak perlu migrasi manual.
 export const GURU_HEADERS = [
-  'No', 'Nama Lengkap', 'NIP/NUPTK', 'Jabatan', 'Mata Pelajaran', 'No HP', 'Email', 'Status',
+  'No', 'Nama Lengkap', 'NIP/NUPTK', 'Mata Pelajaran', 'No HP', 'Email', 'Status',
   'Kategori', 'Jenis Kelamin', 'Pangkat/Golongan', 'Tempat Lahir', 'Tanggal Lahir',
   'Pendidikan Terakhir', 'Sertifikasi', 'Jumlah Jam Mengajar', 'TMT Mengajar', 'Tugas Tambahan',
   'Status Kepegawaian',
 ];
 
-export const KATEGORI_OPTIONS = ['Guru', 'Staff'];
+export const KATEGORI_OPTIONS = ['Guru', 'Staff', 'Guru & Staff'];
 export const JENIS_KELAMIN_OPTIONS = ['Laki-laki', 'Perempuan'];
 export const SERTIFIKASI_OPTIONS = ['Sudah', 'Belum', 'Proses'];
 export const STATUS_KEPEGAWAIAN_OPTIONS = ['Tetap', 'Tidak Tetap'];
 export const STATUS_GURU_OPTIONS = ['Aktif', 'Tidak Aktif'];
 
 // SATU daftar field, dipakai bersama utk Guru MAUPUN Staff -- tidak ada lagi
-// percabangan berdasarkan kategori. "Jabatan" sengaja teks bebas (bukan dropdown)
-// krn kenyataannya jabatan staf sangat beragam (Operator RKAM, 5K/Kebersihan,
-// Penjaga Malam, dst) -- terlalu banyak utk dibakukan jadi pilihan tetap.
+// percabangan berdasarkan kategori. Field "Jabatan" sengaja DIHAPUS (permintaan
+// user) -- perannya digantikan sepenuhnya oleh "Tugas Tambahan" (tipe list, bisa
+// diisi beberapa peran sekaligus, mis. "Kepala Madrasah", "Wali Kelas 3A", dst).
 // Field spesifik-guru (Mapel/Sertifikasi/Jam Mengajar/TMT) tetap ditampilkan utk
 // SEMUA orang, cukup dibiarkan kosong kalau memang tidak relevan (mis. utk Staff).
 export const GURU_FIELDS = [
   { key: 'Kategori', label: 'Kategori', type: 'select', options: KATEGORI_OPTIONS, required: true },
   { key: 'Nama Lengkap', label: 'Nama Lengkap', type: 'text', required: true },
-  { key: 'Jabatan', label: 'Jabatan / Tugas', type: 'text', required: true, placeholder: 'mis. Guru Kelas, Kepala Tata Usaha, Satpam' },
   { key: 'Jenis Kelamin', label: 'Jenis Kelamin (L/P)', type: 'select', options: JENIS_KELAMIN_OPTIONS },
   { key: 'NIP/NUPTK', label: 'NIP / NUPTK', type: 'text' },
   { key: 'Pangkat/Golongan', label: 'Pangkat / Golongan', type: 'text', placeholder: 'mis. Penata Muda / III-a' },
@@ -34,7 +33,7 @@ export const GURU_FIELDS = [
   { key: 'Sertifikasi', label: 'Sertifikasi (khusus Guru)', type: 'select', options: SERTIFIKASI_OPTIONS },
   { key: 'Jumlah Jam Mengajar', label: 'Jumlah Jam Mengajar (khusus Guru)', type: 'number' },
   { key: 'TMT Mengajar', label: 'TMT (Tanggal Mulai Tugas)', type: 'date' },
-  { key: 'Tugas Tambahan', label: 'Tugas Tambahan', type: 'text', placeholder: 'mis. Kepala Madrasah, Kaur Kesiswaan' },
+  { key: 'Tugas Tambahan', label: 'Tugas Tambahan', type: 'list', placeholder: 'mis. Kepala Madrasah, Kaur Kesiswaan, Wali Kelas 3A' },
   { key: 'Status Kepegawaian', label: 'Status Kepegawaian', type: 'select', options: STATUS_KEPEGAWAIAN_OPTIONS },
   { key: 'No HP', label: 'No. HP', type: 'text' },
   { key: 'Email', label: 'Email', type: 'email' },
