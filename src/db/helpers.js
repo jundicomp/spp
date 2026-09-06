@@ -110,6 +110,13 @@ export function normalisasiTanggalUntukInput(rawValue){
   return '';
 }
 
+// Gabungan normalisasi + format tampilan -- dipakai di KOLOM TABEL mana pun yg
+// menampilkan tanggal mentah dari Sheets. Menangani baik data yg sudah bersih
+// maupun yg masih kotor (ISO+jam+Z), SELALU menghasilkan dd-mm-yyyy yg benar.
+export function formatTanggalTampil(rawValue){
+  return formatTanggalAngka(normalisasiTanggalUntukInput(rawValue));
+}
+
 export function hitungUsia(tanggalLahirInput){
   const lahir = parseTanggalFleksibel(tanggalLahirInput);
   if(!lahir) return null;

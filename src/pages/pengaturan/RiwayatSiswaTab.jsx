@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
+import DataTable from '../../components/common/DataTable';
 import { useAppData } from '../../context/AppContext';
 import { STATUS_SISWA_OPTIONS } from '../../db/siswaFields';
+import { exportToExcel } from '../../utils/exportTable';
 
 const STATUS_NONAKTIF = STATUS_SISWA_OPTIONS.filter(s => s !== 'Aktif'); // ['Lulus','Pindah','Berhenti']
 
@@ -26,18 +28,34 @@ export default function RiwayatSiswaTab() {
   }, [siswaNonaktif]);
 
   const filtered = useMemo(() => {
-    const list = filterStatus === 'Semua' ? siswaNonaktif : siswaNonaktif.filter(s => s.status === filterStatus);
-    return list.slice().sort((a, b) => a.nama.localeCompare(b.nama));
+    return filterStatus === 'Semua' ? siswaNonaktif : siswaNonaktif.filter(s => s.status === filterStatus);
   }, [siswaNonaktif, filterStatus]);
+
+  const columns = [
+    { key: 'nisn', label: 'NISN', accessor: r => r.nisn || '-' },
+    { key: 'nama', label: 'Nama Lengkap', accessor: r => r.nama, sortable: true },
+    { key: 'kelasTingkat', label: 'Kelas Terakhir', accessor: r => r.kelasTingkat || '-' },
+    { key: 'status', label: 'Status', render: r => <span className={`badge ${STATUS_BADGE[r.status] || 'badge-muted'}`}>{r.status}</span>, sortable: true },
+  ];
+
+  function exportExcelRiwayat() {
+    const headers = ['NISN', 'Nama Lengkap', 'Kelas Terakhir', 'Status'];
+    const rows = filtered.map(s => ({ NISN: s.nisn || '-', 'Nama Lengkap': s.nama, 'Kelas Terakhir': s.kelasTingkat || '-', Status: s.status }));
+    const judul = filterStatus === 'Semua' ? 'Riwayat Siswa - Semua Status' : `Riwayat Siswa - ${filterStatus}`;
+    exportToExcel(headers, rows, judul, judul);
+  }
 
   return (
     <div className="card">
       <div className="card-head">
         <div><h3>Riwayat Siswa</h3><p>Siswa yang sudah Lulus, Pindah, atau Berhenti — datanya tetap tersimpan untuk riwayat/audit, tidak ikut dihitung atau ditagih lagi.</p></div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
-          <option value="Semua">Semua Status</option>
-          {STATUS_NONAKTIF.map(st => <option key={st} value={st}>{st}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
+            <option value="Semua">Semua Status</option>
+            {STATUS_NONAKTIF.map(st => <option key={st} value={st}>{st}</option>)}
+          </select>
+          <button className="btn btn-sm" onClick={exportExcelRiwayat} disabled={filtered.length === 0}>📊 Excel</button>
+        </div>
       </div>
       <div className="card-body">
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -51,22 +69,13 @@ export default function RiwayatSiswaTab() {
         {siswaLoading && !siswaLoaded && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Memuat data...</p>}
         {siswaLoaded && filtered.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Belum ada siswa dengan status ini.</p>}
         {siswaLoaded && filtered.length > 0 && (
-          <div className="table-scroll">
-            <table>
-              <thead><tr><th>No</th><th>NISN</th><th>Nama Lengkap</th><th>Kelas Terakhir</th><th>Status</th></tr></thead>
-              <tbody>
-                {filtered.map((s, idx) => (
-                  <tr key={s.id}>
-                    <td>{idx + 1}</td>
-                    <td>{s.nisn || '-'}</td>
-                    <td>{s.nama}</td>
-                    <td>{s.kelasTingkat || '-'}</td>
-                    <td><span className={`badge ${STATUS_BADGE[s.status] || 'badge-muted'}`}>{s.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={columns}
+            data={filtered}
+            searchFn={(r, t) => (r.nama || '').toLowerCase().includes(t) || (r.nisn || '').includes(t)}
+            emptyMessage="Tidak ada siswa yang cocok dengan pencarian ini."
+            rowKey={r => r.id}
+          />
         )}
       </div>
     </div>

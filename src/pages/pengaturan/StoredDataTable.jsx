@@ -102,7 +102,7 @@ export default function StoredDataTable({ refreshKey }) {
       <div className="card-head">
         <div><h3>Data Siswa (Tabel)</h3><p>Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini.</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, 'Data Siswa')} disabled={rows.length === 0}>📊 Excel</button>
+          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, 'Data Siswa', 'Data Siswa - MI Ikhlasiyah')} disabled={rows.length === 0}>📊 Excel</button>
           <button className="btn btn-sm" onClick={handlePrint} disabled={rows.length === 0}>🖨️ PDF</button>
           <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
         </div>

@@ -110,7 +110,7 @@ export default function GenericStoredTable({
         <div><h3>{title}</h3><p>{subtitle}</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
           {headExtra}
-          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, moduleLabel)} disabled={rows.length === 0}>📊 Excel</button>
+          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, moduleLabel, moduleLabel)} disabled={rows.length === 0}>📊 Excel</button>
           <button className="btn btn-sm" onClick={handlePrint} disabled={rows.length === 0}>🖨️ PDF</button>
           <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
         </div>

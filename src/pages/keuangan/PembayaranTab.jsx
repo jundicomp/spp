@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
+import DataTable from '../../components/common/DataTable';
 import { addPembayaranToSheet, addLogEntry } from '../../services/googleSheets';
 import { statusTagihan } from '../../db/tagihanHelpers';
 import { METODE_BAYAR_OPTIONS } from '../../db/pembayaranFields';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { initials, avatarColor, todayWIB } from '../../db/helpers';
+import { initials, avatarColor, todayWIB, formatTanggalTampil } from '../../db/helpers';
+import { exportToExcel } from '../../utils/exportTable';
 import KwitansiModal from './KwitansiModal';
 import Modal from '../../components/common/Modal';
 
@@ -193,24 +195,32 @@ export default function PembayaranTab() {
       <div className="card">
         <div className="card-head">
           <div><h3>Riwayat Pembayaran{selectedSiswa ? ` — ${selectedSiswa.nama}` : ''}</h3><p>{pembayaranLoading ? 'Memuat...' : `${riwayatSiswaIni.length} transaksi`}</p></div>
-          <button className="btn btn-sm" onClick={refreshPembayaran} disabled={pembayaranLoading}>↻ Muat Ulang</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-sm" onClick={() => exportToExcel(
+              ['Nama Siswa', 'Jenis', 'Nominal', 'Tanggal', 'Metode'],
+              riwayatSiswaIni.map(p => ({ 'Nama Siswa': p.namaSiswa, 'Jenis': p.jenis, 'Nominal': p.nominal, 'Tanggal': formatTanggalTampil(p.tanggalBayar), 'Metode': p.metode })),
+              'Riwayat Pembayaran', `Riwayat Pembayaran${selectedSiswa ? ' — ' + selectedSiswa.nama : ''}`
+            )} disabled={riwayatSiswaIni.length === 0}>📊 Excel</button>
+            <button className="btn btn-sm" onClick={refreshPembayaran} disabled={pembayaranLoading}>↻ Muat Ulang</button>
+          </div>
         </div>
         <div className="card-body">
           {pembayaranLoaded && riwayatSiswaIni.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada pembayaran tercatat.</p>}
           {riwayatSiswaIni.length > 0 && (
-            <div className="table-scroll">
-              <table>
-                <thead><tr><th>No</th><th>Nama Siswa</th><th>Jenis</th><th>Nominal</th><th>Tanggal</th><th>Metode</th><th>Aksi</th></tr></thead>
-                <tbody>
-                  {riwayatSiswaIni.map(p => (
-                    <tr key={p.id}>
-                      <td>{p.no}</td><td>{p.namaSiswa}</td><td>{p.jenis}</td><td>{formatRupiah(p.nominal)}</td><td>{p.tanggalBayar}</td><td>{p.metode}</td>
-                      <td><button className="btn btn-sm" onClick={() => setLihatKwitansi(p)}>🧾 Kwitansi</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={[
+                { key: 'namaSiswa', label: 'Nama Siswa', accessor: r => r.namaSiswa, sortable: true },
+                { key: 'jenis', label: 'Jenis', accessor: r => r.jenis },
+                { key: 'nominal', label: 'Nominal', accessor: r => formatRupiah(r.nominal), sortable: true },
+                { key: 'tanggalBayar', label: 'Tanggal', render: r => formatTanggalTampil(r.tanggalBayar), sortable: true },
+                { key: 'metode', label: 'Metode', accessor: r => r.metode },
+                { key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => <div className="no-print"><button className="btn btn-sm" onClick={() => setLihatKwitansi(r)}>🧾 Kwitansi</button></div> },
+              ]}
+              data={riwayatSiswaIni}
+              searchFn={(r, t) => (r.namaSiswa || '').toLowerCase().includes(t) || (r.jenis || '').toLowerCase().includes(t) || (r.metode || '').toLowerCase().includes(t)}
+              emptyMessage="Tidak ada transaksi yang cocok dengan pencarian ini."
+              rowKey={r => r.id}
+            />
           )}
         </div>
       </div>
