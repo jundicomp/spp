@@ -2,10 +2,26 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAppData } from '../../context/AppContext';
+import pkg from '../../../package.json';
 
 const Arrow = () => (
   <svg className="nav-group-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M9 6l6 6-6 6" /></svg>
 );
+
+// __BUILD_TIME__ ditanam Vite saat "npm run build" dijalankan (lihat vite.config.js) --
+// bukan variabel biasa, jadi TIDAK BOLEH dihapus meski terlihat "undefined" di editor.
+function formatWaktuBuild(isoString) {
+  try {
+    const d = new Date(isoString);
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta', day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+    return formatter.format(d) + ' WIB';
+  } catch {
+    return '-';
+  }
+}
 
 function NavGroup({ id, label, children, sub, open, onToggle }) {
   return (
@@ -86,7 +102,12 @@ export default function Sidebar() {
         </NavGroup>
       </nav>
 
-      <div className="sidebar-foot">Jundicomp © 2026</div>
+      <div className="sidebar-foot">
+        Jundicomp © 2026
+        <div style={{ fontSize: 10.5, opacity: .7, marginTop: 3 }}>
+          v{pkg.version} · {formatWaktuBuild(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null)}
+        </div>
+      </div>
     </aside>
   );
 }
