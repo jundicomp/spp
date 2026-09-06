@@ -1,29 +1,52 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Page from '../../components/layout/Page';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
-import { ASET_FIELDS, ASET_HEADERS, emptyAsetRow, KONDISI_ASET_OPTIONS } from '../../db/asetFields';
+import { ASET_FIELDS, ASET_HEADERS, emptyAsetRow, hitungBreakdownAset } from '../../db/asetFields';
 import { fetchAsetFromSheet, addAsetToSheet, updateAsetInSheet, deleteAsetFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import AsetViewModal from './AsetViewModal';
+
+// Header tabel + export -- "Total" disisipkan sesudah Rusak Berat, TAPI itu bukan
+// kolom asli di Sheets (tidak ada di Code.gs) -- nilainya dihitung otomatis lewat
+// fetchFnDenganTotal di bawah, supaya tetap konsisten baik di tabel maupun Excel.
+const HEADERS_TAMPIL = [...ASET_HEADERS.slice(0, 8), 'Total', ...ASET_HEADERS.slice(8)];
 
 export default function DataAset() {
   const { aset, refreshAset } = useAppData();
   const [tab, setTab] = useState('tabel');
+  const [lihatAset, setLihatAset] = useState(null);
 
   const ringkasan = useMemo(() => {
-    const totalUnit = aset.reduce((s, a) => s + a.jumlah, 0);
-    const perKondisi = {};
-    KONDISI_ASET_OPTIONS.forEach(k => { perKondisi[k] = aset.filter(a => a.kondisi === k).reduce((s, a) => s + a.jumlah, 0); });
-    return { totalJenis: aset.length, totalUnit, perKondisi };
+    const totalUnit = aset.reduce((s, a) => s + a.total, 0);
+    const totalBaik = aset.reduce((s, a) => s + a.baik, 0);
+    const totalRR = aset.reduce((s, a) => s + a.rusakRingan, 0);
+    const totalRB = aset.reduce((s, a) => s + a.rusakBerat, 0);
+    return { totalJenis: aset.length, totalUnit, totalBaik, totalRR, totalRB };
   }, [aset]);
+
+  // Sisipkan Baik/RR/RB/Total yg SUDAH benar (termasuk pemetaan data lama Kondisi+
+  // Jumlah) ke tiap baris SEBELUM masuk ke tabel/export -- pakai fungsi yg SAMA
+  // dgn yg dipakai kartu ringkasan (hitungBreakdownAset), supaya keduanya selalu
+  // konsisten. Kalau baris lama nanti diedit, nilai yg sudah terpetakan ini otomatis
+  // "bermigrasi" ke kolom baru begitu disimpan ulang.
+  const fetchFnDenganTotal = useCallback(async () => {
+    const rows = await fetchAsetFromSheet();
+    return rows.map(r => {
+      const { baik, rusakRingan, rusakBerat, total } = hitungBreakdownAset(r);
+      return { ...r, Baik: baik, 'Rusak Ringan': rusakRingan, 'Rusak Berat': rusakBerat, Total: total };
+    });
+  }, []);
 
   return (
     <Page pageId="aset" title="Data Aset & Inventaris" path="Sarpras / Data Aset & Inventaris">
       {aset.length > 0 && (
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-green"><div className="info-value">{ringkasan.totalJenis}</div><div className="info-label">Jenis Aset Terdaftar</div></div>
+          <div className="info-card c-purple"><div className="info-value">{ringkasan.totalJenis}</div><div className="info-label">Jenis Aset Terdaftar</div></div>
           <div className="info-card c-blue"><div className="info-value">{ringkasan.totalUnit}</div><div className="info-label">Total Unit</div></div>
-          <div className="info-card c-red"><div className="info-value">{ringkasan.perKondisi['Rusak Berat'] || 0}</div><div className="info-label">Unit Rusak Berat</div></div>
+          <div className="info-card c-green"><div className="info-value">{ringkasan.totalBaik}</div><div className="info-label">Unit Baik</div></div>
+          <div className="info-card c-gold"><div className="info-value">{ringkasan.totalRR}</div><div className="info-label">Unit Rusak Ringan</div></div>
+          <div className="info-card c-red"><div className="info-value">{ringkasan.totalRB}</div><div className="info-label">Unit Rusak Berat</div></div>
         </div>
       )}
 
@@ -37,15 +60,18 @@ export default function DataAset() {
             <GenericStoredTable
               title="Data Aset & Inventaris (Tabel)"
               subtitle="Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini."
-              headers={ASET_HEADERS}
+              headers={HEADERS_TAMPIL}
               fields={ASET_FIELDS}
-              fetchFn={fetchAsetFromSheet}
+              fetchFn={fetchFnDenganTotal}
               updateFn={updateAsetInSheet}
               deleteFn={deleteAsetFromSheet}
               moduleLabel="Data Aset & Inventaris"
               labelKey="Nama Aset"
-              searchFn={(r, t) => (r['Nama Aset'] || '').toLowerCase().includes(t) || (r['Lokasi'] || '').toLowerCase().includes(t) || (r['Kategori'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => (r['Nama Aset'] || '').toLowerCase().includes(t) || (r['Lokasi'] || '').toLowerCase().includes(t) || (r['Kategori'] || '').toLowerCase().includes(t) || (r['Kode'] || '').toLowerCase().includes(t)}
               onChanged={refreshAset}
+              extraActions={(r) => (
+                <button className="btn-icon" title="Lihat" onClick={() => setLihatAset(r)}>👁</button>
+              )}
             />
           )}
           {tab === 'manual' && (
@@ -60,6 +86,8 @@ export default function DataAset() {
           )}
         </div>
       </div>
+
+      {lihatAset && <AsetViewModal row={lihatAset} onClose={() => setLihatAset(null)} />}
     </Page>
   );
 }

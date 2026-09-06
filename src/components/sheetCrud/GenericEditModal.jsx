@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { addLogEntry } from '../../services/googleSheets';
 import { normalisasiTanggalUntukInput } from '../../db/helpers';
 import ListField from '../common/ListField';
+import ImageField from '../common/ImageField';
 
 export default function GenericEditModal({ row, fields, updateFn, moduleLabel, labelKey, onClose, onSaved }) {
   const { toast } = useAppData();
@@ -86,6 +87,8 @@ export default function GenericEditModal({ row, fields, updateFn, moduleLabel, l
                 </select>
               ) : f.type === 'list' ? (
                 <ListField value={form[f.key]} onChange={v => setField(f.key, v)} placeholder={f.placeholder} />
+              ) : f.type === 'image' ? (
+                <ImageField value={form[f.key]} onChange={v => setField(f.key, v)} label={f.label} />
               ) : (
                 <input type={f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} />
               )}

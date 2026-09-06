@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import ListField from '../common/ListField';
+import ImageField from '../common/ImageField';
 import SaveProgressModal from '../common/SaveProgressModal';
 
 export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, title, subtitle, target = 'master' }) {
@@ -49,6 +50,8 @@ export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, ti
                   </select>
                 ) : f.type === 'list' ? (
                   <ListField value={form[f.key]} onChange={v => setField(f.key, v)} placeholder={f.placeholder} />
+                ) : f.type === 'image' ? (
+                  <ImageField value={form[f.key]} onChange={v => setField(f.key, v)} label={f.label} />
                 ) : (
                   <input type={f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder || ''} />
                 )}

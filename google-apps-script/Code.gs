@@ -60,7 +60,10 @@ const SHEETS = {
   },
   aset: {
     name: 'Data Aset',
-    headers: ['No', 'Nama Aset', 'Kategori', 'Lokasi', 'Kondisi', 'Jumlah', 'Tahun Perolehan', 'Keterangan'],
+    // Kolom baru ditaruh di AKHIR (kompatibel mundur) -- "Kondisi"+"Jumlah" lama
+    // TETAP dipertahankan di Sheets (data lama tidak hilang), tapi form/tampilan
+    // React sekarang pakai "Baik"/"Rusak Ringan"/"Rusak Berat" terpisah sbg gantinya.
+    headers: ['No', 'Nama Aset', 'Kategori', 'Lokasi', 'Kondisi', 'Jumlah', 'Tahun Perolehan', 'Keterangan', 'Kode', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Gambar'],
   },
   peminjaman: {
     name: 'Peminjaman Aset',
