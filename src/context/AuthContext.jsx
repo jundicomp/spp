@@ -4,6 +4,16 @@ import { isConfigured, fetchUsersFromSheet, updateUserInSheet } from '../service
 import { MASTER_ADMIN } from '../config/masterAdmin';
 
 const AuthContext = createContext(null);
+const SESSION_KEY = 'currentUser_v1';
+
+function bacaSesiTersimpan() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 function normalizeSheetUser(u, idx) {
   return {
@@ -22,9 +32,23 @@ function normalizeSheetUser(u, idx) {
 
 export function AuthProvider({ children }) {
   const { permissions } = useAppData();
-  const [currentUser, setCurrentUser] = useState(null);
+  // Baca sesi tersimpan SEKALI saat pertama kali komponen dimuat -- supaya refresh
+  // halaman (F5) tidak otomatis logout. Sesi dianggap valid selama tersimpan di
+  // localStorage; logout eksplisit (tombol keluar) yang menghapusnya.
+  const [currentUser, setCurrentUserState] = useState(() => bacaSesiTersimpan());
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
+
+  const setCurrentUser = useCallback((userOrUpdater) => {
+    setCurrentUserState(prev => {
+      const next = typeof userOrUpdater === 'function' ? userOrUpdater(prev) : userOrUpdater;
+      try {
+        if (next) localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+        else localStorage.removeItem(SESSION_KEY);
+      } catch { /* localStorage penuh/diblokir browser -- sesi tetap jalan di memori */ }
+      return next;
+    });
+  }, []);
 
   const login = useCallback(async (username, password) => {
     setLoggingIn(true);
