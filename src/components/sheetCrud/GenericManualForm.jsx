@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import ListField from '../common/ListField';
+import SaveProgressModal from '../common/SaveProgressModal';
 
 export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, title, subtitle, target = 'master' }) {
   const { toast } = useAppData();
   const [form, setForm] = useState(emptyRow());
   const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
 
   function setField(key, value) { setForm(f => ({ ...f, [key]: value })); }
 
@@ -16,15 +18,18 @@ export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, ti
     const wajib = fields.find(f => f.required && !String(form[f.key]).trim());
     if (wajib) { toast(`${wajib.label} wajib diisi.`, 'error'); return; }
     setSaving(true);
+    setPhase('saving');
     try {
       await addFn(form);
-      toast('Data berhasil disimpan ke Google Sheets.');
+      setPhase('done');
+      await new Promise(r => setTimeout(r, 1100)); // biarkan pesan sukses terlihat sebentar
       setForm(emptyRow());
       onSaved && onSaved();
     } catch (err) {
       toast(err.message, 'error');
     } finally {
       setSaving(false);
+      setPhase(null);
     }
   }
 
@@ -56,6 +61,7 @@ export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, ti
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
         </div>
       </form>
+      {phase && <SaveProgressModal phase={phase} />}
     </div>
   );
 }
