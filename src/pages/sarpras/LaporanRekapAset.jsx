@@ -18,15 +18,21 @@ export default function LaporanRekapAset() {
     const map = {};
     aset.forEach(a => {
       if (!map[a.kategori]) map[a.kategori] = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0, total: 0 };
-      map[a.kategori][a.kondisi] = (map[a.kategori][a.kondisi] || 0) + a.jumlah;
-      map[a.kategori].total += a.jumlah;
+      map[a.kategori]['Baik'] += a.baik;
+      map[a.kategori]['Rusak Ringan'] += a.rusakRingan;
+      map[a.kategori]['Rusak Berat'] += a.rusakBerat;
+      map[a.kategori].total += a.total;
     });
     return map;
   }, [aset]);
 
   const totalKondisi = useMemo(() => {
     const t = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0 };
-    aset.forEach(a => { t[a.kondisi] = (t[a.kondisi] || 0) + a.jumlah; });
+    aset.forEach(a => {
+      t['Baik'] += a.baik;
+      t['Rusak Ringan'] += a.rusakRingan;
+      t['Rusak Berat'] += a.rusakBerat;
+    });
     return t;
   }, [aset]);
 
