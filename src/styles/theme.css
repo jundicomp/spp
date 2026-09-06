@@ -145,9 +145,13 @@ tr:hover td{background:var(--row-hover);}
    yang tampil (sidebar/topbar/kartu lain otomatis disembunyikan). Tombol export/aksi
    di dalam target juga ikut disembunyikan lewat .no-print. */
 @media print {
+  @page { size: A4; margin: 14mm 12mm; }
   body.printing-mode * { visibility: hidden !important; }
   body.printing-mode .print-target,
   body.printing-mode .print-target * { visibility: visible !important; }
   body.printing-mode .print-target { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
   body.printing-mode .no-print { display: none !important; }
+  /* Browser SECARA DEFAULT membuang warna latar saat cetak/save-as-PDF (demi hemat
+     tinta) -- baris ini memaksa warna (mis. header tabel hijau) tetap tercetak. */
+  body.printing-mode .print-target * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
