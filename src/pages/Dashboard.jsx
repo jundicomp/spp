@@ -1,10 +1,19 @@
 import { useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Page from '../components/layout/Page';
 import { useAppData } from '../context/AppContext';
 import NotifikasiSiswaPerluTindakLanjut from '../components/common/NotifikasiSiswaPerluTindakLanjut';
+import { rekapPemasukanBulanan, rekapPengeluaranBulanan, pembayaranAsli } from '../db/laporanHelpers';
+import { formatRupiah, todayWIB } from '../db/helpers';
+
+const WARNA_LP = ['#2563eb', '#7e3af2']; // Laki-laki, Perempuan
+const WARNA_KONDISI = ['#16794a', '#c9962c', '#c0392b']; // Baik, Rusak Ringan, Rusak Berat
 
 export default function Dashboard() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, kelas, guru, tahunAjaranAktif } = useAppData();
+  const {
+    siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, kelas, guru, tahunAjaranAktif,
+    aset, asetLoaded, allTagihan, tagihanTerbayar, pembayaran, pembayaranLoaded, pengeluaran, pengeluaranLoaded,
+  } = useAppData();
 
   const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
 
@@ -21,6 +30,55 @@ export default function Dashboard() {
   }, [siswaAktif]);
 
   const tingkatList = Object.keys(stats.perTingkat).sort();
+  const dataChartKelas = tingkatList.map(t => ({ kelas: `Kelas ${t}`, Siswa: stats.perTingkat[t] }));
+  const dataChartGender = [
+    { name: 'Laki-laki', value: stats.perGender['Laki-laki'] },
+    { name: 'Perempuan', value: stats.perGender['Perempuan'] },
+  ].filter(d => d.value > 0);
+
+  // ==== Ringkasan Keuangan (bulan berjalan + tren 12 bulan, sesuai Laporan Keuangan) ====
+  const keuanganSiap = tahunAjaranAktif && pembayaranLoaded && pengeluaranLoaded;
+  const rekapKeuangan = useMemo(() => {
+    if (!keuanganSiap) return null;
+    const pemasukanBulanan = rekapPemasukanBulanan(tahunAjaranAktif.label, pembayaran);
+    const pengeluaranBulanan = rekapPengeluaranBulanan(tahunAjaranAktif.label, pengeluaran);
+    const [tahunIni, bulanIni] = todayWIB().split('-').map(Number); // yyyy-MM-dd -> [yyyy, MM]
+    const bulanBerjalan = pemasukanBulanan.find(b => b.monthIdx === bulanIni - 1 && b.calYear === tahunIni);
+    const pengeluaranBerjalan = pengeluaranBulanan.find(b => b.monthIdx === bulanIni - 1 && b.calYear === tahunIni);
+    const dataChart = pemasukanBulanan.map((b, i) => ({
+      bulan: b.label.split(' ')[0].slice(0, 3),
+      Pemasukan: b.total,
+      Pengeluaran: pengeluaranBulanan[i]?.total || 0,
+    }));
+    return {
+      pemasukanBulanIni: bulanBerjalan?.total || 0,
+      pengeluaranBulanIni: pengeluaranBerjalan?.total || 0,
+      dataChart,
+    };
+  }, [keuanganSiap, tahunAjaranAktif, pembayaran, pengeluaran]);
+
+  const tunggakan = useMemo(() => {
+    return allTagihan.reduce((s, t) => {
+      const sisa = t.nominal - tagihanTerbayar(t.refType, t.no);
+      return s + (sisa > 0 ? sisa : 0);
+    }, 0);
+  }, [allTagihan, tagihanTerbayar]);
+
+  // ==== Ringkasan Sarpras (sesuai Laporan Rekap Aset) ====
+  const sarprasStats = useMemo(() => {
+    return {
+      totalJenis: aset.length,
+      totalUnit: aset.reduce((s, a) => s + a.total, 0),
+      baik: aset.reduce((s, a) => s + a.baik, 0),
+      rr: aset.reduce((s, a) => s + a.rusakRingan, 0),
+      rb: aset.reduce((s, a) => s + a.rusakBerat, 0),
+    };
+  }, [aset]);
+  const dataChartKondisi = [
+    { name: 'Baik', value: sarprasStats.baik },
+    { name: 'Rusak Ringan', value: sarprasStats.rr },
+    { name: 'Rusak Berat', value: sarprasStats.rb },
+  ].filter(d => d.value > 0);
 
   return (
     <Page pageId="dashboard" title="Dashboard" path="Dashboard">
@@ -67,7 +125,34 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 10 }}>Sebaran per Kelas / Tingkat</div>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
+                <div style={{ flex: '2 1 340px', minWidth: 280 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 10 }}>Sebaran per Kelas / Tingkat</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={dataChartKelas}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="kelas" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                      <Tooltip />
+                      <Bar dataKey="Siswa" fill="#16794a" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ flex: '1 1 220px', minWidth: 220 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 10 }}>Jenis Kelamin</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={dataChartGender} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={2}>
+                        {dataChartGender.map((_, i) => <Cell key={i} fill={WARNA_LP[i % WARNA_LP.length]} />)}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 10 }}>Sebaran per Kelas / Tingkat (angka)</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {tingkatList.map(t => (
                   <div key={t} style={{ padding: '10px 16px', background: 'var(--green-soft)', borderRadius: 8, minWidth: 90, textAlign: 'center' }}>
@@ -82,9 +167,68 @@ export default function Dashboard() {
       </div>
 
       <div className="card">
-        <div className="card-body" style={{ fontSize: 13, color: 'var(--muted)' }}>
-          ℹ️ Modul <strong>Keuangan</strong> dan <strong>Sarpras</strong> belum tersambung ke Google Sheets — statistik keuangan
-          akan tampil di sini begitu modul tersebut selesai dimigrasi.
+        <div className="card-head"><div><h3>💰 Ringkasan Keuangan</h3><p>Pemasukan vs pengeluaran sepanjang tahun ajaran {tahunAjaranAktif?.label}.</p></div></div>
+        <div className="card-body">
+          {!keuanganSiap && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Memuat data keuangan...</p>}
+          {keuanganSiap && (
+            <>
+              <div className="info-grid" style={{ marginBottom: 20 }}>
+                <div className="info-card c-green">
+                  <div className="info-value" style={{ fontSize: 20 }}>{formatRupiah(rekapKeuangan.pemasukanBulanIni)}</div>
+                  <div className="info-label">Pemasukan Bulan Ini</div>
+                </div>
+                <div className="info-card c-red">
+                  <div className="info-value" style={{ fontSize: 20 }}>{formatRupiah(rekapKeuangan.pengeluaranBulanIni)}</div>
+                  <div className="info-label">Pengeluaran Bulan Ini</div>
+                </div>
+                <div className="info-card c-gold">
+                  <div className="info-value" style={{ fontSize: 20 }}>{formatRupiah(tunggakan)}</div>
+                  <div className="info-label">Total Tunggakan Aktif</div>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={rekapKeuangan.dataChart}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`} />
+                  <Tooltip formatter={(v) => formatRupiah(v)} />
+                  <Legend />
+                  <Bar dataKey="Pemasukan" fill="#16794a" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Pengeluaran" fill="#c0392b" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-head"><div><h3>🏫 Ringkasan Sarpras</h3><p>Kondisi aset & inventaris sekolah.</p></div></div>
+        <div className="card-body">
+          {!asetLoaded && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Memuat data aset...</p>}
+          {asetLoaded && sarprasStats.totalJenis === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Belum ada data aset tersimpan.</p>}
+          {asetLoaded && sarprasStats.totalJenis > 0 && (
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div className="info-card c-purple" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.totalJenis}</div><div className="info-label">Jenis Aset</div></div>
+                <div className="info-card c-blue" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.totalUnit}</div><div className="info-label">Total Unit</div></div>
+                <div className="info-card c-green" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.baik}</div><div className="info-label">Baik</div></div>
+                <div className="info-card c-gold" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.rr}</div><div className="info-label">Rusak Ringan</div></div>
+                <div className="info-card c-red" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.rb}</div><div className="info-label">Rusak Berat</div></div>
+              </div>
+              <div style={{ flex: '1 1 220px', minWidth: 220, maxWidth: 320 }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={dataChartKondisi} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2}>
+                      {dataChartKondisi.map((_, i) => <Cell key={i} fill={WARNA_KONDISI[i % WARNA_KONDISI.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Page>
