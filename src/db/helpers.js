@@ -23,6 +23,15 @@ export function isoDate(d){
   const dt = (d instanceof Date) ? d : new Date(d);
   return dt.toISOString().slice(0,10);
 }
+
+// Pengganti aman utk "new Date().toISOString().slice(0,10)" -- pola itu BISA salah
+// tanggal (mundur 1 hari) kalau dipakai dini hari WIB (00:00-06:59), krn toISOString()
+// selalu mengonversi ke UTC dulu (WIB = UTC+7). Dipakai di mana pun butuh "hari ini"
+// dlm bentuk teks "yyyy-MM-dd" (default tanggal form, nama file backup, dst).
+export function todayWIB(){
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(new Date());
+}
 export function pad(n, len){ return String(n).padStart(len, '0'); }
 
 export function initials(name){

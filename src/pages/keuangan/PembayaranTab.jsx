@@ -4,8 +4,9 @@ import { statusTagihan } from '../../db/tagihanHelpers';
 import { METODE_BAYAR_OPTIONS } from '../../db/pembayaranFields';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { initials, avatarColor } from '../../db/helpers';
+import { initials, avatarColor, todayWIB } from '../../db/helpers';
 import KwitansiModal from './KwitansiModal';
+import Modal from '../../components/common/Modal';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -19,7 +20,7 @@ export default function PembayaranTab() {
   const [selectedSiswaId, setSelectedSiswaId] = useState(null);
   const [selectedTagihanId, setSelectedTagihanId] = useState(null);
   const [nominal, setNominal] = useState('');
-  const [tanggalBayar, setTanggalBayar] = useState(() => new Date().toISOString().slice(0, 10));
+  const [tanggalBayar, setTanggalBayar] = useState(() => todayWIB());
   const [metode, setMetode] = useState(METODE_BAYAR_OPTIONS[0]);
   const [saving, setSaving] = useState(false);
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
@@ -128,56 +129,66 @@ export default function PembayaranTab() {
             </div>
 
             {selectedSiswa && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Pilih Tagihan Belum Lunas</label>
-                  {tagihanBelumLunasSiswa.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Semua tagihan siswa ini sudah lunas. 🎉</p>}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {tagihanBelumLunasSiswa.map(t => (
-                      <div
-                        key={t.id}
-                        onClick={() => pilihTagihan(t)}
-                        style={{
-                          padding: '10px 14px', border: `1.5px solid ${selectedTagihanId === t.id ? 'var(--green)' : 'var(--border)'}`,
-                          borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between',
-                          background: selectedTagihanId === t.id ? 'var(--green-soft)' : '#fff',
-                        }}
-                      >
-                        <span style={{ fontSize: 13.5 }}>{t.label} <span className={`badge ${t.status === 'Sebagian' ? 'badge-gold' : 'badge-red'}`} style={{ marginLeft: 8 }}>{t.status}</span></span>
-                        <span style={{ fontSize: 13.5, fontWeight: 700 }}>Sisa {formatRupiah(t.sisa)}</span>
-                      </div>
-                    ))}
-                  </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Pilih Tagihan Belum Lunas</label>
+                {tagihanBelumLunasSiswa.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Semua tagihan siswa ini sudah lunas. 🎉</p>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {tagihanBelumLunasSiswa.map(t => (
+                    <div
+                      key={t.id}
+                      onClick={() => pilihTagihan(t)}
+                      style={{
+                        padding: '10px 14px', border: '1.5px solid var(--border)',
+                        borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between',
+                        background: '#fff',
+                      }}
+                    >
+                      <span style={{ fontSize: 13.5 }}>
+                        {t.label} <span className={`badge ${t.status === 'Sebagian' ? 'badge-gold' : 'badge-red'}`} style={{ marginLeft: 8 }}>{t.status}</span>
+                        <span style={{ marginLeft: 8, color: 'var(--green)', fontWeight: 700 }}>Bayar Sekarang</span>
+                      </span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700 }}>Sisa {formatRupiah(t.sisa)}</span>
+                    </div>
+                  ))}
                 </div>
-
-                {selectedTagihan && (
-                  <div className="form-grid">
-                    <div className="field">
-                      <label>Nominal Dibayar (Rp)</label>
-                      <input type="number" value={nominal} onChange={e => setNominal(e.target.value)} max={selectedTagihan.sisa} />
-                    </div>
-                    <div className="field">
-                      <label>Tanggal Bayar</label>
-                      <input type="date" value={tanggalBayar} onChange={e => setTanggalBayar(e.target.value)} />
-                    </div>
-                    <div className="field">
-                      <label>Metode</label>
-                      <select value={metode} onChange={e => setMetode(e.target.value)}>
-                        {METODE_BAYAR_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </div>
-          {selectedTagihan && (
-            <div className="card-body" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Pembayaran'}</button>
-            </div>
-          )}
         </form>
       </div>
+
+      {selectedTagihan && (
+        <Modal
+          title="Catat Pembayaran"
+          subtitle={`${selectedSiswa.nama} — ${selectedTagihan.label} — Sisa ${formatRupiah(selectedTagihan.sisa)}`}
+          onClose={() => setSelectedTagihanId(null)}
+          actions={
+            <>
+              <button type="button" className="btn" onClick={() => setSelectedTagihanId(null)}>Batal</button>
+              <button type="button" className="btn btn-primary" onClick={submitPembayaran} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Pembayaran'}</button>
+            </>
+          }
+        >
+          <div style={{ background: 'var(--green-soft)', borderRadius: 10, padding: 18, margin: '-4px -4px 4px' }}>
+            <div className="form-grid">
+              <div className="field">
+                <label>Nominal Dibayar (Rp)</label>
+                <input type="number" value={nominal} onChange={e => setNominal(e.target.value)} max={selectedTagihan.sisa} autoFocus />
+              </div>
+              <div className="field">
+                <label>Tanggal Bayar</label>
+                <input type="date" value={tanggalBayar} onChange={e => setTanggalBayar(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Metode</label>
+                <select value={metode} onChange={e => setMetode(e.target.value)}>
+                  {METODE_BAYAR_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <div className="card">
         <div className="card-head">

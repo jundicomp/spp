@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
 import { getSheetsConfig, isConfigured } from '../../services/googleSheets';
+import { todayWIB } from '../../db/helpers';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet, fetchAsetFromSheet,
   fetchPeminjamanFromSheet, fetchPemeliharaanFromSheet, fetchProfilFromSheet, fetchTahunAjaranFromSheet,
@@ -57,7 +58,7 @@ export default function PengaturanSistem() {
           console.warn(`Gagal ambil ${s.label}:`, err.message);
         }
       }
-      const tanggal = new Date().toISOString().slice(0, 10);
+      const tanggal = todayWIB();
       XLSX.writeFile(wb, `Backup MI Ikhlasiyah - ${tanggal}.xlsx`);
       toast('Backup berhasil diunduh.');
     } catch (err) {

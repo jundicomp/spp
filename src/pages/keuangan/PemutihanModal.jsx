@@ -3,7 +3,7 @@ import Modal from '../../components/common/Modal';
 import PasswordConfirmModal from '../../components/common/PasswordConfirmModal';
 import { addPembayaranToSheet, addLogEntry } from '../../services/googleSheets';
 import { METODE_PEMUTIHAN } from '../../db/pembayaranFields';
-import { formatRupiah } from '../../db/helpers';
+import { formatRupiah, todayWIB } from '../../db/helpers';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -30,7 +30,7 @@ export default function PemutihanModal({ tagihan, onClose, onDone }) {
         'Nama Siswa': tagihan.namaSiswa,
         Jenis: tagihan.label,
         Nominal: tagihan.sisa,
-        'Tanggal Bayar': new Date().toISOString().slice(0, 10),
+        'Tanggal Bayar': todayWIB(),
         Metode: METODE_PEMUTIHAN,
         Keterangan: alasan.trim(),
       });

@@ -1,4 +1,5 @@
 export const PEMINJAMAN_HEADERS = ['No', 'Nama Aset', 'Peminjam', 'Jenis Peminjam', 'Jumlah', 'Tanggal Pinjam', 'Rencana Kembali', 'Tanggal Dikembalikan', 'Status'];
+import { todayWIB } from './helpers';
 
 export const JENIS_PEMINJAM_OPTIONS = ['Guru', 'Siswa', 'Staff', 'Lainnya'];
 export const STATUS_PEMINJAMAN_OPTIONS = ['Dipinjam', 'Dikembalikan'];
@@ -20,7 +21,7 @@ export function buildPeminjamanFields(asetOptions) {
 export function emptyPeminjamanRow() {
   return {
     'Nama Aset': '', Peminjam: '', 'Jenis Peminjam': '', Jumlah: '',
-    'Tanggal Pinjam': new Date().toISOString().slice(0, 10), 'Rencana Kembali': '',
+    'Tanggal Pinjam': todayWIB(), 'Rencana Kembali': '',
     'Tanggal Dikembalikan': '', Status: 'Dipinjam',
   };
 }

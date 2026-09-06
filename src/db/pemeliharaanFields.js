@@ -1,4 +1,5 @@
 export const PEMELIHARAAN_HEADERS = ['No', 'Nama Aset', 'Tanggal', 'Jenis Pemeliharaan', 'Biaya', 'Keterangan', 'Status'];
+import { todayWIB } from './helpers';
 
 export const JENIS_PEMELIHARAAN_OPTIONS = ['Servis Rutin', 'Perbaikan', 'Penggantian Part', 'Lainnya'];
 export const STATUS_PEMELIHARAAN_OPTIONS = ['Dalam Proses', 'Selesai'];
@@ -15,7 +16,7 @@ export function buildPemeliharaanFields(asetOptions) {
 }
 
 export function emptyPemeliharaanRow() {
-  return { 'Nama Aset': '', Tanggal: new Date().toISOString().slice(0, 10), 'Jenis Pemeliharaan': '', Biaya: '', Keterangan: '', Status: 'Dalam Proses' };
+  return { 'Nama Aset': '', Tanggal: todayWIB(), 'Jenis Pemeliharaan': '', Biaya: '', Keterangan: '', Status: 'Dalam Proses' };
 }
 
 export function normalizeSheetPemeliharaan(row, idx) {

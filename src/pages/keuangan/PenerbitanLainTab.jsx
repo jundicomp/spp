@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { bulkAddToSheet, addLogEntry } from '../../services/googleSheets';
-import { formatRupiah } from '../../db/helpers';
+import { formatRupiah, todayWIB } from '../../db/helpers';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import ProgressModal from '../../components/common/ProgressModal';
@@ -51,7 +51,7 @@ export default function PenerbitanLainTab() {
           Nama: item.tarif.jenis,
           Wajib: item.tarif.wajib,
           Nominal: item.tarif.nominal,
-          'Jatuh Tempo': new Date().toISOString().slice(0, 10),
+          'Jatuh Tempo': todayWIB(),
         }));
         const result = await bulkAddToSheet('tagihanLain', rows, 'keuangan');
         totalTerbit += result.count;
@@ -90,6 +90,9 @@ export default function PenerbitanLainTab() {
             <p style={{ fontSize: 13, color: 'var(--muted)' }}>
               Belum ada Tarif bertipe "Sekali Masuk" atau "Per Tahun" untuk tahun ajaran ini. Tambahkan dulu di tab Tarif.
             </p>
+          )}
+          {tarifTahunIni.length > 0 && !tagihanLainLoaded && (
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>Memuat data...</p>
           )}
           {tagihanLainLoaded && daftarTarif.length > 0 && (
             <div className="table-scroll">

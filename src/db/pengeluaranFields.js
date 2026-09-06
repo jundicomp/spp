@@ -1,4 +1,5 @@
 export const PENGELUARAN_HEADERS = ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'];
+import { todayWIB } from './helpers';
 
 export const KATEGORI_PENGELUARAN_OPTIONS = [
   'Gaji & Honor', 'Listrik / Air / Internet', 'ATK & Perlengkapan',
@@ -13,7 +14,7 @@ export const PENGELUARAN_FIELDS = [
 ];
 
 export function emptyPengeluaranRow() {
-  return { Tanggal: new Date().toISOString().slice(0, 10), Kategori: '', Keterangan: '', Nominal: '' };
+  return { Tanggal: todayWIB(), Kategori: '', Keterangan: '', Nominal: '' };
 }
 
 export function normalizeSheetPengeluaran(row, idx) {

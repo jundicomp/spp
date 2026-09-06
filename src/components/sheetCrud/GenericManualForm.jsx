@@ -50,7 +50,7 @@ export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, ti
         </div>
         <div className="card-body" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button type="button" className="btn" onClick={() => setForm(emptyRow())}>Bersihkan</button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan ke Google Sheets'}</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
         </div>
       </form>
     </div>
