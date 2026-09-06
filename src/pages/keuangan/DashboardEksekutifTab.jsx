@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { rekapPemasukanBulanan, rekapPengeluaranBulanan } from '../../db/laporanHelpers';
 import { formatRupiah, parseTanggalFleksibel } from '../../db/helpers';
+import InfoCard from '../../components/common/InfoCard';
+import { IconUsers, IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle, IconXCircle, IconAlertCircle } from '../../components/common/icons';
 
 function hariTerlambat(jatuhTempo) {
   const d = parseTanggalFleksibel(jatuhTempo);
@@ -57,27 +59,33 @@ export default function DashboardEksekutifTab() {
       <div className="card-body">
         <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--muted)', marginBottom: 10 }}>SISWA</div>
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-green"><div className="info-value">{siswaAktif.length}</div><div className="info-label">Siswa Aktif</div></div>
+          <InfoCard icon={IconUsers} color="c-green" value={siswaAktif.length} label="Siswa Aktif" />
         </div>
 
         <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--muted)', marginBottom: 10 }}>KEUANGAN — {labelDipakai}</div>
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-blue"><div className="info-value" style={{ fontSize: 17 }}>{formatRupiah(ringkasanKeuangan.pemasukan)}</div><div className="info-label">Pemasukan</div></div>
-          <div className="info-card c-red"><div className="info-value" style={{ fontSize: 17 }}>{formatRupiah(ringkasanKeuangan.pengeluaran)}</div><div className="info-label">Pengeluaran</div></div>
-          <div className={`info-card ${ringkasanKeuangan.labaRugi >= 0 ? 'c-green' : 'c-red'}`}><div className="info-value" style={{ fontSize: 17 }}>{formatRupiah(ringkasanKeuangan.labaRugi)}</div><div className="info-label">{ringkasanKeuangan.labaRugi >= 0 ? 'Laba' : 'Rugi'}</div></div>
+          <InfoCard icon={IconTrendUp} color="c-blue" value={formatRupiah(ringkasanKeuangan.pemasukan)} label="Pemasukan" valueFontSize={17} />
+          <InfoCard icon={IconTrendDown} color="c-red" value={formatRupiah(ringkasanKeuangan.pengeluaran)} label="Pengeluaran" valueFontSize={17} />
+          <InfoCard
+            icon={ringkasanKeuangan.labaRugi >= 0 ? IconCheckCircle : IconAlertTriangle}
+            color={ringkasanKeuangan.labaRugi >= 0 ? 'c-green' : 'c-red'}
+            value={formatRupiah(ringkasanKeuangan.labaRugi)}
+            label={ringkasanKeuangan.labaRugi >= 0 ? 'Laba' : 'Rugi'}
+            valueFontSize={17}
+          />
         </div>
 
         <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--muted)', marginBottom: 10 }}>TUNGGAKAN (SEMUA TAHUN AJARAN)</div>
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-gold"><div className="info-value">{tunggakan.jumlahSiswa}</div><div className="info-label">Siswa Menunggak</div></div>
-          <div className="info-card c-red"><div className="info-value" style={{ fontSize: 17 }}>{formatRupiah(tunggakan.totalNominal)}</div><div className="info-label">Total Tunggakan</div></div>
+          <InfoCard icon={IconUsers} color="c-gold" value={tunggakan.jumlahSiswa} label="Siswa Menunggak" />
+          <InfoCard icon={IconAlertCircle} color="c-red" value={formatRupiah(tunggakan.totalNominal)} label="Total Tunggakan" valueFontSize={17} />
         </div>
 
         <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--muted)', marginBottom: 10 }}>SARPRAS</div>
         <div className="info-grid">
-          <div className="info-card c-green"><div className="info-value">{kondisiAset['Baik']}</div><div className="info-label">Unit Baik</div></div>
-          <div className="info-card c-gold"><div className="info-value">{kondisiAset['Rusak Ringan']}</div><div className="info-label">Unit Rusak Ringan</div></div>
-          <div className="info-card c-red"><div className="info-value">{kondisiAset['Rusak Berat']}</div><div className="info-label">Unit Rusak Berat</div></div>
+          <InfoCard icon={IconCheckCircle} color="c-green" value={kondisiAset['Baik']} label="Unit Baik" />
+          <InfoCard icon={IconAlertTriangle} color="c-gold" value={kondisiAset['Rusak Ringan']} label="Unit Rusak Ringan" />
+          <InfoCard icon={IconXCircle} color="c-red" value={kondisiAset['Rusak Berat']} label="Unit Rusak Berat" />
         </div>
       </div>
     </div>

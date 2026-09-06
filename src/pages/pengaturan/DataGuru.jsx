@@ -5,6 +5,8 @@ import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 import { GURU_HEADERS, GURU_FIELDS, emptyGuruRow } from '../../db/guruFields';
 import { fetchGuruFromSheet, addGuruToSheet, updateGuruInSheet, deleteGuruFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import InfoCard from '../../components/common/InfoCard';
+import { IconGraduationCap, IconUsers } from '../../components/common/icons';
 
 const FILTER_OPTIONS = ['Guru', 'Staff']; // opsi filter cuma 2 -- "Guru & Staff" otomatis muncul di keduanya
 
@@ -38,8 +40,8 @@ export default function DataGuru() {
     <Page pageId="guru" title="Data Guru & Staff" path="Pengaturan / Modul / Data Guru & Staff">
       {guru.length > 0 && (
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-blue"><div className="info-value">{jumlahGuru}</div><div className="info-label">Guru</div></div>
-          <div className="info-card c-purple"><div className="info-value">{jumlahStaff}</div><div className="info-label">Staff</div></div>
+          <InfoCard icon={IconGraduationCap} color="c-blue" value={jumlahGuru} label="Guru" />
+          <InfoCard icon={IconUsers} color="c-purple" value={jumlahStaff} label="Staff" />
         </div>
       )}
 

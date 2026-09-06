@@ -6,6 +6,8 @@ import { ASET_FIELDS, ASET_HEADERS, emptyAsetRow, hitungBreakdownAset } from '..
 import { fetchAsetFromSheet, addAsetToSheet, updateAsetInSheet, deleteAsetFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import AsetViewModal from './AsetViewModal';
+import InfoCard from '../../components/common/InfoCard';
+import { IconLayers, IconBox, IconCheckCircle, IconAlertTriangle, IconXCircle } from '../../components/common/icons';
 
 // Header tabel + export -- "Total" disisipkan sesudah Rusak Berat, TAPI itu bukan
 // kolom asli di Sheets (tidak ada di Code.gs) -- nilainya dihitung otomatis lewat
@@ -42,11 +44,11 @@ export default function DataAset() {
     <Page pageId="aset" title="Data Aset & Inventaris" path="Sarpras / Data Aset & Inventaris">
       {aset.length > 0 && (
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-purple"><div className="info-value">{ringkasan.totalJenis}</div><div className="info-label">Jenis Aset Terdaftar</div></div>
-          <div className="info-card c-blue"><div className="info-value">{ringkasan.totalUnit}</div><div className="info-label">Total Unit</div></div>
-          <div className="info-card c-green"><div className="info-value">{ringkasan.totalBaik}</div><div className="info-label">Unit Baik</div></div>
-          <div className="info-card c-gold"><div className="info-value">{ringkasan.totalRR}</div><div className="info-label">Unit Rusak Ringan</div></div>
-          <div className="info-card c-red"><div className="info-value">{ringkasan.totalRB}</div><div className="info-label">Unit Rusak Berat</div></div>
+          <InfoCard icon={IconLayers} color="c-purple" value={ringkasan.totalJenis} label="Jenis Aset Terdaftar" />
+          <InfoCard icon={IconBox} color="c-blue" value={ringkasan.totalUnit} label="Total Unit" />
+          <InfoCard icon={IconCheckCircle} color="c-green" value={ringkasan.totalBaik} label="Unit Baik" />
+          <InfoCard icon={IconAlertTriangle} color="c-gold" value={ringkasan.totalRR} label="Unit Rusak Ringan" />
+          <InfoCard icon={IconXCircle} color="c-red" value={ringkasan.totalRB} label="Unit Rusak Berat" />
         </div>
       )}
 

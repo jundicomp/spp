@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { rekapPemasukanBulanan, rekapPengeluaranBulanan } from '../../db/laporanHelpers';
 import { formatRupiah } from '../../db/helpers';
+import InfoCard from '../../components/common/InfoCard';
+import { IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
 
 export default function LabaRugiTab() {
   const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pembayaranLoaded, pengeluaranLoaded } = useAppData();
@@ -46,12 +48,15 @@ export default function LabaRugiTab() {
         {dataSiap && (
           <>
             <div className="info-grid" style={{ marginBottom: 20 }}>
-              <div className="info-card c-green"><div className="info-value" style={{ fontSize: 18 }}>{formatRupiah(totalSetahun.pemasukan)}</div><div className="info-label">Total Pemasukan</div></div>
-              <div className="info-card c-red"><div className="info-value" style={{ fontSize: 18 }}>{formatRupiah(totalSetahun.pengeluaran)}</div><div className="info-label">Total Pengeluaran</div></div>
-              <div className={`info-card ${totalSetahun.labaRugi >= 0 ? 'c-blue' : 'c-red'}`}>
-                <div className="info-value" style={{ fontSize: 18 }}>{formatRupiah(totalSetahun.labaRugi)}</div>
-                <div className="info-label">{totalSetahun.labaRugi >= 0 ? 'Laba Setahun' : 'Rugi Setahun'}</div>
-              </div>
+              <InfoCard icon={IconTrendUp} color="c-green" value={formatRupiah(totalSetahun.pemasukan)} label="Total Pemasukan" valueFontSize={18} />
+              <InfoCard icon={IconTrendDown} color="c-red" value={formatRupiah(totalSetahun.pengeluaran)} label="Total Pengeluaran" valueFontSize={18} />
+              <InfoCard
+                icon={totalSetahun.labaRugi >= 0 ? IconCheckCircle : IconAlertTriangle}
+                color={totalSetahun.labaRugi >= 0 ? 'c-blue' : 'c-red'}
+                value={formatRupiah(totalSetahun.labaRugi)}
+                label={totalSetahun.labaRugi >= 0 ? 'Laba Setahun' : 'Rugi Setahun'}
+                valueFontSize={18}
+              />
             </div>
             <div className="table-scroll">
               <table>

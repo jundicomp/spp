@@ -7,6 +7,8 @@ import { formatRupiah, parseTanggalFleksibel, formatTanggalTampil } from '../../
 import { isConfigured } from '../../services/googleSheets';
 import { exportToExcel } from '../../utils/exportTable';
 import PemutihanModal from './PemutihanModal';
+import InfoCard from '../../components/common/InfoCard';
+import { IconUsers, IconFileText, IconAlertCircle } from '../../components/common/icons';
 
 function hariTerlambat(jatuhTempo) {
   const d = parseTanggalFleksibel(jatuhTempo);
@@ -91,18 +93,9 @@ export default function RekapTunggakan() {
 
       {dataSiap && (
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-red">
-            <div className="info-value">{ringkasan.jumlahSiswa}</div>
-            <div className="info-label">Siswa Menunggak</div>
-          </div>
-          <div className="info-card c-gold">
-            <div className="info-value">{ringkasan.jumlahTagihan}</div>
-            <div className="info-label">Tagihan Menunggak</div>
-          </div>
-          <div className="info-card c-red">
-            <div className="info-value" style={{ fontSize: 19 }}>{formatRupiah(ringkasan.totalNominal)}</div>
-            <div className="info-label">Total Nominal Tunggakan</div>
-          </div>
+          <InfoCard icon={IconUsers} color="c-red" value={ringkasan.jumlahSiswa} label="Siswa Menunggak" />
+          <InfoCard icon={IconFileText} color="c-gold" value={ringkasan.jumlahTagihan} label="Tagihan Menunggak" />
+          <InfoCard icon={IconAlertCircle} color="c-red" value={formatRupiah(ringkasan.totalNominal)} label="Total Nominal Tunggakan" valueFontSize={19} />
         </div>
       )}
 

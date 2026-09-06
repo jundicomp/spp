@@ -8,6 +8,8 @@ import { formatRupiah, parseTanggalFleksibel, formatTanggalTampil, todayWIB } fr
 import { useAppData } from '../../context/AppContext';
 import { printElementById } from '../../utils/exportTable';
 import { exportLaporanKeWord } from '../../utils/exportWord';
+import InfoCard from '../../components/common/InfoCard';
+import { IconCheckCircle, IconAlertTriangle, IconXCircle } from '../../components/common/icons';
 
 const KONDISI_LIST = ['Baik', 'Rusak Ringan', 'Rusak Berat'];
 
@@ -116,9 +118,9 @@ export default function LaporanRekapAset() {
             </div>
 
             <div className="info-grid" style={{ marginBottom: 20 }}>
-              <div className="info-card c-green"><div className="info-value">{totalKondisi['Baik']}</div><div className="info-label">Unit Kondisi Baik</div></div>
-              <div className="info-card c-gold"><div className="info-value">{totalKondisi['Rusak Ringan']}</div><div className="info-label">Unit Rusak Ringan</div></div>
-              <div className="info-card c-red"><div className="info-value">{totalKondisi['Rusak Berat']}</div><div className="info-label">Unit Rusak Berat</div></div>
+              <InfoCard icon={IconCheckCircle} color="c-green" value={totalKondisi['Baik']} label="Unit Kondisi Baik" />
+              <InfoCard icon={IconAlertTriangle} color="c-gold" value={totalKondisi['Rusak Ringan']} label="Unit Rusak Ringan" />
+              <InfoCard icon={IconXCircle} color="c-red" value={totalKondisi['Rusak Berat']} label="Unit Rusak Berat" />
             </div>
 
             <div className="card">

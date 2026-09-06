@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { rekapPemasukanBulanan } from '../../db/laporanHelpers';
 import { formatRupiah } from '../../db/helpers';
+import InfoCard from '../../components/common/InfoCard';
+import { IconGraduationCap, IconMoney, IconTrendUp } from '../../components/common/icons';
 
 export default function RekapitulasiTab() {
   const { tahunAjaran, tahunAjaranAktif, pembayaran, pembayaranLoaded } = useAppData();
@@ -33,9 +35,9 @@ export default function RekapitulasiTab() {
         {pembayaranLoaded && (
           <>
             <div className="info-grid" style={{ marginBottom: 20 }}>
-              <div className="info-card c-green"><div className="info-value" style={{ fontSize: 18 }}>{formatRupiah(totalSetahun.spp)}</div><div className="info-label">Total SPP Setahun</div></div>
-              <div className="info-card c-blue"><div className="info-value" style={{ fontSize: 18 }}>{formatRupiah(totalSetahun.lain)}</div><div className="info-label">Total Biaya Lain</div></div>
-              <div className="info-card c-purple"><div className="info-value" style={{ fontSize: 18 }}>{formatRupiah(totalSetahun.total)}</div><div className="info-label">Total Pemasukan</div></div>
+              <InfoCard icon={IconGraduationCap} color="c-green" value={formatRupiah(totalSetahun.spp)} label="Total SPP Setahun" valueFontSize={18} />
+              <InfoCard icon={IconMoney} color="c-blue" value={formatRupiah(totalSetahun.lain)} label="Total Biaya Lain" valueFontSize={18} />
+              <InfoCard icon={IconTrendUp} color="c-purple" value={formatRupiah(totalSetahun.total)} label="Total Pemasukan" valueFontSize={18} />
             </div>
             <div className="table-scroll">
               <table>

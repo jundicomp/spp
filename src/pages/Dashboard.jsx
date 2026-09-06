@@ -5,6 +5,11 @@ import { useAppData } from '../context/AppContext';
 import NotifikasiSiswaPerluTindakLanjut from '../components/common/NotifikasiSiswaPerluTindakLanjut';
 import { rekapPemasukanBulanan, rekapPengeluaranBulanan, pembayaranAsli } from '../db/laporanHelpers';
 import { formatRupiah, todayWIB } from '../db/helpers';
+import InfoCard from '../components/common/InfoCard';
+import {
+  IconGraduationCap, IconBuilding, IconUsers, IconTrendUp, IconTrendDown,
+  IconAlertCircle, IconLayers, IconBox, IconCheckCircle, IconAlertTriangle, IconXCircle,
+} from '../components/common/icons';
 
 const WARNA_LP = ['#2563eb', '#7e3af2']; // Laki-laki, Perempuan
 const WARNA_KONDISI = ['#16794a', '#c9962c', '#c0392b']; // Baik, Rusak Ringan, Rusak Berat
@@ -86,14 +91,8 @@ export default function Dashboard() {
 
       {(kelas.length > 0 || guru.length > 0) && (
         <div className="info-grid" style={{ marginBottom: 20 }}>
-          <div className="info-card c-blue">
-            <div className="info-value">{guru.filter(g => g.status === 'Aktif').length}</div>
-            <div className="info-label">Guru &amp; Staff Aktif</div>
-          </div>
-          <div className="info-card c-purple">
-            <div className="info-value">{kelas.length}</div>
-            <div className="info-label">Kelas &amp; Rombel</div>
-          </div>
+          <InfoCard icon={IconGraduationCap} color="c-blue" value={guru.filter(g => g.status === 'Aktif').length} label="Guru & Staff Aktif" />
+          <InfoCard icon={IconBuilding} color="c-purple" value={kelas.length} label="Kelas & Rombel" />
         </div>
       )}
 
@@ -111,18 +110,9 @@ export default function Dashboard() {
           {siswaLoaded && siswaAktif.length > 0 && (
             <>
               <div className="info-grid" style={{ marginBottom: 20 }}>
-                <div className="info-card c-green">
-                  <div className="info-value">{stats.total}</div>
-                  <div className="info-label">Total Siswa Aktif</div>
-                </div>
-                <div className="info-card c-blue">
-                  <div className="info-value">{stats.perGender['Laki-laki']}</div>
-                  <div className="info-label">Laki-laki</div>
-                </div>
-                <div className="info-card c-purple">
-                  <div className="info-value">{stats.perGender['Perempuan']}</div>
-                  <div className="info-label">Perempuan</div>
-                </div>
+                <InfoCard icon={IconUsers} color="c-green" value={stats.total} label="Total Siswa Aktif" />
+                <InfoCard icon={IconUsers} color="c-blue" value={stats.perGender['Laki-laki']} label="Laki-laki" />
+                <InfoCard icon={IconUsers} color="c-purple" value={stats.perGender['Perempuan']} label="Perempuan" />
               </div>
 
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -173,18 +163,9 @@ export default function Dashboard() {
           {keuanganSiap && (
             <>
               <div className="info-grid" style={{ marginBottom: 20 }}>
-                <div className="info-card c-green">
-                  <div className="info-value" style={{ fontSize: 20 }}>{formatRupiah(rekapKeuangan.pemasukanBulanIni)}</div>
-                  <div className="info-label">Pemasukan Bulan Ini</div>
-                </div>
-                <div className="info-card c-red">
-                  <div className="info-value" style={{ fontSize: 20 }}>{formatRupiah(rekapKeuangan.pengeluaranBulanIni)}</div>
-                  <div className="info-label">Pengeluaran Bulan Ini</div>
-                </div>
-                <div className="info-card c-gold">
-                  <div className="info-value" style={{ fontSize: 20 }}>{formatRupiah(tunggakan)}</div>
-                  <div className="info-label">Total Tunggakan Aktif</div>
-                </div>
+                <InfoCard icon={IconTrendUp} color="c-green" value={formatRupiah(rekapKeuangan.pemasukanBulanIni)} label="Pemasukan Bulan Ini" valueFontSize={20} />
+                <InfoCard icon={IconTrendDown} color="c-red" value={formatRupiah(rekapKeuangan.pengeluaranBulanIni)} label="Pengeluaran Bulan Ini" valueFontSize={20} />
+                <InfoCard icon={IconAlertCircle} color="c-gold" value={formatRupiah(tunggakan)} label="Total Tunggakan Aktif" valueFontSize={20} />
               </div>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={rekapKeuangan.dataChart}>
@@ -210,11 +191,11 @@ export default function Dashboard() {
           {asetLoaded && sarprasStats.totalJenis > 0 && (
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <div className="info-card c-purple" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.totalJenis}</div><div className="info-label">Jenis Aset</div></div>
-                <div className="info-card c-blue" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.totalUnit}</div><div className="info-label">Total Unit</div></div>
-                <div className="info-card c-green" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.baik}</div><div className="info-label">Baik</div></div>
-                <div className="info-card c-gold" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.rr}</div><div className="info-label">Rusak Ringan</div></div>
-                <div className="info-card c-red" style={{ minWidth: 130 }}><div className="info-value">{sarprasStats.rb}</div><div className="info-label">Rusak Berat</div></div>
+                <InfoCard icon={IconLayers} color="c-purple" value={sarprasStats.totalJenis} label="Jenis Aset" style={{ minWidth: 130 }} />
+                <InfoCard icon={IconBox} color="c-blue" value={sarprasStats.totalUnit} label="Total Unit" style={{ minWidth: 130 }} />
+                <InfoCard icon={IconCheckCircle} color="c-green" value={sarprasStats.baik} label="Baik" style={{ minWidth: 130 }} />
+                <InfoCard icon={IconAlertTriangle} color="c-gold" value={sarprasStats.rr} label="Rusak Ringan" style={{ minWidth: 130 }} />
+                <InfoCard icon={IconXCircle} color="c-red" value={sarprasStats.rb} label="Rusak Berat" style={{ minWidth: 130 }} />
               </div>
               <div style={{ flex: '1 1 220px', minWidth: 220, maxWidth: 320 }}>
                 <ResponsiveContainer width="100%" height={200}>
