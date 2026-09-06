@@ -1,82 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Page from '../../components/layout/Page';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
-import { GURU_HEADERS, buildGuruFields, emptyGuruRow } from '../../db/guruFields';
+import { GURU_HEADERS, GURU_FIELDS, emptyGuruRow, KATEGORI_OPTIONS } from '../../db/guruFields';
 import { fetchGuruFromSheet, addGuruToSheet, updateGuruInSheet, deleteGuruFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
-import { formatTanggalAngka } from '../../db/helpers';
-
-const KOLOM_KHUSUS_GURU = ['Mata Pelajaran', 'Sertifikasi', 'Jumlah Jam Mengajar', 'TMT Mengajar'];
-const KOLOM_TANGGAL = ['Tanggal Lahir', 'TMT Mengajar'];
-
-function makeFetchByKategori(kategori) {
-  return async () => {
-    const rows = await fetchGuruFromSheet();
-    // Data lama (sebelum kolom Kategori ada) dianggap "Guru" -- konsisten dgn normalizeSheetGuru.
-    return rows.filter(r => (r['Kategori'] || 'Guru') === kategori);
-  };
-}
-
-function KategoriPanel({ kategori, onChanged }) {
-  const [tab, setTab] = useState('tabel');
-  const fields = useMemo(() => buildGuruFields(kategori), [kategori]);
-  const fetchFn = useMemo(() => makeFetchByKategori(kategori), [kategori]);
-  const headers = useMemo(
-    () => kategori === 'Guru' ? GURU_HEADERS.filter(h => h !== 'Kategori') : GURU_HEADERS.filter(h => h !== 'Kategori' && !KOLOM_KHUSUS_GURU.includes(h)),
-    [kategori]
-  );
-  async function addFn(row) {
-    return addGuruToSheet({ ...row, Kategori: kategori });
-  }
-
-  return (
-    <div className="card">
-      <div className="seg-tabs">
-        <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA {kategori.toUpperCase()} (TABEL)</button>
-        <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH {kategori.toUpperCase()}</button>
-      </div>
-      <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-        {tab === 'tabel' && (
-          <GenericStoredTable
-            title={`Data ${kategori} (Tabel)`}
-            subtitle="Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini."
-            headers={headers}
-            fields={fields}
-            fetchFn={fetchFn}
-            updateFn={updateGuruInSheet}
-            deleteFn={deleteGuruFromSheet}
-            moduleLabel={`Data ${kategori}`}
-            labelKey="Nama Lengkap"
-            searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['Jabatan'] || '').toLowerCase().includes(t)}
-            onChanged={onChanged}
-            columnRenderers={{
-              'Tanggal Lahir': (r) => formatTanggalAngka(r['Tanggal Lahir']),
-              'TMT Mengajar': (r) => formatTanggalAngka(r['TMT Mengajar']),
-            }}
-          />
-        )}
-        {tab === 'manual' && (
-          <GenericManualForm
-            fields={fields}
-            emptyRow={() => emptyGuruRow(kategori)}
-            addFn={addFn}
-            onSaved={onChanged}
-            title={`Tambah ${kategori}`}
-            subtitle="Data langsung tersimpan ke baris baru di Google Sheets."
-          />
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function DataGuru() {
   const { guru, refreshGuru } = useAppData();
-  const [kategoriTab, setKategoriTab] = useState('Guru');
+  const [tab, setTab] = useState('tabel');
+  const [filterKategori, setFilterKategori] = useState('Semua');
 
   const jumlahGuru = useMemo(() => guru.filter(g => g.kategori === 'Guru').length, [guru]);
   const jumlahStaff = useMemo(() => guru.filter(g => g.kategori === 'Staff').length, [guru]);
+
+  // Filter dilakukan di sisi tampilan (bukan di fetch) -- 1 sheet yg sama, cukup
+  // disaring lewat kolom Kategori. PENTING: dibungkus useCallback dgn dependency
+  // [filterKategori] -- kalau tidak, GenericStoredTable (yg "load"-nya bergantung
+  // pada reference fetchFn) akan memuat ulang TANPA HENTI krn fetchFn dianggap
+  // "berubah" di setiap render.
+  const fetchFnTersaring = useCallback(async () => {
+    const rows = await fetchGuruFromSheet();
+    if (filterKategori === 'Semua') return rows;
+    return rows.filter(r => (r['Kategori'] || 'Guru') === filterKategori);
+  }, [filterKategori]);
 
   return (
     <Page pageId="guru" title="Data Guru & Staff" path="Pengaturan / Modul / Data Guru & Staff">
@@ -87,12 +34,46 @@ export default function DataGuru() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <button className={`btn ${kategoriTab === 'Guru' ? 'btn-primary' : ''}`} onClick={() => setKategoriTab('Guru')}>👩‍🏫 Guru</button>
-        <button className={`btn ${kategoriTab === 'Staff' ? 'btn-primary' : ''}`} onClick={() => setKategoriTab('Staff')}>🧑‍💼 Staff</button>
+      <div className="card">
+        <div className="seg-tabs">
+          <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA GURU & STAFF (TABEL)</button>
+          <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH</button>
+        </div>
+        <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
+          {tab === 'tabel' && (
+            <GenericStoredTable
+              title="Data Guru & Staff (Tabel)"
+              subtitle="Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini."
+              headers={GURU_HEADERS}
+              fields={GURU_FIELDS}
+              fetchFn={fetchFnTersaring}
+              updateFn={updateGuruInSheet}
+              deleteFn={deleteGuruFromSheet}
+              moduleLabel="Data Guru & Staff"
+              labelKey="Nama Lengkap"
+              searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['Jabatan'] || '').toLowerCase().includes(t)}
+              onChanged={refreshGuru}
+              refreshSignal={filterKategori}
+              headExtra={
+                <select value={filterKategori} onChange={e => setFilterKategori(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
+                  <option value="Semua">Semua (Guru & Staff)</option>
+                  {KATEGORI_OPTIONS.map(k => <option key={k} value={k}>{k} saja</option>)}
+                </select>
+              }
+            />
+          )}
+          {tab === 'manual' && (
+            <GenericManualForm
+              fields={GURU_FIELDS}
+              emptyRow={emptyGuruRow}
+              addFn={addGuruToSheet}
+              onSaved={refreshGuru}
+              title="Tambah Guru / Staff"
+              subtitle="Pilih Kategori di awal form -- data langsung tersimpan ke baris baru di Google Sheets."
+            />
+          )}
+        </div>
       </div>
-
-      <KategoriPanel key={kategoriTab} kategori={kategoriTab} onChanged={refreshGuru} />
     </Page>
   );
 }

@@ -13,8 +13,16 @@ export async function exportToExcel(headers, rows, filename, title) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Data');
 
+  // Kolom "No" (nomor urut 1,2,3,...) ditambahkan OTOMATIS di sini -- di paling depan --
+  // supaya SEMUA pemanggil export dapat kolom ini tanpa perlu diubah satu-satu.
+  // Sengaja nomor urut BARU (1..N sesuai urutan tampil di file ini), BUKAN kolom "No"
+  // mentah dari Google Sheets -- karena itu bisa berlubang/tidak berurutan kalau
+  // pernah ada baris dihapus, dan akan membingungkan dibaca di Excel.
+  const sudahAdaNomor = headers[0] === 'No';
+  const headersFinal = sudahAdaNomor ? headers : ['No', ...headers];
+
   if (title) {
-    ws.mergeCells(1, 1, 1, headers.length);
+    ws.mergeCells(1, 1, 1, headersFinal.length);
     const titleCell = ws.getCell(1, 1);
     titleCell.value = title;
     titleCell.font = { bold: true, size: 14, color: { argb: HIJAU_HEADER } };
@@ -23,7 +31,7 @@ export async function exportToExcel(headers, rows, filename, title) {
     ws.addRow([]); // baris kosong pemisah antara judul & tabel
   }
 
-  const headerRow = ws.addRow(headers);
+  const headerRow = ws.addRow(headersFinal);
   headerRow.eachCell(cell => {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HIJAU_HEADER } };
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -33,7 +41,8 @@ export async function exportToExcel(headers, rows, filename, title) {
   headerRow.height = 22;
 
   rows.forEach((r, idx) => {
-    const values = headers.map(h => r[h] ?? '');
+    const dataValues = headers.map(h => r[h] ?? '');
+    const values = sudahAdaNomor ? dataValues : [idx + 1, ...dataValues];
     const row = ws.addRow(values);
     row.eachCell(cell => {
       cell.border = BORDER_SEMUA_SISI;
@@ -45,7 +54,8 @@ export async function exportToExcel(headers, rows, filename, title) {
     }
   });
 
-  headers.forEach((h, i) => {
+  headersFinal.forEach((h, i) => {
+    if (h === 'No' && !sudahAdaNomor) { ws.getColumn(i + 1).width = 8; return; }
     const kontenTerpanjang = rows.reduce((max, r) => Math.max(max, String(r[h] ?? '').length), h.length);
     ws.getColumn(i + 1).width = Math.min(Math.max(kontenTerpanjang + 3, 10), 45);
   });
