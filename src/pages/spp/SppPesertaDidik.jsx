@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
 import { statusTagihan } from '../../db/tagihanHelpers';
 import { initials, avatarColor, BULAN_ID } from '../../db/helpers';
+import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -68,6 +69,7 @@ function TahunCard({ tahunAjaran, items, defaultOpen }) {
 export default function SppPesertaDidik() {
   const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded } = useAppData();
   const [term, setTerm] = useState('');
+  const inputRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
 
   const suggestions = useMemo(() => {
@@ -121,33 +123,30 @@ export default function SppPesertaDidik() {
         <div className="card"><div className="card-body" style={{ color: 'var(--red)', fontSize: 13 }}>Gagal memuat data siswa: {siswaError}</div></div>
       )}
 
-      {/* overflow:visible dipaksa di sini -- .card bawaan overflow:hidden, itu yg bikin dropdown
-          hasil pencarian di bawah ini kepotong/tidak kelihatan */}
-      <div className="card" style={{ overflow: 'visible', position: 'relative', zIndex: 5 }}>
+      <div className="card">
         <div className="card-body">
-          <div style={{ position: 'relative', maxWidth: 420 }}>
+          <div style={{ maxWidth: 420 }}>
             <input
+              ref={inputRef}
               type="text"
               placeholder="Cari nama atau NISN siswa..."
               value={term}
               onChange={e => { setTerm(e.target.value); setSelectedId(null); }}
               style={{ width: '100%', padding: '11px 14px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
             />
-            {suggestions.length > 0 && !selected && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 50, boxShadow: '0 8px 20px rgba(0,0,0,.15)' }}>
-                {suggestions.map(s => (
-                  <div key={s.id} onClick={() => { setSelectedId(s.id); setTerm(s.nama); }} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarColor(s.id), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(s.nama || '?')}</div>
-                    <div><div style={{ fontSize: 13, fontWeight: 600 }}>{s.nama}</div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>NISN {s.nisn || '-'} · Kelas {s.kelasTingkat || '-'}</div></div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {term.trim() && suggestions.length === 0 && !selected && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 50, padding: '10px 14px', fontSize: 13, color: 'var(--muted)' }}>
+            <SuggestionDropdown anchorRef={inputRef} visible={suggestions.length > 0 && !selected}>
+              {suggestions.map(s => (
+                <div key={s.id} onClick={() => { setSelectedId(s.id); setTerm(s.nama); }} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarColor(s.id), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(s.nama || '?')}</div>
+                  <div><div style={{ fontSize: 13, fontWeight: 600 }}>{s.nama}</div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>NISN {s.nisn || '-'} · Kelas {s.kelasTingkat || '-'}</div></div>
+                </div>
+              ))}
+            </SuggestionDropdown>
+            <SuggestionDropdown anchorRef={inputRef} visible={!!term.trim() && suggestions.length === 0 && !selected}>
+              <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--muted)' }}>
                 Tidak ditemukan siswa dengan nama/NISN itu.
               </div>
-            )}
+            </SuggestionDropdown>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import { addPembayaranToSheet, addLogEntry } from '../../services/googleSheets';
 import { statusTagihan } from '../../db/tagihanHelpers';
@@ -9,6 +9,7 @@ import { initials, avatarColor, todayWIB, formatTanggalTampil } from '../../db/h
 import { exportToExcel } from '../../utils/exportTable';
 import KwitansiModal from './KwitansiModal';
 import Modal from '../../components/common/Modal';
+import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -20,6 +21,7 @@ export default function PembayaranTab() {
 
   const [term, setTerm] = useState('');
   const [selectedSiswaId, setSelectedSiswaId] = useState(null);
+  const inputRef = useRef(null);
   const [selectedTagihanId, setSelectedTagihanId] = useState(null);
   const [nominal, setNominal] = useState('');
   const [tanggalBayar, setTanggalBayar] = useState(() => todayWIB());
@@ -105,29 +107,28 @@ export default function PembayaranTab() {
 
   return (
     <>
-      <div className="card" style={{ overflow: 'visible', position: 'relative', zIndex: 5 }}>
+      <div className="card">
         <div className="card-head"><div><h3>Catat Pembayaran</h3><p>Cari siswa, pilih tagihan yang mau dibayar, lalu simpan.</p></div></div>
         <form onSubmit={submitPembayaran}>
           <div className="card-body">
-            <div style={{ position: 'relative', maxWidth: 420, marginBottom: 18 }}>
+            <div style={{ maxWidth: 420, marginBottom: 18 }}>
               <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>Cari Siswa</label>
               <input
+                ref={inputRef}
                 type="text"
                 placeholder="Nama atau NISN..."
                 value={term}
                 onChange={e => { setTerm(e.target.value); setSelectedSiswaId(null); setSelectedTagihanId(null); }}
                 style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
               />
-              {suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 50, boxShadow: '0 8px 20px rgba(0,0,0,.15)' }}>
-                  {suggestions.map(s => (
-                    <div key={s.id} onClick={() => pilihSiswa(s)} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: avatarColor(s.id), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, flexShrink: 0 }}>{initials(s.nama)}</div>
-                      <div style={{ fontSize: 13 }}>{s.nama} <span style={{ color: 'var(--muted)', fontSize: 11.5 }}>· {s.nisn}</span></div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <SuggestionDropdown anchorRef={inputRef} visible={suggestions.length > 0}>
+                {suggestions.map(s => (
+                  <div key={s.id} onClick={() => pilihSiswa(s)} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: avatarColor(s.id), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, flexShrink: 0 }}>{initials(s.nama)}</div>
+                    <div style={{ fontSize: 13 }}>{s.nama} <span style={{ color: 'var(--muted)', fontSize: 11.5 }}>· {s.nisn}</span></div>
+                  </div>
+                ))}
+              </SuggestionDropdown>
             </div>
 
             {selectedSiswa && (

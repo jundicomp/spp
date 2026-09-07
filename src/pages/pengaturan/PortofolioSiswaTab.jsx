@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { formatRupiah, formatTanggalTampil, initials } from '../../db/helpers';
 import { printElementById } from '../../utils/exportTable';
+import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 
 function Baris({ label, value }) {
   return (
@@ -25,6 +26,7 @@ export default function PortofolioSiswaTab() {
   const { siswa, allTagihan, tagihanTerbayar } = useAppData();
   const [cari, setCari] = useState('');
   const [dipilih, setDipilih] = useState(null);
+  const inputRef = useRef(null);
 
   const saran = useMemo(() => {
     if (!cari.trim() || dipilih) return [];
@@ -58,22 +60,26 @@ export default function PortofolioSiswaTab() {
         {!dipilih && (
           <div style={{ position: 'relative', maxWidth: 420 }}>
             <input
+              ref={inputRef}
               type="text" value={cari} onChange={e => setCari(e.target.value)}
               placeholder="Cari nama atau NISN..." style={{ width: '100%' }}
             />
-            {saran.length > 0 && (
-              <div className="portofolio-suggestions" style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 5, boxShadow: '0 8px 20px rgba(0,0,0,.1)' }}>
-                {saran.map(s => (
-                  <div key={s.id} className="portofolio-suggestion-item" onClick={() => pilih(s)} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{initials(s.nama)}</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600 }}>{s.nama}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>NISN: {s.nisn || '-'} · Kelas {s.kelasTingkat || '-'}</div>
-                    </div>
+            <SuggestionDropdown anchorRef={inputRef} visible={saran.length > 0}>
+              {saran.map(s => (
+                <div key={s.id} onClick={() => pilih(s)} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{initials(s.nama)}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{s.nama}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>NISN: {s.nisn || '-'} · Kelas {s.kelasTingkat || '-'}</div>
                   </div>
-                ))}
+                </div>
+              ))}
+            </SuggestionDropdown>
+            <SuggestionDropdown anchorRef={inputRef} visible={!!cari.trim() && saran.length === 0}>
+              <div style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--muted)' }}>
+                Tidak ditemukan siswa dengan nama atau NISN mengandung "{cari.trim()}". Coba kata kunci lain, atau cek ejaannya di menu Data Siswa (Tabel).
               </div>
-            )}
+            </SuggestionDropdown>
           </div>
         )}
 
