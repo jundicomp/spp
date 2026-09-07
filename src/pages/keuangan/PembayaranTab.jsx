@@ -2,7 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import { addPembayaranToSheet, addLogEntry } from '../../services/googleSheets';
 import { statusTagihan } from '../../db/tagihanHelpers';
-import { METODE_BAYAR_OPTIONS } from '../../db/pembayaranFields';
+import { METODE_BAYAR_OPTIONS, SARAN_AKUN_PER_METODE } from '../../db/pembayaranFields';
+import { akunAktivaOptions } from '../../db/akunBukuBesarFields';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { initials, avatarColor, todayWIB, formatTanggalTampil } from '../../db/helpers';
@@ -17,7 +18,7 @@ function formatRupiah(n) {
 }
 
 export default function PembayaranTab() {
-  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast } = useAppData();
+  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun } = useAppData();
   const { currentUser } = useAuth();
 
   const [term, setTerm] = useState('');
@@ -27,6 +28,7 @@ export default function PembayaranTab() {
   const [nominal, setNominal] = useState('');
   const [tanggalBayar, setTanggalBayar] = useState(() => todayWIB());
   const [metode, setMetode] = useState(METODE_BAYAR_OPTIONS[0]);
+  const [akunPenerima, setAkunPenerima] = useState(SARAN_AKUN_PER_METODE[METODE_BAYAR_OPTIONS[0]] || 'Kas');
   const [saving, setSaving] = useState(false);
   const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
@@ -65,6 +67,11 @@ export default function PembayaranTab() {
     setNominal(String(t.sisa));
   }
 
+  function handleGantiMetode(m) {
+    setMetode(m);
+    setAkunPenerima(SARAN_AKUN_PER_METODE[m] || 'Kas');
+  }
+
   async function submitPembayaran(e) {
     e.preventDefault();
     if (!selectedTagihan) { toast('Pilih tagihan yang mau dibayar dulu.', 'error'); return; }
@@ -83,6 +90,7 @@ export default function PembayaranTab() {
         Nominal: nom,
         'Tanggal Bayar': tanggalBayar,
         Metode: metode,
+        Akun: akunPenerima,
       };
       await addPembayaranToSheet(row);
       await addLogEntry({
@@ -189,8 +197,14 @@ export default function PembayaranTab() {
               </div>
               <div className="field">
                 <label>Metode</label>
-                <select value={metode} onChange={e => setMetode(e.target.value)}>
+                <select value={metode} onChange={e => handleGantiMetode(e.target.value)}>
                   {METODE_BAYAR_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>Akun Kas/Bank Penerima</label>
+                <select value={akunPenerima} onChange={e => setAkunPenerima(e.target.value)}>
+                  {akunAktivaOptions(akun).map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
             </div>

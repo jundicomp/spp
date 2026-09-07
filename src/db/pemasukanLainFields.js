@@ -1,6 +1,8 @@
 import { todayWIB } from './helpers';
 
-export const PEMASUKAN_LAIN_HEADERS = ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'];
+// "Akun" ditaruh di AKHIR (kompatibel mundur) -- akun kas/bank yg BENAR-BENAR menerima
+// uangnya, dipilih manual per transaksi.
+export const PEMASUKAN_LAIN_HEADERS = ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal', 'Akun'];
 
 // Sumber pemasukan sekolah di LUAR SPP dan biaya siswa (Tagihan Lain) -- mis. donasi,
 // bantuan pemerintah, bunga bank, sewa aset, dst. Sengaja SATU sheet terpisah dari
@@ -18,7 +20,7 @@ export const PEMASUKAN_LAIN_FIELDS = [
 ];
 
 export function emptyPemasukanLainRow() {
-  return { Tanggal: todayWIB(), Kategori: '', Keterangan: '', Nominal: '' };
+  return { Tanggal: todayWIB(), Kategori: '', Keterangan: '', Nominal: '', Akun: 'Kas' };
 }
 
 export function normalizeSheetPemasukanLain(row, idx) {
@@ -29,5 +31,6 @@ export function normalizeSheetPemasukanLain(row, idx) {
     kategori: String(row['Kategori'] ?? '').trim(),
     keterangan: String(row['Keterangan'] ?? '').trim(),
     nominal: Number(row['Nominal']) || 0,
+    akun: String(row['Akun'] ?? '').trim(),
   };
 }

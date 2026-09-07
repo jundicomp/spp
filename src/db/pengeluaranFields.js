@@ -1,4 +1,6 @@
-export const PENGELUARAN_HEADERS = ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'];
+// "Akun" ditaruh di AKHIR (kompatibel mundur) -- akun kas/bank yg BENAR-BENAR mengeluarkan
+// uangnya, dipilih manual per transaksi.
+export const PENGELUARAN_HEADERS = ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal', 'Akun'];
 import { todayWIB } from './helpers';
 
 export const KATEGORI_PENGELUARAN_OPTIONS = [
@@ -14,7 +16,7 @@ export const PENGELUARAN_FIELDS = [
 ];
 
 export function emptyPengeluaranRow() {
-  return { Tanggal: todayWIB(), Kategori: '', Keterangan: '', Nominal: '' };
+  return { Tanggal: todayWIB(), Kategori: '', Keterangan: '', Nominal: '', Akun: 'Kas' };
 }
 
 export function normalizeSheetPengeluaran(row, idx) {
@@ -25,5 +27,6 @@ export function normalizeSheetPengeluaran(row, idx) {
     kategori: String(row['Kategori'] ?? '').trim(),
     keterangan: String(row['Keterangan'] ?? '').trim(),
     nominal: Number(row['Nominal']) || 0,
+    akun: String(row['Akun'] ?? '').trim(),
   };
 }

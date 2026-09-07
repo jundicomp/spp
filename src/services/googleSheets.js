@@ -171,3 +171,8 @@ export const fetchPemasukanLainFromSheet = () => fetchFromSheet('pemasukanLain',
 export const addPemasukanLainToSheet = (row) => addToSheet('pemasukanLain', row, 'keuangan');
 export const updatePemasukanLainInSheet = (row) => updateInSheet('pemasukanLain', row, 'keuangan');
 export const deletePemasukanLainFromSheet = (no) => deleteFromSheet('pemasukanLain', no, 'keuangan');
+
+export const fetchAkunFromSheet = () => fetchFromSheet('akunBukuBesar', 'keuangan');
+export const addAkunToSheet = (row) => addToSheet('akunBukuBesar', row, 'keuangan');
+export const updateAkunInSheet = (row) => updateInSheet('akunBukuBesar', row, 'keuangan');
+export const deleteAkunFromSheet = (no) => deleteFromSheet('akunBukuBesar', no, 'keuangan');

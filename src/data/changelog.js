@@ -4,6 +4,24 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.8.0',
+    tanggal: '2026-09-07',
+    poin: [
+      'Form Catat Pembayaran, Pemasukan Lain, dan Pengeluaran sekarang punya pilihan "Akun Kas/Bank" — tentukan uangnya masuk/keluar dari akun mana (Kas fisik, atau Bank BCA misalnya)',
+      'Buku Besar sekarang benar-benar memisahkan mutasi per akun sesuai pilihan itu, mencegah selisih saldo antar akun kas/bank',
+    ],
+  },
+  {
+    versi: '1.7.0',
+    tanggal: '2026-09-07',
+    poin: [
+      'Fitur baru: <b>Buku Besar</b> — pilih akun (Kas, Piutang, Pendapatan, Beban) untuk lihat riwayat mutasi dan saldo berjalan, bisa tambah akun sendiri',
+      'Neraca sekarang bisa dilihat per bulan tertentu, tidak cuma kondisi hari ini',
+      'Perbaikan bug penting: angka Kas di Neraca sebelumnya belum menghitung Pemasukan Lain, sekarang sudah benar dan sinkron dengan Cashflow',
+      'Halaman Dashboard Eksekutif dihapus (fungsinya sudah tercakup di laporan lain)',
+    ],
+  },
+  {
     versi: '1.6.0',
     tanggal: '2026-09-07',
     poin: [

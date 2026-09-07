@@ -49,15 +49,21 @@ const SHEETS = {
   pembayaran: {
     name: 'Pembayaran',
     // "Keterangan" ditaruh di AKHIR (kompatibel mundur) -- dipakai khusus utk alasan Pemutihan Piutang.
-    headers: ['No', 'RefType', 'RefNo', 'NISN', 'Nama Siswa', 'Jenis', 'Nominal', 'Tanggal Bayar', 'Metode', 'Keterangan'],
+    // "Akun" ditaruh di AKHIR juga (kompatibel mundur) -- akun kas/bank penerima uang, dipakai Buku Besar
+    // supaya tidak asal asumsi semua pembayaran masuk ke "Kas" fisik.
+    headers: ['No', 'RefType', 'RefNo', 'NISN', 'Nama Siswa', 'Jenis', 'Nominal', 'Tanggal Bayar', 'Metode', 'Keterangan', 'Akun'],
   },
   pengeluaran: {
     name: 'Pengeluaran',
-    headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'],
+    headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal', 'Akun'],
   },
   pemasukanLain: {
     name: 'Pemasukan Lain',
-    headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'],
+    headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal', 'Akun'],
+  },
+  akunBukuBesar: {
+    name: 'Akun Buku Besar',
+    headers: ['No', 'Kode Akun', 'Nama Akun', 'Jenis', 'Saldo Normal'],
   },
 };
 
