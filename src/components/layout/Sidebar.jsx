@@ -106,7 +106,9 @@ export default function Sidebar() {
       <div className="sidebar-foot">
         Jundicomp © 2026
         <div style={{ fontSize: 10.5, opacity: .7, marginTop: 3 }}>
-          v{pkg.version} · {formatWaktuBuild(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null)}
+          <NavLink to="/changelog" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }} title="Lihat riwayat pembaruan aplikasi">
+            v{pkg.version}
+          </NavLink> · {formatWaktuBuild(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null)}
         </div>
       </div>
     </aside>

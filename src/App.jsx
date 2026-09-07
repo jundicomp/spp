@@ -15,6 +15,7 @@ import KoneksiSheets from './pages/pengaturan/KoneksiSheets';
 import PengaturanSistem from './pages/pengaturan/PengaturanSistem';
 import LogHistori from './pages/pengaturan/LogHistori';
 import ProfilSaya from './pages/pengaturan/ProfilSaya';
+import ChangelogPage from './pages/pengaturan/ChangelogPage';
 import TagihanBiaya from './pages/keuangan/TagihanBiaya';
 import PembayaranInvoice from './pages/keuangan/PembayaranInvoice';
 import PemasukanPengeluaran from './pages/keuangan/PemasukanPengeluaran';
@@ -47,6 +48,7 @@ function Gate() {
         <Route path="/pengaturan-sistem" element={<PengaturanSistem />} />
         <Route path="/log-histori" element={<LogHistori />} />
         <Route path="/profil-saya" element={<ProfilSaya />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
         <Route path="/tagihan" element={<TagihanBiaya />} />
         <Route path="/pembayaran" element={<PembayaranInvoice />} />
         <Route path="/pemasukan-pengeluaran" element={<PemasukanPengeluaran />} />
