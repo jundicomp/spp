@@ -60,6 +60,35 @@ export function rekapPengeluaranBulanan(tahunAjaranLabel, pengeluaran) {
 // bulan, dihitung berjalan dari bulan pertama tahun ajaran (Juli) -- bukan cuma
 // per-bulan berdiri sendiri. "saldoAwal" opsional (default 0) utk kasus sekolah yg
 // mau memasukkan saldo kas dari sebelum tahun ajaran ini dimulai.
+// Sama seperti rekapCashflowBulanan, TAPI dipecah per akun kas/bank (Kas, Bank BCA, dst)
+// -- bukan digabung jadi 1 angka "Kas" gabungan. "daftarAkun" = array nama akun kas/bank.
+// Data lama tanpa field "akun" dianggap masuk "Kas" (fallback, konsisten dgn Buku Besar).
+export function rekapCashflowPerAkunBulanan(tahunAjaranLabel, pembayaran, pemasukanLain, pengeluaran, daftarAkun) {
+  const bulanList = bulanTahunAjaran(tahunAjaranLabel);
+  const asli = pembayaranAsli(pembayaran);
+  const saldoBerjalan = {};
+  daftarAkun.forEach(a => { saldoBerjalan[a] = 0; });
+
+  return bulanList.map(b => {
+    const dalamBulan = (tglRaw) => {
+      const d = parseTanggalFleksibel(tglRaw);
+      return d && d.getMonth() === b.monthIdx && d.getFullYear() === b.calYear;
+    };
+    const hasil = { label: b.label, monthIdx: b.monthIdx, calYear: b.calYear };
+    daftarAkun.forEach(akunNama => {
+      const cocok = (item) => (item.akun || 'Kas') === akunNama;
+      const masuk = asli.filter(p => dalamBulan(p.tanggalBayar) && cocok(p)).reduce((s, p) => s + p.nominal, 0)
+        + pemasukanLain.filter(p => dalamBulan(p.tanggal) && cocok(p)).reduce((s, p) => s + p.nominal, 0);
+      const keluar = pengeluaran.filter(p => dalamBulan(p.tanggal) && cocok(p)).reduce((s, p) => s + p.nominal, 0);
+      saldoBerjalan[akunNama] += (masuk - keluar);
+      hasil[akunNama] = saldoBerjalan[akunNama];
+      hasil[akunNama + '__masuk'] = masuk;
+      hasil[akunNama + '__keluar'] = keluar;
+    });
+    return hasil;
+  });
+}
+
 export function rekapCashflowBulanan(tahunAjaranLabel, pembayaran, pemasukanLain, pengeluaran, saldoAwal = 0) {
   const pemasukanBulanan = rekapPemasukanBulanan(tahunAjaranLabel, pembayaran, pemasukanLain);
   const pengeluaranBulanan = rekapPengeluaranBulanan(tahunAjaranLabel, pengeluaran);

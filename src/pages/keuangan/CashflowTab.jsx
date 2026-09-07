@@ -1,30 +1,45 @@
 import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAppData } from '../../context/AppContext';
-import { rekapCashflowBulanan } from '../../db/laporanHelpers';
+import { rekapCashflowPerAkunBulanan } from '../../db/laporanHelpers';
+import { AKUN_BAWAAN } from '../../db/akunBukuBesarFields';
 import { formatRupiah } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
-import { IconTrendUp, IconTrendDown, IconMoney, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
+import { IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
+
+// Warna berbeda per akun kas/bank di chart & kartu -- cukup byk variasi utk beberapa akun.
+const WARNA_AKUN = ['#123D22', '#1E4FA0', '#F0B429', '#8f2c1f', '#5B3E8E', '#16794a', '#8a5b00'];
 
 export default function CashflowTab() {
-  const { tahunAjaran, tahunAjaranAktif, pembayaran, pemasukanLain, pengeluaran, pembayaranLoaded, pemasukanLainLoaded, pengeluaranLoaded } = useAppData();
+  const { tahunAjaran, tahunAjaranAktif, pembayaran, pemasukanLain, pengeluaran, akun, pembayaranLoaded, pemasukanLainLoaded, pengeluaranLoaded } = useAppData();
   const [taLabel, setTaLabel] = useState(null);
-  const [saldoAwalInput, setSaldoAwalInput] = useState('0');
 
   const labelDipakai = taLabel || tahunAjaranAktif?.label;
-  const saldoAwal = Number(saldoAwalInput) || 0;
+
+  // Daftar SEMUA akun kas/bank (Kas bawaan + custom Aktiva) -- setiap akun dapat garis
+  // sendiri di chart dgn warna berbeda, TIDAK digabung jadi 1 angka "Kas" saja lagi.
+  const daftarAkun = useMemo(() => {
+    const bawaan = AKUN_BAWAAN.filter(a => a.isKasBank).map(a => a.nama);
+    const custom = akun.filter(a => a.jenis === 'Aktiva').map(a => a.nama);
+    return [...bawaan, ...custom];
+  }, [akun]);
 
   const cashflow = useMemo(
-    () => labelDipakai ? rekapCashflowBulanan(labelDipakai, pembayaran, pemasukanLain, pengeluaran, saldoAwal) : [],
-    [labelDipakai, pembayaran, pemasukanLain, pengeluaran, saldoAwal]
+    () => labelDipakai ? rekapCashflowPerAkunBulanan(labelDipakai, pembayaran, pemasukanLain, pengeluaran, daftarAkun) : [],
+    [labelDipakai, pembayaran, pemasukanLain, pengeluaran, daftarAkun]
   );
 
-  const totalSetahun = useMemo(() => ({
-    kasMasuk: cashflow.reduce((s, c) => s + c.kasMasuk, 0),
-    kasKeluar: cashflow.reduce((s, c) => s + c.kasKeluar, 0),
-  }), [cashflow]);
+  const ringkasanPerAkun = useMemo(() => daftarAkun.map(nama => {
+    const totalMasuk = cashflow.reduce((s, c) => s + (c[nama + '__masuk'] || 0), 0);
+    const totalKeluar = cashflow.reduce((s, c) => s + (c[nama + '__keluar'] || 0), 0);
+    const saldoAkhir = cashflow.length > 0 ? cashflow[cashflow.length - 1][nama] : 0;
+    return { nama, totalMasuk, totalKeluar, saldoAkhir };
+  }), [cashflow, daftarAkun]);
 
-  const saldoAkhirPeriode = cashflow.length > 0 ? cashflow[cashflow.length - 1].saldoAkhirBulan : saldoAwal;
+  const totalMasukSemua = ringkasanPerAkun.reduce((s, a) => s + a.totalMasuk, 0);
+  const totalKeluarSemua = ringkasanPerAkun.reduce((s, a) => s + a.totalKeluar, 0);
+  const saldoAkhirSemua = ringkasanPerAkun.reduce((s, a) => s + a.saldoAkhir, 0);
+
   const dataSiap = pembayaranLoaded || pemasukanLainLoaded || pengeluaranLoaded;
 
   if (tahunAjaran.length === 0) {
@@ -34,7 +49,7 @@ export default function CashflowTab() {
   return (
     <div className="card">
       <div className="card-head">
-        <div><h3>💵 Cashflow &amp; Kondisi Kas</h3><p>Arus kas masuk-keluar per bulan, dan saldo kas berjalan sepanjang tahun ajaran.</p></div>
+        <div><h3>💵 Cashflow &amp; Kondisi Kas</h3><p>Arus kas masuk-keluar per bulan, dipisah per akun kas/bank, dan saldo kas berjalan sepanjang tahun ajaran.</p></div>
         <select value={labelDipakai || ''} onChange={e => setTaLabel(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
           {tahunAjaran.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
         </select>
@@ -43,60 +58,59 @@ export default function CashflowTab() {
         {!dataSiap && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Memuat data...</p>}
         {dataSiap && (
           <>
-            <div style={{ marginBottom: 18, maxWidth: 340 }}>
-              <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>
-                Saldo Kas Awal (sebelum tahun ajaran ini, opsional)
-              </label>
-              <input
-                type="number" value={saldoAwalInput} onChange={e => setSaldoAwalInput(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}
+            <div className="info-grid" style={{ marginBottom: 12 }}>
+              <InfoCard icon={IconTrendUp} color="c-green" value={formatRupiah(totalMasukSemua)} label="Total Kas Masuk Setahun (Semua Akun)" valueFontSize={16} />
+              <InfoCard icon={IconTrendDown} color="c-red" value={formatRupiah(totalKeluarSemua)} label="Total Kas Keluar Setahun (Semua Akun)" valueFontSize={16} />
+              <InfoCard
+                icon={saldoAkhirSemua >= 0 ? IconCheckCircle : IconAlertTriangle}
+                color={saldoAkhirSemua >= 0 ? 'c-blue' : 'c-red'}
+                value={formatRupiah(saldoAkhirSemua)}
+                label="Total Saldo Akhir (Semua Akun)"
+                valueFontSize={17}
               />
-              <p style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>Isi kalau sekolah sudah punya sisa kas dari sebelum data ini dicatat -- kalau kosong dianggap mulai dari Rp 0.</p>
             </div>
 
+            <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--muted)', margin: '4px 0 10px' }}>SALDO AKHIR PER AKUN</div>
             <div className="info-grid" style={{ marginBottom: 20 }}>
-              <InfoCard icon={IconTrendUp} color="c-green" value={formatRupiah(totalSetahun.kasMasuk)} label="Total Kas Masuk Setahun" valueFontSize={17} />
-              <InfoCard icon={IconTrendDown} color="c-red" value={formatRupiah(totalSetahun.kasKeluar)} label="Total Kas Keluar Setahun" valueFontSize={17} />
-              <InfoCard
-                icon={saldoAkhirPeriode >= 0 ? IconCheckCircle : IconAlertTriangle}
-                color={saldoAkhirPeriode >= 0 ? 'c-blue' : 'c-red'}
-                value={formatRupiah(saldoAkhirPeriode)}
-                label="Saldo Kas Akhir Periode"
-                valueFontSize={18}
-              />
+              {ringkasanPerAkun.map((a, i) => (
+                <div key={a.nama} style={{ borderRadius: 10, padding: '12px 16px', color: '#fff', background: WARNA_AKUN[i % WARNA_AKUN.length] }}>
+                  <div style={{ fontSize: 11.5, opacity: .85 }}>{a.nama}</div>
+                  <div style={{ fontSize: 17, fontWeight: 800 }}>{formatRupiah(a.saldoAkhir)}</div>
+                </div>
+              ))}
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Tren Saldo Kas Berjalan</div>
-              <ResponsiveContainer width="100%" height={260}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Tren Saldo Kas Berjalan per Akun</div>
+              <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={cashflow}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} tickFormatter={l => String(l).split(' ')[0]} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={v => (v / 1000000).toFixed(1) + 'jt'} />
                   <Tooltip formatter={v => formatRupiah(v)} />
                   <Legend />
-                  <Line type="monotone" dataKey="saldoAkhirBulan" name="Saldo Kas" stroke="#123D22" strokeWidth={2} dot={{ r: 3 }} />
+                  {daftarAkun.map((nama, i) => (
+                    <Line key={nama} type="monotone" dataKey={nama} name={nama} stroke={WARNA_AKUN[i % WARNA_AKUN.length]} strokeWidth={2} dot={{ r: 3 }} />
+                  ))}
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             <div className="table-scroll">
               <table>
-                <thead><tr><th>Bulan</th><th>Kas Masuk</th><th>Kas Keluar</th><th>Net Bulan Ini</th><th>Saldo Akhir Bulan</th></tr></thead>
-                <tbody>
-                  <tr style={{ background: '#F6F8F5' }}>
-                    <td colSpan={4} style={{ fontStyle: 'italic', color: 'var(--muted)' }}>Saldo Awal (sebelum tahun ajaran ini)</td>
-                    <td style={{ fontWeight: 700 }}>{formatRupiah(saldoAwal)}</td>
+                <thead>
+                  <tr>
+                    <th>Bulan</th>
+                    {daftarAkun.map(nama => <th key={nama}>{nama}</th>)}
                   </tr>
+                </thead>
+                <tbody>
                   {cashflow.map(c => (
                     <tr key={c.label}>
                       <td>{c.label}</td>
-                      <td>{formatRupiah(c.kasMasuk)}</td>
-                      <td>{formatRupiah(c.kasKeluar)}</td>
-                      <td style={{ fontWeight: 700, color: c.netBulanIni >= 0 ? 'var(--green-dark)' : 'var(--red)' }}>
-                        {c.netBulanIni >= 0 ? '+' : ''}{formatRupiah(c.netBulanIni)}
-                      </td>
-                      <td style={{ fontWeight: 800, color: c.saldoAkhirBulan >= 0 ? 'var(--green-dark)' : 'var(--red)' }}>{formatRupiah(c.saldoAkhirBulan)}</td>
+                      {daftarAkun.map(nama => (
+                        <td key={nama} style={{ fontWeight: 700 }}>{formatRupiah(c[nama])}</td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>

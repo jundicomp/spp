@@ -4,6 +4,17 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.9.0',
+    tanggal: '2026-09-08',
+    poin: [
+      'Perbaikan bug: Kode Akun di Buku Besar tidak lagi berubah jadi tanggal aneh saat disimpan',
+      'Cashflow sekarang menampilkan tiap akun kas/bank secara terpisah (garis warna berbeda per akun), bukan digabung jadi satu angka Kas',
+      'Rekapitulasi dan Laba Rugi bisa dipilih per bulan tertentu, tidak cuma tabel ringkas 12 bulan',
+      'Laba Rugi per bulan sekarang tampil rapi vertikal (Pendapatan → Pengeluaran → Laba/Rugi Bersih), gaya sama seperti Neraca',
+      'Neraca sekarang menampilkan semua akun kas/bank yang ada, termasuk akun baru yang belum ada transaksinya',
+    ],
+  },
+  {
     versi: '1.8.0',
     tanggal: '2026-09-07',
     poin: [

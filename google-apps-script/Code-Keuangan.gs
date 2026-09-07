@@ -64,6 +64,12 @@ const SHEETS = {
   akunBukuBesar: {
     name: 'Akun Buku Besar',
     headers: ['No', 'Kode Akun', 'Nama Akun', 'Jenis', 'Saldo Normal'],
+    // "Kode Akun" WAJIB dipaksa format teks -- Google Sheets otomatis menafsirkan pola
+    // berhubung tanda hubung (mis. "5-1010") sbg TANGGAL, bikin kode akun berubah jadi
+    // datetime aneh (ditemukan lewat laporan bug nyata). Kolom di list ini akan di-set
+    // number format "@" (plain text) SEBELUM nilai ditulis, supaya Sheets tidak
+    // menafsirkan ulang isinya sama sekali.
+    textColumns: ['Kode Akun'],
   },
 };
 
@@ -107,15 +113,15 @@ function doPost(e) {
     const sheet = getSheet_(cfg);
 
     if (body.action === 'add') {
-      appendRow_(sheet, cfg.headers, body.row);
+      appendRow_(sheet, cfg.headers, body.row, cfg.textColumns);
       return jsonResponse_({ ok: true });
     }
     if (body.action === 'bulkAdd') {
-      body.rows.forEach(row => appendRow_(sheet, cfg.headers, row));
+      body.rows.forEach(row => appendRow_(sheet, cfg.headers, row, cfg.textColumns));
       return jsonResponse_({ ok: true, count: body.rows.length });
     }
     if (body.action === 'update') {
-      const found = updateRow_(sheet, cfg.headers, body.row);
+      const found = updateRow_(sheet, cfg.headers, body.row, cfg.textColumns);
       if (!found) return jsonResponse_({ ok: false, error: 'Baris dengan No=' + body.row['No'] + ' tidak ditemukan.' });
       return jsonResponse_({ ok: true });
     }
@@ -148,25 +154,38 @@ function getSheet_(cfg) {
   return sheet;
 }
 
-function appendRow_(sheet, headers, rowObj) {
+function appendRow_(sheet, headers, rowObj, textColumns) {
   const nextNo = sheet.getLastRow();
   const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
+  // Paksa format teks pada kolom rentan (mis. "Kode Akun") SEBELUM baris ditulis --
+  // supaya Google Sheets tidak menafsirkan ulang isinya jadi Date/Number otomatis
+  // (ditemukan bug nyata: kode "5-1010" berubah jadi datetime aneh tanpa perbaikan ini).
+  forceTextColumns_(sheet, headers, sheet.getLastRow() + 1, textColumns);
   sheet.appendRow(row);
 }
 
-function updateRow_(sheet, headers, rowObj) {
+function updateRow_(sheet, headers, rowObj, textColumns) {
   const noCol = headers.indexOf('No') + 1;
   const targetNo = String(rowObj['No']);
   const lastRow = sheet.getLastRow();
   for (let r = 2; r <= lastRow; r++) {
     const cellVal = String(sheet.getRange(r, noCol).getValue());
     if (cellVal === targetNo) {
+      forceTextColumns_(sheet, headers, r, textColumns);
       const newRow = headers.map(h => (h === 'No' ? rowObj['No'] : (rowObj[h] !== undefined ? rowObj[h] : '')));
       sheet.getRange(r, 1, 1, headers.length).setValues([newRow]);
       return true;
     }
   }
   return false;
+}
+
+function forceTextColumns_(sheet, headers, rowIndex, textColumns) {
+  if (!textColumns || textColumns.length === 0) return;
+  textColumns.forEach(colName => {
+    const colIdx = headers.indexOf(colName) + 1;
+    if (colIdx > 0) sheet.getRange(rowIndex, colIdx).setNumberFormat('@');
+  });
 }
 
 function deleteRow_(sheet, headers, targetNoRaw) {
