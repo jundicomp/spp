@@ -119,6 +119,12 @@ tr:hover td{background:var(--row-hover);}
   .kelas-grid{display:grid;grid-template-columns:repeat(4,1fr);}
   .kelas-card{flex:none;}
 }
+
+/* Kartu SPP vs Kartu Biaya Lain -- sejajar 2 kolom di desktop, 1 kolom (tumpuk) di HP */
+.spp-kartu-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+@media (max-width:800px){.spp-kartu-grid{grid-template-columns:1fr;}}
+.spp-share-btn{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;z-index:2;}
+.spp-share-btn:hover{background:#F6F8F5;}
 .info-card{position:relative;border-radius:10px;padding:16px 18px;color:#fff;overflow:hidden;}
 .info-card-icon{position:absolute;top:14px;right:14px;opacity:.35;}
 .info-card.c-green{background:linear-gradient(135deg,var(--green),var(--green-dark));}

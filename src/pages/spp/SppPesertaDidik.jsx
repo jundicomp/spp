@@ -4,6 +4,7 @@ import { useAppData } from '../../context/AppContext';
 import { statusTagihan } from '../../db/tagihanHelpers';
 import { initials, avatarColor, BULAN_ID } from '../../db/helpers';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
+import { shareCardAsImage } from '../../utils/shareCardImage';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -14,51 +15,91 @@ function StatusBadge({ status }) {
   return <span className={`badge ${map[status] || 'badge-muted'}`}>{status}</span>;
 }
 
-function TahunCard({ tahunAjaran, items, defaultOpen }) {
+function Ringkasan({ totalTagihan, totalBayar, sisa, status }) {
+  return (
+    <div className="info-grid" style={{ marginTop: 14 }}>
+      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Total Tagihan</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalTagihan)}</div></div>
+      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sudah Dibayar</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalBayar)}</div></div>
+      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sisa</div><div style={{ fontWeight: 800 }}>{formatRupiah(sisa)}</div></div>
+      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Status</div><StatusBadge status={status} /></div>
+    </div>
+  );
+}
+
+// Kartu tunggal (dipakai utk SPP MAUPUN Biaya Lain) -- ada header sekolah, judul
+// kartu, tombol share (pojok kanan atas, ikut ke-render jadi gambar krn tombolnya
+// sendiri diberi class "no-print"/dikecualikan lewat posisi di LUAR ref yg di-capture).
+function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows, renderBaris, totalTagihan, totalBayar, filenamePrefix, namaSiswa }) {
+  const cardRef = useRef(null);
+  const sisa = totalTagihan - totalBayar;
+  const status = statusTagihan(totalTagihan, totalBayar);
+
+  return (
+    <div style={{ position: 'relative', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+      <button
+        className="no-print spp-share-btn"
+        title="Share sebagai gambar (WhatsApp, dll)"
+        onClick={() => shareCardAsImage(cardRef, `${filenamePrefix} - ${namaSiswa} - ${tahunAjaran}`)}
+      >📤</button>
+      <div ref={cardRef} style={{ padding: 20, background: '#fff' }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 14 }}>{namaSekolah}</div>
+          <div style={{ fontWeight: 700, fontSize: 13, marginTop: 2 }}>{judulKartu}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Tahun Pelajaran: {tahunAjaran}</div>
+        </div>
+        {rows.length > 0 ? (
+          <table>
+            <thead><tr>{headerKolom.map(h => <th key={h}>{h}</th>)}</tr></thead>
+            <tbody>{rows.map(renderBaris)}</tbody>
+          </table>
+        ) : (
+          <p style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: '10px 0' }}>Tidak ada data.</p>
+        )}
+        <Ringkasan totalTagihan={totalTagihan} totalBayar={totalBayar} sisa={sisa} status={status} />
+      </div>
+    </div>
+  );
+}
+
+function TahunSection({ namaSekolah, namaSiswa, tahunAjaran, items, defaultOpen }) {
   const [open, setOpen] = useState(!!defaultOpen);
   const spp = items.filter(t => t.refType === 'SPP').sort((a, b) => (a.tahunKalender - b.tahunKalender) || (BULAN_ID.indexOf(a.bulan) - BULAN_ID.indexOf(b.bulan)));
   const lain = items.filter(t => t.refType === 'LAIN');
-  const totalTagihan = items.reduce((s, t) => s + t.nominal, 0);
-  const totalBayar = items.reduce((s, t) => s + t.terbayar, 0);
-  const sisa = totalTagihan - totalBayar;
-  const statusTahun = statusTagihan(totalTagihan, totalBayar);
+  const totalTagihanSemua = items.reduce((s, t) => s + t.nominal, 0);
+  const totalBayarSemua = items.reduce((s, t) => s + t.terbayar, 0);
+  const statusTahun = statusTagihan(totalTagihanSemua, totalBayarSemua);
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 8, marginBottom: 10, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, marginBottom: 14, overflow: 'hidden' }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#F6F8F5', cursor: 'pointer' }}>
         <strong style={{ fontSize: 13.5 }}>Tahun Pelajaran {tahunAjaran}</strong>
         <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><StatusBadge status={statusTahun} /> {open ? '▴' : '▾'}</span>
       </div>
       {open && (
         <div style={{ padding: 16 }}>
-          {spp.length > 0 && (
-            <table>
-              <thead><tr><th>No</th><th>Bulan</th><th>Nominal</th><th>Status</th></tr></thead>
-              <tbody>
-                {spp.map((t, idx) => (
-                  <tr key={t.id}><td>{idx + 1}</td><td>{t.bulan} {t.tahunKalender}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {lain.length > 0 && (
-            <>
-              <div style={{ fontWeight: 700, fontSize: 13, margin: '14px 0 8px' }}>Biaya Lain Tahun Ini</div>
-              <table>
-                <thead><tr><th>Jenis Biaya</th><th>Nominal</th><th>Status</th></tr></thead>
-                <tbody>
-                  {lain.map(t => (
-                    <tr key={t.id}><td>{t.label}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-          <div className="info-grid" style={{ marginTop: 14 }}>
-            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Total Tagihan</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalTagihan)}</div></div>
-            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sudah Dibayar</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalBayar)}</div></div>
-            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sisa</div><div style={{ fontWeight: 800 }}>{formatRupiah(sisa)}</div></div>
-            <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Status</div><StatusBadge status={statusTahun} /></div>
+          <div className="spp-kartu-grid">
+            <KartuTagihan
+              namaSekolah={namaSekolah} namaSiswa={namaSiswa} tahunAjaran={tahunAjaran}
+              judulKartu="KARTU SPP" filenamePrefix="Kartu SPP"
+              headerKolom={['No', 'Bulan', 'Nominal', 'Status']}
+              rows={spp}
+              renderBaris={(t, idx) => (
+                <tr key={t.id}><td>{idx + 1}</td><td>{t.bulan} {t.tahunKalender}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+              )}
+              totalTagihan={spp.reduce((s, t) => s + t.nominal, 0)}
+              totalBayar={spp.reduce((s, t) => s + t.terbayar, 0)}
+            />
+            <KartuTagihan
+              namaSekolah={namaSekolah} namaSiswa={namaSiswa} tahunAjaran={tahunAjaran}
+              judulKartu="KARTU BIAYA LAIN (DI LUAR SPP)" filenamePrefix="Kartu Biaya Lain"
+              headerKolom={['Jenis Biaya', 'Nominal', 'Status']}
+              rows={lain}
+              renderBaris={(t) => (
+                <tr key={t.id}><td>{t.label}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+              )}
+              totalTagihan={lain.reduce((s, t) => s + t.nominal, 0)}
+              totalBayar={lain.reduce((s, t) => s + t.terbayar, 0)}
+            />
           </div>
         </div>
       )}
@@ -67,7 +108,7 @@ function TahunCard({ tahunAjaran, items, defaultOpen }) {
 }
 
 export default function SppPesertaDidik() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah } = useAppData();
   const [term, setTerm] = useState('');
   const inputRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -185,7 +226,7 @@ export default function SppPesertaDidik() {
           )}
 
           {keuanganSiap && perTahunAjaran.map(([ta, items], idx) => (
-            <TahunCard key={ta} tahunAjaran={ta} items={items} defaultOpen={idx === 0} />
+            <TahunSection key={ta} namaSekolah={profilSekolah?.nama || 'MI Ikhlasiyah'} namaSiswa={selected.nama} tahunAjaran={ta} items={items} defaultOpen={idx === 0} />
           ))}
         </>
       )}
