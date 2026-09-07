@@ -15,24 +15,50 @@ function StatusBadge({ status }) {
   return <span className={`badge ${map[status] || 'badge-muted'}`}>{status}</span>;
 }
 
-function Ringkasan({ totalTagihan, totalBayar, sisa, status }) {
+// Format nilai Rupiah, DIPECAH jadi { prefix: 'Rp', angka: '200.000' } -- supaya
+// "Rp" bisa ditaruh rata kiri dan angkanya rata kanan sekaligus (teknik flex),
+// persis kartu fisik/struk sungguhan yg nilainya rapi sejajar.
+function pecahRupiah(n) {
+  const angka = Math.round(n || 0).toLocaleString('id-ID');
+  return { prefix: 'Rp', angka };
+}
+
+function NilaiRupiah({ n }) {
+  const { prefix, angka } = pecahRupiah(n);
   return (
-    <div className="info-grid" style={{ marginTop: 14 }}>
-      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Total Tagihan</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalTagihan)}</div></div>
-      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sudah Dibayar</div><div style={{ fontWeight: 800 }}>{formatRupiah(totalBayar)}</div></div>
-      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Sisa</div><div style={{ fontWeight: 800 }}>{formatRupiah(sisa)}</div></div>
-      <div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Status</div><StatusBadge status={status} /></div>
-    </div>
+    <span style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <span>{prefix}</span><span>{angka}</span>
+    </span>
   );
 }
 
+// Baris ringkasan (Total/Sudah Dibayar/Sisa/Keterangan) ditulis LANGSUNG sbg <tr>
+// di tabel yg SAMA dgn data di atasnya -- BUKAN blok terpisah -- supaya label
+// sejajar PERSIS dgn kolom label (mis. "Bulan"/"Jenis Biaya") dan nilainya sejajar
+// PERSIS dgn kolom "Nominal", persis kartu fisik/struk sungguhan.
+function BarisRingkasan({ label, jumlahKolom, labelKolomKe, nilaiKolomKe, isTotal, children }) {
+  const sel = [];
+  for (let i = 0; i < jumlahKolom; i++) {
+    if (i === labelKolomKe) {
+      sel.push(<td key={i} style={isTotal ? { borderTop: '2px solid var(--green-dark)', paddingTop: 14, color: 'var(--muted)' } : { color: 'var(--muted)' }}>{label}</td>);
+    } else if (i === nilaiKolomKe) {
+      sel.push(<td key={i} style={{ textAlign: 'right', fontWeight: 700, ...(isTotal ? { borderTop: '2px solid var(--green-dark)', paddingTop: 14 } : {}) }}>{children}</td>);
+    } else {
+      sel.push(<td key={i} style={isTotal ? { borderTop: '2px solid var(--green-dark)', paddingTop: 14 } : {}}></td>);
+    }
+  }
+  return <tr className="spp-ringkasan-row">{sel}</tr>;
+}
+
 // Kartu tunggal (dipakai utk SPP MAUPUN Biaya Lain) -- ada header sekolah, judul
-// kartu, tombol share (pojok kanan atas, ikut ke-render jadi gambar krn tombolnya
-// sendiri diberi class "no-print"/dikecualikan lewat posisi di LUAR ref yg di-capture).
-function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows, renderBaris, totalTagihan, totalBayar, filenamePrefix, namaSiswa }) {
+// kartu, TABEL (header+kolom SELALU tampil, walau baris datanya kosong -- supaya
+// kartunya tetap terlihat lengkap seperti template kartu fisik), dan ringkasan
+// jumlah di bawahnya sejajar kolom. Tombol share pojok kanan atas.
+function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows, renderBaris, totalTagihan, totalBayar, filenamePrefix, namaSiswa, labelKolomKe, nilaiKolomKe }) {
   const cardRef = useRef(null);
   const sisa = totalTagihan - totalBayar;
   const status = statusTagihan(totalTagihan, totalBayar);
+  const jumlahKolom = headerKolom.length;
 
   return (
     <div style={{ position: 'relative', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
@@ -47,15 +73,26 @@ function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows,
           <div style={{ fontWeight: 700, fontSize: 13, marginTop: 2 }}>{judulKartu}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Tahun Pelajaran: {tahunAjaran}</div>
         </div>
-        {rows.length > 0 ? (
-          <table>
-            <thead><tr>{headerKolom.map(h => <th key={h}>{h}</th>)}</tr></thead>
-            <tbody>{rows.map(renderBaris)}</tbody>
-          </table>
-        ) : (
-          <p style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: '10px 0' }}>Tidak ada data.</p>
-        )}
-        <Ringkasan totalTagihan={totalTagihan} totalBayar={totalBayar} sisa={sisa} status={status} />
+        <table>
+          <thead><tr>{headerKolom.map((h, i) => <th key={h} style={i === nilaiKolomKe ? { textAlign: 'right' } : undefined}>{h}</th>)}</tr></thead>
+          <tbody>
+            {rows.length > 0
+              ? rows.map(renderBaris)
+              : <tr><td colSpan={jumlahKolom} style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 12.5, padding: '14px 12px' }}>Belum ada tagihan.</td></tr>}
+            <BarisRingkasan label="Total" jumlahKolom={jumlahKolom} labelKolomKe={labelKolomKe} nilaiKolomKe={nilaiKolomKe} isTotal>
+              <NilaiRupiah n={totalTagihan} />
+            </BarisRingkasan>
+            <BarisRingkasan label="Sudah Dibayar" jumlahKolom={jumlahKolom} labelKolomKe={labelKolomKe} nilaiKolomKe={nilaiKolomKe}>
+              <NilaiRupiah n={totalBayar} />
+            </BarisRingkasan>
+            <BarisRingkasan label="Sisa" jumlahKolom={jumlahKolom} labelKolomKe={labelKolomKe} nilaiKolomKe={nilaiKolomKe}>
+              <NilaiRupiah n={sisa} />
+            </BarisRingkasan>
+            <BarisRingkasan label="Keterangan" jumlahKolom={jumlahKolom} labelKolomKe={labelKolomKe} nilaiKolomKe={nilaiKolomKe}>
+              <StatusBadge status={status} />
+            </BarisRingkasan>
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -82,9 +119,10 @@ function TahunSection({ namaSekolah, namaSiswa, tahunAjaran, items, defaultOpen 
               namaSekolah={namaSekolah} namaSiswa={namaSiswa} tahunAjaran={tahunAjaran}
               judulKartu="KARTU SPP" filenamePrefix="Kartu SPP"
               headerKolom={['No', 'Bulan', 'Nominal', 'Status']}
+              labelKolomKe={1} nilaiKolomKe={2}
               rows={spp}
               renderBaris={(t, idx) => (
-                <tr key={t.id}><td>{idx + 1}</td><td>{t.bulan} {t.tahunKalender}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+                <tr key={t.id}><td>{idx + 1}</td><td>{t.bulan} {t.tahunKalender}</td><td style={{ textAlign: 'right' }}>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
               )}
               totalTagihan={spp.reduce((s, t) => s + t.nominal, 0)}
               totalBayar={spp.reduce((s, t) => s + t.terbayar, 0)}
@@ -93,9 +131,10 @@ function TahunSection({ namaSekolah, namaSiswa, tahunAjaran, items, defaultOpen 
               namaSekolah={namaSekolah} namaSiswa={namaSiswa} tahunAjaran={tahunAjaran}
               judulKartu="KARTU BIAYA LAIN (DI LUAR SPP)" filenamePrefix="Kartu Biaya Lain"
               headerKolom={['Jenis Biaya', 'Nominal', 'Status']}
+              labelKolomKe={0} nilaiKolomKe={1}
               rows={lain}
               renderBaris={(t) => (
-                <tr key={t.id}><td>{t.label}</td><td>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+                <tr key={t.id}><td>{t.label}</td><td style={{ textAlign: 'right' }}>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
               )}
               totalTagihan={lain.reduce((s, t) => s + t.nominal, 0)}
               totalBayar={lain.reduce((s, t) => s + t.terbayar, 0)}
