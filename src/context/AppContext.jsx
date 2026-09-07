@@ -10,10 +10,11 @@ import { normalizeSheetTarif } from '../db/tarifFields';
 import { normalizeSheetTagihanSpp, normalizeSheetTagihanLain, hitungTerbayar } from '../db/tagihanHelpers';
 import { normalizeSheetPembayaran } from '../db/pembayaranFields';
 import { normalizeSheetPengeluaran } from '../db/pengeluaranFields';
+import { normalizeSheetPemasukanLain } from '../db/pemasukanLainFields';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
   fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet, fetchAsetFromSheet,
-  fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet,
+  fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet, fetchPemasukanLainFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
@@ -26,6 +27,7 @@ const HAK_AKSES_PAGES = [
   { id: 'spp', label: 'SPP Peserta Didik', grup: 'SPP' },
   { id: 'tagihan', label: 'Tagihan & Biaya', grup: 'Keuangan' },
   { id: 'pembayaran', label: 'Pembayaran & Invoice', grup: 'Keuangan' },
+  { id: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain', grup: 'Keuangan' },
   { id: 'tunggakan', label: 'Rekap Tunggakan', grup: 'Keuangan' },
   { id: 'laporan-keuangan', label: 'Laporan Keuangan', grup: 'Keuangan' },
   { id: 'aset', label: 'Data Aset & Inventaris', grup: 'Sarpras' },
@@ -75,6 +77,7 @@ export function AppProvider({ children }) {
   const tagihanLainRes = useSheetResource(fetchTagihanLainFromSheet, normalizeSheetTagihanLain, 'keuangan');
   const pembayaranRes = useSheetResource(fetchPembayaranFromSheet, normalizeSheetPembayaran, 'keuangan');
   const pengeluaranRes = useSheetResource(fetchPengeluaranFromSheet, normalizeSheetPengeluaran, 'keuangan');
+  const pemasukanLainRes = useSheetResource(fetchPemasukanLainFromSheet, normalizeSheetPemasukanLain, 'keuangan');
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
   const [profilSekolah, setProfilSekolahRaw] = useState(null);
@@ -129,6 +132,7 @@ export function AppProvider({ children }) {
     tagihanLain: tagihanLainRes.data, tagihanLainLoading: tagihanLainRes.loading, tagihanLainLoaded: tagihanLainRes.loaded, refreshTagihanLain: tagihanLainRes.refresh,
     pembayaran: pembayaranRes.data, pembayaranLoading: pembayaranRes.loading, pembayaranLoaded: pembayaranRes.loaded, refreshPembayaran: pembayaranRes.refresh,
     pengeluaran: pengeluaranRes.data, pengeluaranLoading: pengeluaranRes.loading, pengeluaranLoaded: pengeluaranRes.loaded, refreshPengeluaran: pengeluaranRes.refresh,
+    pemasukanLain: pemasukanLainRes.data, pemasukanLainLoading: pemasukanLainRes.loading, pemasukanLainLoaded: pemasukanLainRes.loaded, refreshPemasukanLain: pemasukanLainRes.refresh,
     allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions, setPermissions,

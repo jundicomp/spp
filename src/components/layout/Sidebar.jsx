@@ -72,6 +72,7 @@ export default function Sidebar() {
         <NavGroup id="keuangan" label="💰 KEUANGAN" open={openGroups.keuangan} onToggle={toggle}>
           <Item to="/tagihan" canAccess={canAccess('tagihan')}>Tagihan &amp; Biaya</Item>
           <Item to="/pembayaran" canAccess={canAccess('pembayaran')}>Pembayaran &amp; Invoice</Item>
+          <Item to="/pemasukan-pengeluaran" canAccess={canAccess('pemasukan-pengeluaran')}>Pemasukan &amp; Pengeluaran Lain</Item>
           <Item to="/tunggakan" canAccess={canAccess('tunggakan')}>Rekap Tunggakan</Item>
           <Item to="/laporan-keuangan" canAccess={canAccess('laporan-keuangan')}>Laporan Keuangan</Item>
         </NavGroup>

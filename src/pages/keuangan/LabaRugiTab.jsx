@@ -6,14 +6,14 @@ import InfoCard from '../../components/common/InfoCard';
 import { IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
 
 export default function LabaRugiTab() {
-  const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pembayaranLoaded, pengeluaranLoaded } = useAppData();
+  const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain, pembayaranLoaded, pengeluaranLoaded, pemasukanLainLoaded } = useAppData();
   const [taLabel, setTaLabel] = useState(null);
 
   const labelDipakai = taLabel || tahunAjaranAktif?.label;
 
   const gabungan = useMemo(() => {
     if (!labelDipakai) return [];
-    const pemasukan = rekapPemasukanBulanan(labelDipakai, pembayaran);
+    const pemasukan = rekapPemasukanBulanan(labelDipakai, pembayaran, pemasukanLain);
     const pengeluaranBulan = rekapPengeluaranBulanan(labelDipakai, pengeluaran);
     return pemasukan.map((p, i) => ({
       label: p.label,
@@ -21,7 +21,7 @@ export default function LabaRugiTab() {
       pengeluaran: pengeluaranBulan[i].total,
       labaRugi: p.total - pengeluaranBulan[i].total,
     }));
-  }, [labelDipakai, pembayaran, pengeluaran]);
+  }, [labelDipakai, pembayaran, pengeluaran, pemasukanLain]);
 
   const totalSetahun = useMemo(() => ({
     pemasukan: gabungan.reduce((s, g) => s + g.pemasukan, 0),
@@ -29,7 +29,7 @@ export default function LabaRugiTab() {
     labaRugi: gabungan.reduce((s, g) => s + g.labaRugi, 0),
   }), [gabungan]);
 
-  const dataSiap = pembayaranLoaded || pengeluaranLoaded;
+  const dataSiap = pembayaranLoaded || pengeluaranLoaded || pemasukanLainLoaded;
 
   if (tahunAjaran.length === 0) {
     return <div className="card"><div className="card-body" style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada Tahun Ajaran.</div></div>;

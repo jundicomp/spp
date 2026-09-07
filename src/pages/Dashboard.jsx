@@ -17,7 +17,7 @@ const WARNA_KONDISI = ['#16794a', '#c9962c', '#c0392b']; // Baik, Rusak Ringan, 
 export default function Dashboard() {
   const {
     siswa, siswaLoading, siswaError, siswaLoaded, refreshSiswa, kelas, guru, tahunAjaranAktif,
-    aset, asetLoaded, allTagihan, tagihanTerbayar, pembayaran, pembayaranLoaded, pengeluaran, pengeluaranLoaded,
+    aset, asetLoaded, allTagihan, tagihanTerbayar, pembayaran, pembayaranLoaded, pengeluaran, pengeluaranLoaded, pemasukanLain,
   } = useAppData();
 
   const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
@@ -45,7 +45,7 @@ export default function Dashboard() {
   const keuanganSiap = tahunAjaranAktif && pembayaranLoaded && pengeluaranLoaded;
   const rekapKeuangan = useMemo(() => {
     if (!keuanganSiap) return null;
-    const pemasukanBulanan = rekapPemasukanBulanan(tahunAjaranAktif.label, pembayaran);
+    const pemasukanBulanan = rekapPemasukanBulanan(tahunAjaranAktif.label, pembayaran, pemasukanLain);
     const pengeluaranBulanan = rekapPengeluaranBulanan(tahunAjaranAktif.label, pengeluaran);
     const [tahunIni, bulanIni] = todayWIB().split('-').map(Number); // yyyy-MM-dd -> [yyyy, MM]
     const bulanBerjalan = pemasukanBulanan.find(b => b.monthIdx === bulanIni - 1 && b.calYear === tahunIni);
@@ -60,7 +60,7 @@ export default function Dashboard() {
       pengeluaranBulanIni: pengeluaranBerjalan?.total || 0,
       dataChart,
     };
-  }, [keuanganSiap, tahunAjaranAktif, pembayaran, pengeluaran]);
+  }, [keuanganSiap, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain]);
 
   const tunggakan = useMemo(() => {
     return allTagihan.reduce((s, t) => {

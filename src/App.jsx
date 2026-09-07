@@ -17,6 +17,7 @@ import LogHistori from './pages/pengaturan/LogHistori';
 import ProfilSaya from './pages/pengaturan/ProfilSaya';
 import TagihanBiaya from './pages/keuangan/TagihanBiaya';
 import PembayaranInvoice from './pages/keuangan/PembayaranInvoice';
+import PemasukanPengeluaran from './pages/keuangan/PemasukanPengeluaran';
 import RekapTunggakan from './pages/keuangan/RekapTunggakan';
 import LaporanKeuangan from './pages/keuangan/LaporanKeuangan';
 import DataAset from './pages/sarpras/DataAset';
@@ -48,6 +49,7 @@ function Gate() {
         <Route path="/profil-saya" element={<ProfilSaya />} />
         <Route path="/tagihan" element={<TagihanBiaya />} />
         <Route path="/pembayaran" element={<PembayaranInvoice />} />
+        <Route path="/pemasukan-pengeluaran" element={<PemasukanPengeluaran />} />
         <Route path="/tunggakan" element={<RekapTunggakan />} />
         <Route path="/laporan-keuangan" element={<LaporanKeuangan />} />
         <Route path="/aset" element={<DataAset />} />

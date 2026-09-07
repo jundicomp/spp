@@ -55,6 +55,10 @@ const SHEETS = {
     name: 'Pengeluaran',
     headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'],
   },
+  pemasukanLain: {
+    name: 'Pemasukan Lain',
+    headers: ['No', 'Tanggal', 'Kategori', 'Keterangan', 'Nominal'],
+  },
 };
 
 function doGet(e) {

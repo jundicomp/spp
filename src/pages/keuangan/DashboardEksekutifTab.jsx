@@ -13,7 +13,7 @@ function hariTerlambat(jatuhTempo) {
 }
 
 export default function DashboardEksekutifTab() {
-  const { siswa, tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, allTagihan, tagihanTerbayar, aset } = useAppData();
+  const { siswa, tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain, allTagihan, tagihanTerbayar, aset } = useAppData();
   const [taLabel, setTaLabel] = useState(null);
   const labelDipakai = taLabel || tahunAjaranAktif?.label;
 
@@ -21,10 +21,10 @@ export default function DashboardEksekutifTab() {
 
   const ringkasanKeuangan = useMemo(() => {
     if (!labelDipakai) return { pemasukan: 0, pengeluaran: 0, labaRugi: 0 };
-    const p = rekapPemasukanBulanan(labelDipakai, pembayaran).reduce((s, r) => s + r.total, 0);
+    const p = rekapPemasukanBulanan(labelDipakai, pembayaran, pemasukanLain).reduce((s, r) => s + r.total, 0);
     const k = rekapPengeluaranBulanan(labelDipakai, pengeluaran).reduce((s, r) => s + r.total, 0);
     return { pemasukan: p, pengeluaran: k, labaRugi: p - k };
-  }, [labelDipakai, pembayaran, pengeluaran]);
+  }, [labelDipakai, pembayaran, pengeluaran, pemasukanLain]);
 
   const tunggakan = useMemo(() => {
     const overdue = allTagihan

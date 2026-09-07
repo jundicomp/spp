@@ -19,8 +19,10 @@ export function bulanTahunAjaran(tahunAjaranLabel) {
   return list;
 }
 
-// Rekap pemasukan (dari pembayaran ASLI, bukan pemutihan) per bulan dlm 1 tahun ajaran.
-export function rekapPemasukanBulanan(tahunAjaranLabel, pembayaran) {
+// Rekap pemasukan (dari pembayaran ASLI + Pemasukan Lain) per bulan dlm 1 tahun ajaran.
+// "pemasukanLain" opsional -- kalau tidak dikirim, tetap jalan spt sebelumnya (backward compat
+// utk pemanggil lama yg belum di-update), cuma kolom "lainnya"-nya akan 0.
+export function rekapPemasukanBulanan(tahunAjaranLabel, pembayaran, pemasukanLain = []) {
   const bulanList = bulanTahunAjaran(tahunAjaranLabel);
   const asli = pembayaranAsli(pembayaran);
   return bulanList.map(b => {
@@ -30,7 +32,13 @@ export function rekapPemasukanBulanan(tahunAjaranLabel, pembayaran) {
     });
     const spp = inBulan.filter(p => p.refType === 'SPP').reduce((s, p) => s + p.nominal, 0);
     const lain = inBulan.filter(p => p.refType === 'LAIN').reduce((s, p) => s + p.nominal, 0);
-    return { ...b, spp, lain, total: spp + lain };
+    const lainnya = pemasukanLain
+      .filter(p => {
+        const d = parseTanggalFleksibel(p.tanggal);
+        return d && d.getMonth() === b.monthIdx && d.getFullYear() === b.calYear;
+      })
+      .reduce((s, p) => s + p.nominal, 0);
+    return { ...b, spp, lain, lainnya, total: spp + lain + lainnya };
   });
 }
 
@@ -45,5 +53,22 @@ export function rekapPengeluaranBulanan(tahunAjaranLabel, pengeluaran) {
       })
       .reduce((s, p) => s + p.nominal, 0);
     return { ...b, total };
+  });
+}
+
+// Cashflow per bulan (kas masuk vs kas keluar) + SALDO KAS KUMULATIF di akhir tiap
+// bulan, dihitung berjalan dari bulan pertama tahun ajaran (Juli) -- bukan cuma
+// per-bulan berdiri sendiri. "saldoAwal" opsional (default 0) utk kasus sekolah yg
+// mau memasukkan saldo kas dari sebelum tahun ajaran ini dimulai.
+export function rekapCashflowBulanan(tahunAjaranLabel, pembayaran, pemasukanLain, pengeluaran, saldoAwal = 0) {
+  const pemasukanBulanan = rekapPemasukanBulanan(tahunAjaranLabel, pembayaran, pemasukanLain);
+  const pengeluaranBulanan = rekapPengeluaranBulanan(tahunAjaranLabel, pengeluaran);
+  let saldoBerjalan = saldoAwal;
+  return pemasukanBulanan.map((p, i) => {
+    const kasMasuk = p.total;
+    const kasKeluar = pengeluaranBulanan[i].total;
+    const netBulanIni = kasMasuk - kasKeluar;
+    saldoBerjalan += netBulanIni;
+    return { ...p, kasMasuk, kasKeluar, netBulanIni, saldoAkhirBulan: saldoBerjalan };
   });
 }
