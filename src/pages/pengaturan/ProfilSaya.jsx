@@ -5,6 +5,7 @@ import { fetchLogFromSheet, addLogEntry, isConfigured } from '../../services/goo
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { initials, avatarColor } from '../../db/helpers';
+import SaveProgressModal from '../../components/common/SaveProgressModal';
 
 function GantiPasswordCard() {
   const { toast } = useAppData();
@@ -13,6 +14,7 @@ function GantiPasswordCard() {
   const [baru, setBaru] = useState('');
   const [ulangi, setUlangi] = useState('');
   const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState(null);
 
   if (currentUser?.isMasterAdmin) {
     return (
@@ -32,6 +34,7 @@ function GantiPasswordCard() {
     if (!baru || baru.length < 4) { toast('Password baru minimal 4 karakter.', 'error'); return; }
     if (baru !== ulangi) { toast('Konfirmasi password baru tidak sama.', 'error'); return; }
     setSaving(true);
+    setPhase('saving');
     try {
       await changeOwnPassword(baru);
       await addLogEntry({
@@ -41,12 +44,14 @@ function GantiPasswordCard() {
         modul: 'Profil Saya',
         detail: 'Mengganti password akun sendiri.',
       });
-      toast('Password berhasil diganti. Gunakan password baru saat login berikutnya.');
+      setPhase('done');
+      await new Promise(r => setTimeout(r, 1100));
       setLama(''); setBaru(''); setUlangi('');
     } catch (err) {
       toast(err.message, 'error');
     } finally {
       setSaving(false);
+      setPhase(null);
     }
   }
 
@@ -65,6 +70,7 @@ function GantiPasswordCard() {
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Ganti Password'}</button>
         </div>
       </form>
+      {phase && <SaveProgressModal phase={phase} />}
     </div>
   );
 }

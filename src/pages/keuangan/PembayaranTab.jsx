@@ -10,6 +10,7 @@ import { exportToExcel } from '../../utils/exportTable';
 import KwitansiModal from './KwitansiModal';
 import Modal from '../../components/common/Modal';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
+import SaveProgressModal from '../../components/common/SaveProgressModal';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -27,6 +28,7 @@ export default function PembayaranTab() {
   const [tanggalBayar, setTanggalBayar] = useState(() => todayWIB());
   const [metode, setMetode] = useState(METODE_BAYAR_OPTIONS[0]);
   const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
 
   const suggestions = useMemo(() => {
@@ -70,6 +72,7 @@ export default function PembayaranTab() {
     if (!nom || nom <= 0) { toast('Nominal harus lebih dari 0.', 'error'); return; }
     if (nom > selectedTagihan.sisa) { toast(`Nominal tidak boleh melebihi sisa tagihan (${formatRupiah(selectedTagihan.sisa)}).`, 'error'); return; }
     setSaving(true);
+    setPhase('saving');
     try {
       const row = {
         RefType: selectedTagihan.refType,
@@ -89,7 +92,8 @@ export default function PembayaranTab() {
         modul: 'Pembayaran & Invoice',
         detail: `Pembayaran ${selectedTagihan.label} sebesar ${formatRupiah(nom)} dari ${selectedSiswa.nama}`,
       });
-      toast('Pembayaran berhasil dicatat.');
+      setPhase('done');
+      await new Promise(r => setTimeout(r, 1100)); // biarkan pesan sukses terlihat sebentar
       setSelectedTagihanId(null);
       setNominal('');
       refreshPembayaran();
@@ -97,6 +101,7 @@ export default function PembayaranTab() {
       toast(err.message, 'error');
     } finally {
       setSaving(false);
+      setPhase(null);
     }
   }
 
@@ -227,6 +232,7 @@ export default function PembayaranTab() {
       </div>
 
       {lihatKwitansi && <KwitansiModal pembayaran={lihatKwitansi} onClose={() => setLihatKwitansi(null)} />}
+      {phase && <SaveProgressModal phase={phase} />}
     </>
   );
 }

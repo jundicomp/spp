@@ -4,11 +4,13 @@ import { USER_FIELDS, emptyUserRow, USER_HEADERS } from '../../db/userFields';
 import { addUserToSheet, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import StoredUsersTable from './StoredUsersTable';
+import SaveProgressModal from '../../components/common/SaveProgressModal';
 
 function TambahUserForm({ onSaved }) {
   const { toast } = useAppData();
   const [form, setForm] = useState(emptyUserRow());
   const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState(null);
 
   function setField(key, value) { setForm(f => ({ ...f, [key]: value })); }
 
@@ -18,15 +20,18 @@ function TambahUserForm({ onSaved }) {
     const wajib = USER_FIELDS.find(f => f.required && !String(form[f.key]).trim());
     if (wajib) { toast(`${wajib.label} wajib diisi.`, 'error'); return; }
     setSaving(true);
+    setPhase('saving');
     try {
       await addUserToSheet(form);
-      toast('User baru berhasil disimpan ke Google Sheets.');
+      setPhase('done');
+      await new Promise(r => setTimeout(r, 1100));
       setForm(emptyUserRow());
       onSaved && onSaved();
     } catch (err) {
       toast(err.message, 'error');
     } finally {
       setSaving(false);
+      setPhase(null);
     }
   }
 
@@ -56,6 +61,7 @@ function TambahUserForm({ onSaved }) {
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan User'}</button>
         </div>
       </form>
+      {phase && <SaveProgressModal phase={phase} />}
     </div>
   );
 }

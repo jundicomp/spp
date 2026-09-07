@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.6.0',
+    tanggal: '2026-09-07',
+    poin: [
+      'Form "Pemasukan Lain" dan "Pengeluaran" kini muncul sebagai jendela pop-up (klik tombol "+ Baru"), bukan tertata permanen di bawah tabel',
+      'Perbaikan bug: tabel sekarang pasti ter-update begitu selesai menyimpan data baru',
+      'Animasi konfirmasi simpan sekarang juga tampil di Catat Pembayaran, Tambah User, Ganti Password, dan Profil Sekolah',
+    ],
+  },
+  {
     versi: '1.5.1',
     tanggal: '2026-09-07',
     poin: [

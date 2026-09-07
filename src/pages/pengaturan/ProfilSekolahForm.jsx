@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { PROFIL_FIELDS, emptyProfilRow, LOGO_MAX_BYTES } from '../../db/profilFields';
 import { saveProfilToSheet, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import SaveProgressModal from '../../components/common/SaveProgressModal';
 
 export default function ProfilSekolahForm() {
   const { profilSekolah, profilLoading, profilExists, refreshProfil, toast } = useAppData();
   const [form, setForm] = useState(emptyProfilRow());
   const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState(null);
 
   useEffect(() => {
     if (profilSekolah) {
@@ -43,14 +45,17 @@ export default function ProfilSekolahForm() {
     const wajib = PROFIL_FIELDS.find(f => f.required && !String(form[f.key]).trim());
     if (wajib) { toast(`${wajib.label} wajib diisi.`, 'error'); return; }
     setSaving(true);
+    setPhase('saving');
     try {
       await saveProfilToSheet(form, profilExists);
-      toast('Profil sekolah berhasil disimpan.');
+      setPhase('done');
+      await new Promise(r => setTimeout(r, 1100));
       refreshProfil();
     } catch (err) {
       toast(err.message, 'error');
     } finally {
       setSaving(false);
+      setPhase(null);
     }
   }
 
@@ -90,6 +95,7 @@ export default function ProfilSekolahForm() {
           <button type="submit" className="btn btn-primary" disabled={saving || profilLoading}>{saving ? 'Menyimpan...' : 'Simpan Profil Sekolah'}</button>
         </div>
       </form>
+      {phase && <SaveProgressModal phase={phase} />}
     </div>
   );
 }
