@@ -42,12 +42,23 @@ export default function DataSiswaSheets() {
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 8, color: 'var(--muted)' }}>SEBARAN PER KELAS / TINGKAT</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {tingkatList.map(t => (
-                    <div key={t} style={{ padding: '6px 14px', background: '#F6F8F5', border: '1px solid var(--border)', borderRadius: 20, fontSize: 12.5 }}>
-                      Kelas {t}: <strong>{stats.perTingkat[t]}</strong>
-                    </div>
-                  ))}
+                <div className="kelas-grid">
+                  {tingkatList.map((t, i) => {
+                    const gradients = [
+                      'linear-gradient(135deg, var(--green), var(--green-dark))',
+                      'linear-gradient(135deg, #3868C9, #123a7a)',
+                      'linear-gradient(135deg, var(--purple), var(--purple-dark))',
+                      'linear-gradient(135deg, #E0645F, #8f2c1f)',
+                      'linear-gradient(135deg, #D9A441, #8a5b00)',
+                      'linear-gradient(135deg, #16794a, #0d4a2c)',
+                    ];
+                    return (
+                      <div key={t} className="kelas-card" style={{ background: gradients[i % gradients.length] }}>
+                        <div className="val">{stats.perTingkat[t]}</div>
+                        <div className="lbl">Kelas {t}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

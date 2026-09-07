@@ -143,13 +143,23 @@ export default function Dashboard() {
               </div>
 
               <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 10 }}>Sebaran per Kelas / Tingkat (angka)</div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {tingkatList.map(t => (
-                  <div key={t} style={{ padding: '10px 16px', background: 'var(--green-soft)', borderRadius: 8, minWidth: 90, textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green-dark)' }}>{stats.perTingkat[t]}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>Kelas {t}</div>
-                  </div>
-                ))}
+              <div className="kelas-grid">
+                {tingkatList.map((t, i) => {
+                  const gradients = [
+                    'linear-gradient(135deg, var(--green), var(--green-dark))',
+                    'linear-gradient(135deg, #3868C9, #123a7a)',
+                    'linear-gradient(135deg, var(--purple), var(--purple-dark))',
+                    'linear-gradient(135deg, #E0645F, #8f2c1f)',
+                    'linear-gradient(135deg, #D9A441, #8a5b00)',
+                    'linear-gradient(135deg, #16794a, #0d4a2c)',
+                  ];
+                  return (
+                    <div key={t} className="kelas-card" style={{ background: gradients[i % gradients.length] }}>
+                      <div className="val">{stats.perTingkat[t]}</div>
+                      <div className="lbl">Kelas {t}</div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

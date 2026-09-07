@@ -13,11 +13,16 @@ function Baris({ label, value }) {
   );
 }
 
-function StatChip({ value, label }) {
+function StatChip({ value, label, variant }) {
+  const style = variant === 'lunas'
+    ? { background: 'var(--green-soft)', color: 'var(--green-dark)' }
+    : variant === 'belum-lunas'
+    ? { background: '#F8E7E3', color: 'var(--red)' }
+    : { background: '#F6F8F5', color: 'var(--green-dark)' };
   return (
-    <div style={{ flex: 1, background: '#F6F8F5', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green-dark)' }}>{value}</div>
-      <div style={{ fontSize: 10.5, color: '#888' }}>{label}</div>
+    <div style={{ flex: 1, borderRadius: 10, padding: 12, textAlign: 'center', ...style }}>
+      <div style={{ fontSize: 18, fontWeight: 800 }}>{value}</div>
+      <div style={{ fontSize: 10.5, opacity: .75 }}>{label}</div>
     </div>
   );
 }
@@ -120,7 +125,7 @@ export default function PortofolioSiswaTab() {
                     <div style={{ display: 'flex', gap: 14 }}>
                       <StatChip value={formatRupiah(keuangan.totalTagihan)} label="Total Tagihan" />
                       <StatChip value={formatRupiah(keuangan.totalSisa)} label="Sisa Belum Dibayar" />
-                      <StatChip value={keuangan.statusLunas ? 'Lunas' : 'Belum Lunas'} label="Status" />
+                      <StatChip value={keuangan.statusLunas ? 'Lunas' : 'Belum Lunas'} label="Status" variant={keuangan.statusLunas ? 'lunas' : 'belum-lunas'} />
                     </div>
                   )}
                 </div>

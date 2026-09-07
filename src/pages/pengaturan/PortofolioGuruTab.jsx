@@ -17,7 +17,7 @@ function SideBlock({ label, value }) {
 function MainSection({ title, children }) {
   return (
     <div style={{ marginBottom: 4 }}>
-      <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--gold)', borderBottom: '2px solid var(--gold)', paddingBottom: 6, marginBottom: 12, marginTop: 22 }}>{title}</div>
+      <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--green-dark)', borderBottom: '2px solid var(--green-dark)', paddingBottom: 6, marginBottom: 12, marginTop: 22 }}>{title}</div>
       {children}
     </div>
   );
@@ -85,7 +85,7 @@ export default function PortofolioGuruTab() {
                 <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'var(--green-soft)', border: '4px solid var(--gold)', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 700, color: 'var(--green-dark)' }}>
                   {initials(dipilih.nama)}
                 </div>
-                <h2 style={{ fontSize: 17, margin: '0 0 4px' }}>{dipilih.nama}</h2>
+                <h2 style={{ fontSize: 15.5, margin: '0 0 4px', wordBreak: 'break-word', lineHeight: 1.35 }}>{dipilih.nama}</h2>
                 <div style={{ fontSize: 11.5, opacity: .85, marginBottom: 20 }}>{dipilih.kategori}</div>
                 <SideBlock label="Kontak" value={[dipilih.tempatLahir, dipilih.hp].filter(Boolean).join(' · ')} />
                 <SideBlock label="NIP / NUPTK" value={dipilih.nip} />
