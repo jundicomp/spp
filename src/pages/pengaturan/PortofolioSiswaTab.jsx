@@ -1,0 +1,128 @@
+import { useMemo, useState } from 'react';
+import { useAppData } from '../../context/AppContext';
+import { formatRupiah, formatTanggalTampil, initials } from '../../db/helpers';
+import { printElementById } from '../../utils/exportTable';
+
+function Baris({ label, value }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 10.5, color: '#888', textTransform: 'uppercase', letterSpacing: .3 }}>{label}</div>
+      <div style={{ fontSize: 13 }}>{value || '-'}</div>
+    </div>
+  );
+}
+
+function StatChip({ value, label }) {
+  return (
+    <div style={{ flex: 1, background: '#F6F8F5', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green-dark)' }}>{value}</div>
+      <div style={{ fontSize: 10.5, color: '#888' }}>{label}</div>
+    </div>
+  );
+}
+
+export default function PortofolioSiswaTab() {
+  const { siswa, allTagihan, tagihanTerbayar } = useAppData();
+  const [cari, setCari] = useState('');
+  const [dipilih, setDipilih] = useState(null);
+
+  const saran = useMemo(() => {
+    if (!cari.trim() || dipilih) return [];
+    const t = cari.trim().toLowerCase();
+    return siswa.filter(s => s.nama.toLowerCase().includes(t) || s.nisn.includes(t)).slice(0, 8);
+  }, [cari, siswa, dipilih]);
+
+  const keuangan = useMemo(() => {
+    if (!dipilih) return null;
+    const milikSiswa = allTagihan.filter(t => t.nisn === dipilih.nisn);
+    const totalTagihan = milikSiswa.reduce((s, t) => s + t.nominal, 0);
+    const totalSisa = milikSiswa.reduce((s, t) => s + Math.max(0, t.nominal - tagihanTerbayar(t.refType, t.no)), 0);
+    return { totalTagihan, totalSisa, statusLunas: totalSisa === 0 };
+  }, [dipilih, allTagihan, tagihanTerbayar]);
+
+  function pilih(s) { setDipilih(s); setCari(s.nama); }
+  function gantiSiswa() { setDipilih(null); setCari(''); }
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div><h3>🪪 Portofolio Siswa</h3><p>Cari siswa untuk melihat profil lengkapnya, siap cetak.</p></div>
+        {dipilih && (
+          <div style={{ display: 'flex', gap: 8 }} className="no-print">
+            <button className="btn btn-sm" onClick={gantiSiswa}>🔄 Ganti Siswa</button>
+            <button className="btn btn-primary btn-sm" onClick={() => printElementById('portofolio-siswa-print')}>🖨️ Cetak / Ekspor PDF</button>
+          </div>
+        )}
+      </div>
+      <div className="card-body">
+        {!dipilih && (
+          <div style={{ position: 'relative', maxWidth: 420 }}>
+            <input
+              type="text" value={cari} onChange={e => setCari(e.target.value)}
+              placeholder="Cari nama atau NISN..." style={{ width: '100%' }}
+            />
+            {saran.length > 0 && (
+              <div className="portofolio-suggestions" style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4, zIndex: 5, boxShadow: '0 8px 20px rgba(0,0,0,.1)' }}>
+                {saran.map(s => (
+                  <div key={s.id} className="portofolio-suggestion-item" onClick={() => pilih(s)} style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{initials(s.nama)}</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{s.nama}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>NISN: {s.nisn || '-'} · Kelas {s.kelasTingkat || '-'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {dipilih && (
+          <div id="portofolio-siswa-print" style={{ maxWidth: 700, margin: '0 auto' }}>
+            <div style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,.08)', border: '1px solid var(--border)' }}>
+              <div style={{ background: 'linear-gradient(135deg, var(--green), var(--green-dark))', padding: '32px 28px 26px', color: '#fff', position: 'relative' }}>
+                <div style={{ width: 70, height: 70, borderRadius: 14, background: 'var(--gold)', position: 'absolute', right: 26, top: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color: 'var(--green-dark)' }}>
+                  {initials(dipilih.nama)}
+                </div>
+                <h2 style={{ fontSize: 22, margin: 0 }}>{dipilih.nama}</h2>
+                <div style={{ fontSize: 12.5, opacity: .85, marginTop: 4 }}>NISN: {dipilih.nisn || '-'}</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                  <span style={{ background: 'rgba(255,255,255,.2)', padding: '4px 12px', borderRadius: 999, fontSize: 11 }}>{dipilih.status || 'Aktif'}</span>
+                  <span style={{ background: 'rgba(255,255,255,.2)', padding: '4px 12px', borderRadius: 999, fontSize: 11 }}>Kelas {dipilih.kelasTingkat || '-'}</span>
+                  <span style={{ background: 'rgba(255,255,255,.2)', padding: '4px 12px', borderRadius: 999, fontSize: 11 }}>{dipilih.jenisKelamin || '-'}</span>
+                </div>
+              </div>
+              <div style={{ height: 4, background: 'var(--gold)' }} />
+              <div style={{ padding: 28, background: '#fff' }}>
+                <div style={{ marginBottom: 22 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--green-dark)', borderBottom: '2px solid var(--green-soft)', paddingBottom: 6, marginBottom: 12 }}>Data Pribadi</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px' }}>
+                    <Baris label="Tempat, Tanggal Lahir" value={`${dipilih.tempatLahir || '-'}, ${formatTanggalTampil(dipilih.tanggalLahir) || '-'}`} />
+                    <Baris label="NIK" value={dipilih.nik} />
+                    <Baris label="Jenjang / NPSN" value={`${dipilih.jenjang || '-'} / ${dipilih.npsn || '-'}`} />
+                    <Baris label="Jenis Pendaftaran" value={dipilih.jenisPendaftaran} />
+                    <Baris label="Nama Ayah Kandung" value={dipilih.namaAyah} />
+                    <Baris label="Nama Ibu Kandung" value={dipilih.namaIbu} />
+                    <Baris label="Pekerjaan Orang Tua" value={dipilih.pekerjaan} />
+                    <Baris label="Alamat" value={dipilih.alamat} />
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--green-dark)', borderBottom: '2px solid var(--green-soft)', paddingBottom: 6, marginBottom: 12 }}>Kewajiban Keuangan</div>
+                  {keuangan && (
+                    <div style={{ display: 'flex', gap: 14 }}>
+                      <StatChip value={formatRupiah(keuangan.totalTagihan)} label="Total Tagihan" />
+                      <StatChip value={formatRupiah(keuangan.totalSisa)} label="Sisa Belum Dibayar" />
+                      <StatChip value={keuangan.statusLunas ? 'Lunas' : 'Belum Lunas'} label="Status" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

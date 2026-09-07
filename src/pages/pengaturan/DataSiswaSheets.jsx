@@ -5,6 +5,7 @@ import ExcelUpload from './ExcelUpload';
 import StoredDataTable from './StoredDataTable';
 import RombelTab from './RombelTab';
 import RiwayatSiswaTab from './RiwayatSiswaTab';
+import PortofolioSiswaTab from './PortofolioSiswaTab';
 import NotifikasiSiswaPerluTindakLanjut from '../../components/common/NotifikasiSiswaPerluTindakLanjut';
 import { useAppData } from '../../context/AppContext';
 import { isConfigured } from '../../services/googleSheets';
@@ -59,6 +60,7 @@ export default function DataSiswaSheets() {
           <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA SISWA (TABEL)</button>
           <button className={`seg-tab ${tab === 'rombel' ? 'active' : ''}`} onClick={() => setTab('rombel')}>🏫 ROMBEL</button>
           <button className={`seg-tab ${tab === 'riwayat' ? 'active' : ''}`} onClick={() => setTab('riwayat')}>🎓 RIWAYAT SISWA</button>
+          <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>
           <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>
           <button className={`seg-tab ${tab === 'excel' ? 'active' : ''}`} onClick={() => setTab('excel')}>📊 UPLOAD EXCEL</button>
         </div>
@@ -72,6 +74,7 @@ export default function DataSiswaSheets() {
           {tab === 'tabel' && <StoredDataTable refreshKey={refreshKey} />}
           {tab === 'rombel' && <RombelTab />}
           {tab === 'riwayat' && <RiwayatSiswaTab />}
+          {tab === 'portofolio' && <PortofolioSiswaTab />}
           {tab === 'manual' && <ManualForm onSaved={bump} />}
           {tab === 'excel' && <ExcelUpload onSaved={bump} />}
         </div>

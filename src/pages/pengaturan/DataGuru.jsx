@@ -7,6 +7,7 @@ import { fetchGuruFromSheet, addGuruToSheet, updateGuruInSheet, deleteGuruFromSh
 import { useAppData } from '../../context/AppContext';
 import InfoCard from '../../components/common/InfoCard';
 import { IconGraduationCap, IconUsers } from '../../components/common/icons';
+import PortofolioGuruTab from './PortofolioGuruTab';
 
 const FILTER_OPTIONS = ['Guru', 'Staff']; // opsi filter cuma 2 -- "Guru & Staff" otomatis muncul di keduanya
 
@@ -49,6 +50,7 @@ export default function DataGuru() {
         <div className="seg-tabs">
           <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA GURU & STAFF (TABEL)</button>
           <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH</button>
+          <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
           {tab === 'tabel' && (
@@ -83,6 +85,7 @@ export default function DataGuru() {
               subtitle="Pilih Kategori di awal form -- data langsung tersimpan ke baris baru di Google Sheets."
             />
           )}
+          {tab === 'portofolio' && <PortofolioGuruTab />}
         </div>
       </div>
     </Page>
