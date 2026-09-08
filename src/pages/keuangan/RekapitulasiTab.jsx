@@ -4,6 +4,8 @@ import { rekapPemasukanBulanan } from '../../db/laporanHelpers';
 import { formatRupiah } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconGraduationCap, IconMoney, IconTrendUp } from '../../components/common/icons';
+import Rupiah from '../../components/common/Rupiah';
+import { exportToExcel } from '../../utils/exportTable';
 
 export default function RekapitulasiTab() {
   const { tahunAjaran, tahunAjaranAktif, pembayaran, pemasukanLain, pembayaranLoaded, pemasukanLainLoaded } = useAppData();
@@ -43,6 +45,11 @@ export default function RekapitulasiTab() {
             <option value="">Semua Bulan</option>
             {rekap.map((r, i) => <option key={r.label} value={i}>{r.label}</option>)}
           </select>
+          <button className="btn btn-sm" onClick={() => exportToExcel(
+            ['Bulan', 'SPP', 'Biaya Lain Siswa', 'Pemasukan Lain', 'Total'],
+            rekap.map(r => ({ Bulan: r.label, SPP: r.spp, 'Biaya Lain Siswa': r.lain, 'Pemasukan Lain': r.lainnya, Total: r.total })),
+            'Rekapitulasi Pemasukan', `Rekapitulasi Pemasukan — ${labelDipakai}`
+          )}>📊 Excel</button>
         </div>
       </div>
       <div className="card-body">
@@ -62,20 +69,20 @@ export default function RekapitulasiTab() {
                   {rekap.map((r, i) => (
                     <tr key={r.label} style={i === bulanIdx ? { background: 'var(--green-soft)' } : undefined}>
                       <td>{r.label}</td>
-                      <td>{formatRupiah(r.spp)}</td>
-                      <td>{formatRupiah(r.lain)}</td>
-                      <td>{formatRupiah(r.lainnya)}</td>
-                      <td style={{ fontWeight: 700 }}>{formatRupiah(r.total)}</td>
+                      <td><Rupiah value={r.spp} /></td>
+                      <td><Rupiah value={r.lain} /></td>
+                      <td><Rupiah value={r.lainnya} /></td>
+                      <td><Rupiah value={r.total} bold /></td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr style={{ fontWeight: 800 }}>
                     <td>Total Setahun</td>
-                    <td>{formatRupiah(totalSetahun.spp)}</td>
-                    <td>{formatRupiah(totalSetahun.lain)}</td>
-                    <td>{formatRupiah(totalSetahun.lainnya)}</td>
-                    <td>{formatRupiah(totalSetahun.total)}</td>
+                    <td><Rupiah value={totalSetahun.spp} bold /></td>
+                    <td><Rupiah value={totalSetahun.lain} bold /></td>
+                    <td><Rupiah value={totalSetahun.lainnya} bold /></td>
+                    <td><Rupiah value={totalSetahun.total} bold /></td>
                   </tr>
                 </tfoot>
               </table>

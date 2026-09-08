@@ -1,23 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
-import { pembayaranAsli, bulanTahunAjaran } from '../../db/laporanHelpers';
+import { pembayaranAsli, bulanTahunAjaran, totalAsOf, piutangAsOf } from '../../db/laporanHelpers';
 import { AKUN_BAWAAN } from '../../db/akunBukuBesarFields';
-import { formatRupiah, parseTanggalFleksibel } from '../../db/helpers';
-
-// Hitung total nominal transaksi yg tanggalnya <= cutoff (as-of suatu titik waktu),
-// OPSIONAL difilter ke akun kas/bank tertentu -- dipakai supaya Neraca bisa menampilkan
-// SETIAP akun kas/bank secara terpisah (bukan digabung jadi 1 angka "Kas" saja).
-function totalAsOf(items, getTanggal, getNominal, getAkun, cutoffMs, akunNama) {
-  return items.reduce((s, it) => {
-    const d = parseTanggalFleksibel(getTanggal(it));
-    if (!d || d.getTime() > cutoffMs) return s;
-    if (akunNama !== undefined) {
-      const akunItem = getAkun(it) || 'Kas'; // data lama tanpa field akun -> fallback Kas
-      if (akunItem !== akunNama) return s;
-    }
-    return s + getNominal(it);
-  }, 0);
-}
+import Rupiah from '../../components/common/Rupiah';
+import { exportToExcel } from '../../utils/exportTable';
 
 export default function NeracaTab() {
   const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain, allTagihan, akun, pembayaranLoaded, pengeluaranLoaded, pemasukanLainLoaded } = useAppData();
@@ -55,16 +41,7 @@ export default function NeracaTab() {
     });
     const totalKas = saldoPerAkun.reduce((s, a) => s + a.saldo, 0);
 
-    const piutang = allTagihan.reduce((s, t) => {
-      const jt = parseTanggalFleksibel(t.jatuhTempo);
-      if (!jt || jt.getTime() > cutoffMs) return s;
-      const dibayarSampaiCutoff = pembayaran
-        .filter(p => p.refType === t.refType && p.refNo === t.no && p.metode !== 'Pemutihan Piutang')
-        .filter(p => { const d = parseTanggalFleksibel(p.tanggalBayar); return d && d.getTime() <= cutoffMs; })
-        .reduce((sum, p) => sum + p.nominal, 0);
-      const sisa = t.nominal - dibayarSampaiCutoff;
-      return s + (sisa > 0 ? sisa : 0);
-    }, 0);
+    const piutang = piutangAsOf(allTagihan, pembayaran, cutoffMs);
 
     const totalAktiva = totalKas + piutang;
     return { saldoPerAkun, totalKas, piutang, totalAktiva };
@@ -87,6 +64,16 @@ export default function NeracaTab() {
             <option value="">Sampai Hari Ini</option>
             {bulanList.map((b, i) => <option key={b.label} value={i}>Per Akhir {b.label}</option>)}
           </select>
+          <button className="btn btn-sm" onClick={() => exportToExcel(
+            ['Bagian', 'Nama', 'Nominal'],
+            [
+              ...ringkasan.saldoPerAkun.map(a => ({ Bagian: 'Aktiva', Nama: a.nama, Nominal: a.saldo })),
+              { Bagian: 'Aktiva', Nama: 'Piutang Siswa', Nominal: ringkasan.piutang },
+              { Bagian: 'Aktiva', Nama: 'Total Aktiva', Nominal: ringkasan.totalAktiva },
+              { Bagian: 'Modal/Ekuitas', Nama: 'Total Aktiva dikurangi Kewajiban', Nominal: ringkasan.totalAktiva },
+            ],
+            'Neraca', `Neraca — ${bulanTerpilih ? `Per Akhir ${bulanTerpilih.label}` : 'Sampai Hari Ini'}`
+          )}>📊 Excel</button>
         </div>
       </div>
       <div className="card-body">
@@ -105,18 +92,18 @@ export default function NeracaTab() {
               <thead><tr><th colSpan={2}>AKTIVA</th></tr></thead>
               <tbody>
                 {ringkasan.saldoPerAkun.map(a => (
-                  <tr key={a.nama}><td>{a.nama}</td><td style={{ fontWeight: 700 }}>{formatRupiah(a.saldo)}</td></tr>
+                  <tr key={a.nama}><td>{a.nama}</td><td><Rupiah value={a.saldo} bold /></td></tr>
                 ))}
-                <tr><td>Piutang Siswa (tagihan belum lunas)</td><td style={{ fontWeight: 700 }}>{formatRupiah(ringkasan.piutang)}</td></tr>
-                <tr style={{ fontWeight: 800, background: '#F6F8F5' }}><td>Total Aktiva</td><td>{formatRupiah(ringkasan.totalAktiva)}</td></tr>
+                <tr><td>Piutang Siswa (tagihan belum lunas)</td><td><Rupiah value={ringkasan.piutang} bold /></td></tr>
+                <tr style={{ fontWeight: 800, background: '#F6F8F5' }}><td>Total Aktiva</td><td><Rupiah value={ringkasan.totalAktiva} bold /></td></tr>
               </tbody>
               <thead><tr><th colSpan={2}>KEWAJIBAN</th></tr></thead>
               <tbody>
-                <tr><td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>Belum ada modul pencatatan kewajiban/utang</td><td>{formatRupiah(0)}</td></tr>
+                <tr><td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>Belum ada modul pencatatan kewajiban/utang</td><td><Rupiah value={0} /></td></tr>
               </tbody>
               <thead><tr><th colSpan={2}>MODAL / EKUITAS BERSIH</th></tr></thead>
               <tbody>
-                <tr style={{ fontWeight: 800, background: 'var(--green-soft)' }}><td>Total Aktiva dikurangi Total Kewajiban</td><td style={{ color: 'var(--green-dark)' }}>{formatRupiah(ringkasan.totalAktiva)}</td></tr>
+                <tr style={{ fontWeight: 800, background: 'var(--green-soft)' }}><td>Total Aktiva dikurangi Total Kewajiban</td><td style={{ color: 'var(--green-dark)' }}><Rupiah value={ringkasan.totalAktiva} bold /></td></tr>
               </tbody>
             </table>
           </div>

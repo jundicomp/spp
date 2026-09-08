@@ -5,6 +5,8 @@ import { KATEGORI_PENGELUARAN_OPTIONS } from '../../db/pengeluaranFields';
 import { formatRupiah, parseTanggalFleksibel } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
+import Rupiah from '../../components/common/Rupiah';
+import { exportToExcel } from '../../utils/exportTable';
 
 export default function LabaRugiTab() {
   const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain, pembayaranLoaded, pengeluaranLoaded, pemasukanLainLoaded } = useAppData();
@@ -75,6 +77,29 @@ export default function LabaRugiTab() {
             <option value="">Semua Bulan (Ringkas)</option>
             {bulanList.map((b, i) => <option key={b.label} value={i}>{b.label}</option>)}
           </select>
+          <button className="btn btn-sm" onClick={() => {
+            if (bulanTerpilih && rincianBulan) {
+              exportToExcel(
+                ['Bagian', 'Keterangan', 'Nominal'],
+                [
+                  { Bagian: 'Pendapatan', Keterangan: 'Pendapatan SPP', Nominal: rincianBulan.spp },
+                  { Bagian: 'Pendapatan', Keterangan: 'Pendapatan Biaya Lain Siswa', Nominal: rincianBulan.biayaLainSiswa },
+                  { Bagian: 'Pendapatan', Keterangan: 'Pendapatan Lain-lain (Non-Siswa)', Nominal: rincianBulan.pemasukanLainBulan },
+                  { Bagian: 'Pendapatan', Keterangan: 'Total Pendapatan', Nominal: rincianBulan.totalPendapatan },
+                  ...rincianBulan.perKategori.map(k => ({ Bagian: 'Pengeluaran', Keterangan: `Beban ${k.kategori}`, Nominal: k.nominal })),
+                  { Bagian: 'Pengeluaran', Keterangan: 'Total Pengeluaran', Nominal: rincianBulan.totalPengeluaran },
+                  { Bagian: 'Laba/Rugi', Keterangan: 'Laba/Rugi Bersih', Nominal: rincianBulan.labaRugi },
+                ],
+                'Laba Rugi', `Laba Rugi — ${bulanTerpilih.label}`
+              );
+            } else {
+              exportToExcel(
+                ['Bulan', 'Pemasukan', 'Pengeluaran', 'Laba/Rugi'],
+                gabungan.map(g => ({ Bulan: g.label, Pemasukan: g.pemasukan, Pengeluaran: g.pengeluaran, 'Laba/Rugi': g.labaRugi })),
+                'Laba Rugi', `Laba Rugi — ${labelDipakai}`
+              );
+            }
+          }}>📊 Excel</button>
         </div>
       </div>
       <div className="card-body">
@@ -100,10 +125,10 @@ export default function LabaRugiTab() {
                   {gabungan.map(g => (
                     <tr key={g.label}>
                       <td>{g.label}</td>
-                      <td>{formatRupiah(g.pemasukan)}</td>
-                      <td>{formatRupiah(g.pengeluaran)}</td>
-                      <td style={{ fontWeight: 700, color: g.labaRugi >= 0 ? 'var(--green-dark)' : 'var(--red)' }}>
-                        {g.labaRugi >= 0 ? '+' : ''}{formatRupiah(g.labaRugi)}
+                      <td><Rupiah value={g.pemasukan} /></td>
+                      <td><Rupiah value={g.pengeluaran} /></td>
+                      <td style={{ color: g.labaRugi >= 0 ? 'var(--green-dark)' : 'var(--red)' }}>
+                        <Rupiah value={g.labaRugi} bold />
                       </td>
                     </tr>
                   ))}
@@ -111,10 +136,10 @@ export default function LabaRugiTab() {
                 <tfoot>
                   <tr style={{ fontWeight: 800 }}>
                     <td>Total Setahun</td>
-                    <td>{formatRupiah(totalSetahun.pemasukan)}</td>
-                    <td>{formatRupiah(totalSetahun.pengeluaran)}</td>
+                    <td><Rupiah value={totalSetahun.pemasukan} bold /></td>
+                    <td><Rupiah value={totalSetahun.pengeluaran} bold /></td>
                     <td style={{ color: totalSetahun.labaRugi >= 0 ? 'var(--green-dark)' : 'var(--red)' }}>
-                      {totalSetahun.labaRugi >= 0 ? '+' : ''}{formatRupiah(totalSetahun.labaRugi)}
+                      <Rupiah value={totalSetahun.labaRugi} bold />
                     </td>
                   </tr>
                 </tfoot>
@@ -128,24 +153,24 @@ export default function LabaRugiTab() {
             <table>
               <thead><tr><th colSpan={2}>PENDAPATAN</th></tr></thead>
               <tbody>
-                <tr><td>Pendapatan SPP</td><td style={{ fontWeight: 700 }}>{formatRupiah(rincianBulan.spp)}</td></tr>
-                <tr><td>Pendapatan Biaya Lain Siswa</td><td style={{ fontWeight: 700 }}>{formatRupiah(rincianBulan.biayaLainSiswa)}</td></tr>
-                <tr><td>Pendapatan Lain-lain (Non-Siswa)</td><td style={{ fontWeight: 700 }}>{formatRupiah(rincianBulan.pemasukanLainBulan)}</td></tr>
-                <tr style={{ fontWeight: 800, background: '#F6F8F5' }}><td>Total Pendapatan</td><td>{formatRupiah(rincianBulan.totalPendapatan)}</td></tr>
+                <tr><td>Pendapatan SPP</td><td><Rupiah value={rincianBulan.spp} bold /></td></tr>
+                <tr><td>Pendapatan Biaya Lain Siswa</td><td><Rupiah value={rincianBulan.biayaLainSiswa} bold /></td></tr>
+                <tr><td>Pendapatan Lain-lain (Non-Siswa)</td><td><Rupiah value={rincianBulan.pemasukanLainBulan} bold /></td></tr>
+                <tr style={{ fontWeight: 800, background: '#F6F8F5' }}><td>Total Pendapatan</td><td><Rupiah value={rincianBulan.totalPendapatan} bold /></td></tr>
               </tbody>
               <thead><tr><th colSpan={2}>PENGELUARAN (BEBAN)</th></tr></thead>
               <tbody>
                 {rincianBulan.perKategori.map(k => (
-                  <tr key={k.kategori}><td>Beban {k.kategori}</td><td style={{ fontWeight: 700 }}>{formatRupiah(k.nominal)}</td></tr>
+                  <tr key={k.kategori}><td>Beban {k.kategori}</td><td><Rupiah value={k.nominal} bold /></td></tr>
                 ))}
-                <tr style={{ fontWeight: 800, background: '#F6F8F5' }}><td>Total Pengeluaran</td><td>{formatRupiah(rincianBulan.totalPengeluaran)}</td></tr>
+                <tr style={{ fontWeight: 800, background: '#F6F8F5' }}><td>Total Pengeluaran</td><td><Rupiah value={rincianBulan.totalPengeluaran} bold /></td></tr>
               </tbody>
               <thead><tr><th colSpan={2}>LABA / RUGI BERSIH</th></tr></thead>
               <tbody>
                 <tr style={{ fontWeight: 800, background: rincianBulan.labaRugi >= 0 ? 'var(--green-soft)' : '#F8E7E3' }}>
                   <td>Total Pendapatan dikurangi Total Pengeluaran</td>
                   <td style={{ color: rincianBulan.labaRugi >= 0 ? 'var(--green-dark)' : 'var(--red)' }}>
-                    {rincianBulan.labaRugi >= 0 ? '+' : ''}{formatRupiah(rincianBulan.labaRugi)}
+                    <Rupiah value={rincianBulan.labaRugi} bold />
                   </td>
                 </tr>
               </tbody>

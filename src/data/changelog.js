@@ -4,6 +4,25 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.10.1',
+    tanggal: '2026-09-08',
+    poin: [
+      'Perbaikan bug penting: Buku Besar Piutang Siswa sempat bisa tampil minus kalau ada siswa yang bayar lebih awal dari jatuh tempo — sekarang saldo tidak akan pernah minus',
+      'Baris "Saldo Awal" di Buku Besar diganti namanya jadi "Saldo Bulan Sebelumnya" agar lebih jelas',
+    ],
+  },
+  {
+    versi: '1.10.0',
+    tanggal: '2026-09-08',
+    poin: [
+      'Buku Besar: total Debit/Kredit/Saldo sekarang jadi bagian tabel (rapi sejajar kolom), tidak lagi kartu terpisah',
+      'Buku Besar: bisa filter per bulan, dan Saldo Awal tiap bulan otomatis diambil dari saldo akhir bulan sebelumnya',
+      'Buku Besar: tombol Export Excel untuk akun yang dipilih maupun semua akun sekaligus',
+      'Semua nilai Rupiah di Laporan Keuangan sekarang rapi rata kanan',
+      'Tombol Export Excel ditambahkan ke Cashflow, Rekapitulasi, Laba Rugi, dan Neraca',
+    ],
+  },
+  {
     versi: '1.9.0',
     tanggal: '2026-09-08',
     poin: [

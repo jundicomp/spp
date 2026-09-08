@@ -1,6 +1,25 @@
 import { BULAN_ID, parseTanggalFleksibel } from './helpers';
 import { METODE_PEMUTIHAN } from './pembayaranFields';
 
+// Tanggal PIUTANG "muncul" (debit) utk 1 tagihan -- SENGAJA BUKAN tanggal jatuh tempo,
+// krn siswa BIASA membayar SEBELUM jatuh tempo. Kalau piutang baru dianggap muncul di
+// tanggal jatuh tempo, pembayaran yg lebih awal akan tampak LEBIH DULU drpd piutangnya
+// sendiri di buku besar -- bikin saldo sempat minus sesaat (bug nyata yg ditemukan &
+// diperbaiki). Dipakai BERSAMA oleh Buku Besar (mutasi) dan piutangAsOf (Neraca) supaya
+// definisi "piutang" SELALU konsisten di kedua laporan.
+// Utk tagihan SPP: piutang dianggap timbul di TANGGAL 1 bulan tagihan itu sendiri
+// (mis. SPP Agustus -> 1 Agustus). Utk tagihan Biaya Lain (tidak py info bulan):
+// mundurkan jatuh tempo 30 hari sbg perkiraan aman.
+export function tanggalPiutangMuncul(t) {
+  if (t.refType === 'SPP' && t.bulan && t.tahunKalender) {
+    const monthIdx = BULAN_ID.indexOf(t.bulan);
+    if (monthIdx >= 0) return new Date(t.tahunKalender, monthIdx, 1).toISOString().slice(0, 10);
+  }
+  const jt = parseTanggalFleksibel(t.jatuhTempo);
+  if (jt) { const d = new Date(jt); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10); }
+  return t.jatuhTempo;
+}
+
 // Pemutihan Piutang BUKAN uang yang benar-benar diterima -- WAJIB dikecualikan
 // dari semua perhitungan "pemasukan" supaya laporan keuangan tidak menggelembung palsu.
 export function pembayaranAsli(pembayaran) {
@@ -42,7 +61,36 @@ export function rekapPemasukanBulanan(tahunAjaranLabel, pembayaran, pemasukanLai
   });
 }
 
-// Rekap pengeluaran per bulan dlm 1 tahun ajaran.
+// Piutang Siswa "as-of" suatu titik waktu -- tagihan yg jatuh temponya sudah lewat
+// cutoff, dikurangi yg sudah dibayar SEBELUM/PADA cutoff itu. Dipakai BERSAMA oleh
+// Neraca dan Buku Besar supaya angka piutangnya SELALU konsisten di kedua laporan.
+export function piutangAsOf(allTagihan, pembayaran, cutoffMs) {
+  return allTagihan.reduce((s, t) => {
+    const muncul = parseTanggalFleksibel(tanggalPiutangMuncul(t));
+    if (!muncul || muncul.getTime() > cutoffMs) return s;
+    const dibayarSampaiCutoff = pembayaran
+      .filter(p => p.refType === t.refType && p.refNo === t.no && p.metode !== 'Pemutihan Piutang')
+      .filter(p => { const d = parseTanggalFleksibel(p.tanggalBayar); return d && d.getTime() <= cutoffMs; })
+      .reduce((sum, p) => sum + p.nominal, 0);
+    const sisa = t.nominal - dibayarSampaiCutoff;
+    return s + (sisa > 0 ? sisa : 0);
+  }, 0);
+}
+
+// Total nominal transaksi (array of {tanggal, nominal, akun}) yg tanggalnya <= cutoff,
+// OPSIONAL difilter ke akun kas/bank tertentu (akunNama) -- dipakai Neraca & Buku Besar
+// supaya bisa menampilkan/menghitung SETIAP akun kas/bank secara terpisah.
+export function totalAsOf(items, getTanggal, getNominal, getAkun, cutoffMs, akunNama) {
+  return items.reduce((s, it) => {
+    const d = parseTanggalFleksibel(getTanggal(it));
+    if (!d || d.getTime() > cutoffMs) return s;
+    if (akunNama !== undefined) {
+      const akunItem = getAkun(it) || 'Kas'; // data lama tanpa field akun -> fallback Kas
+      if (akunItem !== akunNama) return s;
+    }
+    return s + getNominal(it);
+  }, 0);
+}
 export function rekapPengeluaranBulanan(tahunAjaranLabel, pengeluaran) {
   const bulanList = bulanTahunAjaran(tahunAjaranLabel);
   return bulanList.map(b => {

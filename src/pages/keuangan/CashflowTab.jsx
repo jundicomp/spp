@@ -6,6 +6,8 @@ import { AKUN_BAWAAN } from '../../db/akunBukuBesarFields';
 import { formatRupiah } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
+import Rupiah from '../../components/common/Rupiah';
+import { exportToExcel } from '../../utils/exportTable';
 
 // Warna berbeda per akun kas/bank di chart & kartu -- cukup byk variasi utk beberapa akun.
 const WARNA_AKUN = ['#123D22', '#1E4FA0', '#F0B429', '#8f2c1f', '#5B3E8E', '#16794a', '#8a5b00'];
@@ -50,9 +52,16 @@ export default function CashflowTab() {
     <div className="card">
       <div className="card-head">
         <div><h3>💵 Cashflow &amp; Kondisi Kas</h3><p>Arus kas masuk-keluar per bulan, dipisah per akun kas/bank, dan saldo kas berjalan sepanjang tahun ajaran.</p></div>
-        <select value={labelDipakai || ''} onChange={e => setTaLabel(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
-          {tahunAjaran.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select value={labelDipakai || ''} onChange={e => setTaLabel(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
+            {tahunAjaran.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
+          </select>
+          <button className="btn btn-sm" onClick={() => exportToExcel(
+            ['Bulan', ...daftarAkun],
+            cashflow.map(c => ({ Bulan: c.label, ...Object.fromEntries(daftarAkun.map(n => [n, c[n]])) })),
+            'Cashflow', `Cashflow — ${labelDipakai}`
+          )}>📊 Excel</button>
+        </div>
       </div>
       <div className="card-body">
         {!dataSiap && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Memuat data...</p>}
@@ -109,7 +118,7 @@ export default function CashflowTab() {
                     <tr key={c.label}>
                       <td>{c.label}</td>
                       {daftarAkun.map(nama => (
-                        <td key={nama} style={{ fontWeight: 700 }}>{formatRupiah(c[nama])}</td>
+                        <td key={nama}><Rupiah value={c[nama]} bold /></td>
                       ))}
                     </tr>
                   ))}
