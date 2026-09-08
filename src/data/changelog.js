@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.10.2',
+    tanggal: '2026-09-08',
+    poin: [
+      'Perbaikan bug: logo dan nama sekolah yang diupload lewat Pengaturan > Profil Sekolah sekarang benar tampil di layar Login dan Sidebar (sebelumnya masih logo bawaan yang tidak tersambung)',
+    ],
+  },
+  {
     versi: '1.10.1',
     tanggal: '2026-09-08',
     poin: [

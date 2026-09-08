@@ -46,18 +46,23 @@ function Item({ to, children, canAccess }) {
 
 export default function Sidebar() {
   const { canAccess } = useAuth();
+  const { profilSekolah } = useAppData();
   const [openGroups, setOpenGroups] = useState({ spp: true, keuangan: true });
   const toggle = (id) => setOpenGroups(g => ({ ...g, [id]: !g[id] }));
 
   return (
     <aside className="sidebar">
       <div className="sidebar-head">
-        <svg width="38" height="38" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" r="21" fill="#1C7A3C" />
-          <text x="24" y="25" textAnchor="middle" dominantBaseline="central" fontFamily="Arial, sans-serif" fontSize="16" fontWeight="800" fill="#F0B429">MI</text>
-        </svg>
+        {profilSekolah?.logo ? (
+          <img src={profilSekolah.logo} alt="Logo Sekolah" width="38" height="38" style={{ objectFit: 'contain', borderRadius: 8 }} />
+        ) : (
+          <svg width="38" height="38" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="21" fill="#1C7A3C" />
+            <text x="24" y="25" textAnchor="middle" dominantBaseline="central" fontFamily="Arial, sans-serif" fontSize="16" fontWeight="800" fill="#F0B429">MI</text>
+          </svg>
+        )}
         <div>
-          <div className="brand-name">MI Ikhlasiyah</div>
+          <div className="brand-name">{profilSekolah?.nama || 'MI Ikhlasiyah'}</div>
           <div className="brand-sub">SPP dan Sarpras</div>
         </div>
       </div>
