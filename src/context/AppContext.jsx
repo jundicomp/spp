@@ -12,10 +12,12 @@ import { normalizeSheetPembayaran } from '../db/pembayaranFields';
 import { normalizeSheetPengeluaran } from '../db/pengeluaranFields';
 import { normalizeSheetPemasukanLain } from '../db/pemasukanLainFields';
 import { normalizeSheetAkun } from '../db/akunBukuBesarFields';
+import { normalizeSheetBeasiswaKategori, normalizeSheetBeasiswaSiswa } from '../db/beasiswaFields';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
   fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet, fetchAsetFromSheet,
   fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet, fetchPemasukanLainFromSheet, fetchAkunFromSheet,
+  fetchBeasiswaKategoriFromSheet, fetchBeasiswaSiswaFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
@@ -30,6 +32,7 @@ const HAK_AKSES_PAGES = [
   { id: 'pembayaran', label: 'Pembayaran & Invoice', grup: 'Keuangan' },
   { id: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain', grup: 'Keuangan' },
   { id: 'tunggakan', label: 'Rekap Tunggakan', grup: 'Keuangan' },
+  { id: 'beasiswa', label: 'Beasiswa', grup: 'Keuangan' },
   { id: 'laporan-keuangan', label: 'Laporan Keuangan', grup: 'Keuangan' },
   { id: 'aset', label: 'Data Aset & Inventaris', grup: 'Sarpras' },
   { id: 'peminjaman-aset', label: 'Peminjaman Aset', grup: 'Sarpras' },
@@ -80,6 +83,8 @@ export function AppProvider({ children }) {
   const pengeluaranRes = useSheetResource(fetchPengeluaranFromSheet, normalizeSheetPengeluaran, 'keuangan');
   const pemasukanLainRes = useSheetResource(fetchPemasukanLainFromSheet, normalizeSheetPemasukanLain, 'keuangan');
   const akunRes = useSheetResource(fetchAkunFromSheet, normalizeSheetAkun, 'keuangan');
+  const beasiswaKategoriRes = useSheetResource(fetchBeasiswaKategoriFromSheet, normalizeSheetBeasiswaKategori, 'keuangan');
+  const beasiswaSiswaRes = useSheetResource(fetchBeasiswaSiswaFromSheet, normalizeSheetBeasiswaSiswa, 'keuangan');
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
   const [profilSekolah, setProfilSekolahRaw] = useState(null);
@@ -136,6 +141,8 @@ export function AppProvider({ children }) {
     pengeluaran: pengeluaranRes.data, pengeluaranLoading: pengeluaranRes.loading, pengeluaranLoaded: pengeluaranRes.loaded, refreshPengeluaran: pengeluaranRes.refresh,
     pemasukanLain: pemasukanLainRes.data, pemasukanLainLoading: pemasukanLainRes.loading, pemasukanLainLoaded: pemasukanLainRes.loaded, refreshPemasukanLain: pemasukanLainRes.refresh,
     akun: akunRes.data, akunLoading: akunRes.loading, akunLoaded: akunRes.loaded, refreshAkun: akunRes.refresh,
+    beasiswaKategori: beasiswaKategoriRes.data, beasiswaKategoriLoading: beasiswaKategoriRes.loading, beasiswaKategoriLoaded: beasiswaKategoriRes.loaded, refreshBeasiswaKategori: beasiswaKategoriRes.refresh,
+    beasiswaSiswa: beasiswaSiswaRes.data, beasiswaSiswaLoading: beasiswaSiswaRes.loading, beasiswaSiswaLoaded: beasiswaSiswaRes.loaded, refreshBeasiswaSiswa: beasiswaSiswaRes.refresh,
     allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions, setPermissions,

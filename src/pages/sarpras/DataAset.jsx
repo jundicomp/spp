@@ -7,7 +7,8 @@ import { fetchAsetFromSheet, addAsetToSheet, updateAsetInSheet, deleteAsetFromSh
 import { useAppData } from '../../context/AppContext';
 import AsetViewModal from './AsetViewModal';
 import InfoCard from '../../components/common/InfoCard';
-import { IconLayers, IconBox, IconCheckCircle, IconAlertTriangle, IconXCircle } from '../../components/common/icons';
+import { IconLayers, IconBox, IconCheckCircle, IconAlertTriangle, IconXCircle, IconMoney } from '../../components/common/icons';
+import { formatRupiah } from '../../db/helpers';
 
 // Header tabel + export -- "Total" disisipkan sesudah Rusak Berat, TAPI itu bukan
 // kolom asli di Sheets (tidak ada di Code.gs) -- nilainya dihitung otomatis lewat
@@ -24,7 +25,8 @@ export default function DataAset() {
     const totalBaik = aset.reduce((s, a) => s + a.baik, 0);
     const totalRR = aset.reduce((s, a) => s + a.rusakRingan, 0);
     const totalRB = aset.reduce((s, a) => s + a.rusakBerat, 0);
-    return { totalJenis: aset.length, totalUnit, totalBaik, totalRR, totalRB };
+    const totalNilai = aset.reduce((s, a) => s + a.nilaiTotal, 0);
+    return { totalJenis: aset.length, totalUnit, totalBaik, totalRR, totalRB, totalNilai };
   }, [aset]);
 
   // Sisipkan Baik/RR/RB/Total yg SUDAH benar (termasuk pemetaan data lama Kondisi+
@@ -49,6 +51,7 @@ export default function DataAset() {
           <InfoCard icon={IconCheckCircle} color="c-green" value={ringkasan.totalBaik} label="Unit Baik" />
           <InfoCard icon={IconAlertTriangle} color="c-gold" value={ringkasan.totalRR} label="Unit Rusak Ringan" />
           <InfoCard icon={IconXCircle} color="c-red" value={ringkasan.totalRB} label="Unit Rusak Berat" />
+          <InfoCard icon={IconMoney} color="c-purple" value={formatRupiah(ringkasan.totalNilai)} label="Total Nilai Estimasi Sarpras" valueFontSize={17} />
         </div>
       )}
 

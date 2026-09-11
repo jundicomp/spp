@@ -13,7 +13,7 @@ function formatRupiah(n) {
 }
 
 export default function PenerbitanSppTab() {
-  const { tahunAjaranAktif, tarif, siswa, tagihanSpp, tagihanSppLoading, tagihanSppLoaded, refreshTagihanSpp, toast } = useAppData();
+  const { tahunAjaranAktif, tarif, siswa, tagihanSpp, tagihanSppLoading, tagihanSppLoaded, refreshTagihanSpp, toast, beasiswaSiswa, beasiswaKategori } = useAppData();
   const { currentUser } = useAuth();
   const [issuing, setIssuing] = useState(null); // index bulan yg sedang diproses
   const [progress, setProgress] = useState(null); // { current, total, label } | null
@@ -63,6 +63,19 @@ export default function PenerbitanSppTab() {
     return list;
   }, [tahunAjaranAktif, tagihanTahunIni, semuaTingkatPunyaTarif]);
 
+  // Cari beasiswa aktif siswa ini (kalau ada) & hitung nominal SETELAH potongan --
+  // dihitung SEKALI SAAT PENERBITAN, jadi nominal final tersimpan apa adanya di
+  // tagihan (bukan dihitung ulang tiap tampil) -- konsisten dgn prinsip "fakta
+  // historis pada momen transaksi" yg dipakai di modul lain.
+  function nominalSetelahBeasiswa(nisn, nominalPenuh) {
+    const b = beasiswaSiswa.find(x => x.nisn === nisn);
+    if (!b) return { nominal: nominalPenuh, potongan: null };
+    const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
+    if (!kategori || !kategori.potonganSpp) return { nominal: nominalPenuh, potongan: null };
+    const nominal = Math.round(nominalPenuh * (1 - kategori.potonganSpp / 100));
+    return { nominal, potongan: kategori };
+  }
+
   async function terbitkan(item) {
     if (!semuaTingkatPunyaTarif) { toast('Ada kelas yang belum punya Tarif SPP. Lengkapi dulu di tab Tarif.', 'error'); return; }
     if (siswaAktif.length === 0) { toast('Belum ada siswa aktif.', 'error'); return; }
@@ -71,17 +84,21 @@ export default function PenerbitanSppTab() {
     setProgress({ current: 0, total, label: `Menerbitkan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear}` });
     try {
       let totalTerbit = 0;
+      let jumlahDapatBeasiswa = 0;
       for (let i = 0; i < siswaAktif.length; i += UKURAN_KELOMPOK) {
         const kelompok = siswaAktif.slice(i, i + UKURAN_KELOMPOK);
         const rows = kelompok.map(s => {
           const tarifSiswa = cariTarifSppUntukKelas(tarif, tahunAjaranAktif.label, s.kelasTingkat);
+          const nominalPenuh = tarifSiswa ? tarifSiswa.nominal : 0;
+          const { nominal, potongan } = nominalSetelahBeasiswa(s.nisn, nominalPenuh);
+          if (potongan) jumlahDapatBeasiswa++;
           return {
             NISN: s.nisn,
             'Nama Siswa': s.nama,
             'Tahun Ajaran': tahunAjaranAktif.label,
             Bulan: BULAN_ID[item.monthIdx],
             'Tahun Kalender': item.calYear,
-            Nominal: tarifSiswa ? tarifSiswa.nominal : 0,
+            Nominal: nominal,
             'Jatuh Tempo': `10/${item.monthIdx + 1}/${item.calYear}`,
           };
         });
@@ -94,9 +111,9 @@ export default function PenerbitanSppTab() {
         namaUser: currentUser.nama,
         aksi: 'Terbitkan Tagihan',
         modul: 'Tagihan & Biaya',
-        detail: `Menerbitkan tagihan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} untuk ${totalTerbit} siswa (nominal menyesuaikan tarif per kelas)`,
+        detail: `Menerbitkan tagihan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} untuk ${totalTerbit} siswa (nominal menyesuaikan tarif per kelas${jumlahDapatBeasiswa > 0 ? `, ${jumlahDapatBeasiswa} siswa dapat potongan beasiswa` : ''})`,
       });
-      toast(`Tagihan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} berhasil diterbitkan untuk ${totalTerbit} siswa.`);
+      toast(`Tagihan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} berhasil diterbitkan untuk ${totalTerbit} siswa${jumlahDapatBeasiswa > 0 ? ` (${jumlahDapatBeasiswa} dengan potongan beasiswa)` : ''}.`);
       refreshTagihanSpp();
     } catch (err) {
       toast(err.message, 'error');

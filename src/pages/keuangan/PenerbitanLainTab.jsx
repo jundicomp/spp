@@ -9,7 +9,7 @@ const UKURAN_KELOMPOK = 15;
 const TIPE_BISA_TERBITKAN = ['Sekali Masuk', 'Per Tahun'];
 
 export default function PenerbitanLainTab() {
-  const { tahunAjaranAktif, tarif, siswa, tagihanLain, tagihanLainLoading, tagihanLainLoaded, refreshTagihanLain, toast } = useAppData();
+  const { tahunAjaranAktif, tarif, siswa, tagihanLain, tagihanLainLoading, tagihanLainLoaded, refreshTagihanLain, toast, beasiswaSiswa, beasiswaKategori } = useAppData();
   const { currentUser } = useAuth();
   const [issuing, setIssuing] = useState(null);
   const [progress, setProgress] = useState(null);
@@ -35,6 +35,15 @@ export default function PenerbitanLainTab() {
     });
   }, [tarifTahunIni, siswaAktif, tagihanTahunIni]);
 
+  function nominalSetelahBeasiswa(nisn, nominalPenuh) {
+    const b = beasiswaSiswa.find(x => x.nisn === nisn);
+    if (!b) return { nominal: nominalPenuh, potongan: null };
+    const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
+    if (!kategori || !kategori.potonganBiayaLain) return { nominal: nominalPenuh, potongan: null };
+    const nominal = Math.round(nominalPenuh * (1 - kategori.potonganBiayaLain / 100));
+    return { nominal, potongan: kategori };
+  }
+
   async function terbitkan(item) {
     if (item.belumTertagih.length === 0) return;
     setIssuing(item.tarif.id);
@@ -42,17 +51,22 @@ export default function PenerbitanLainTab() {
     setProgress({ current: 0, total, label: `Menerbitkan "${item.tarif.jenis}"` });
     try {
       let totalTerbit = 0;
+      let jumlahDapatBeasiswa = 0;
       for (let i = 0; i < item.belumTertagih.length; i += UKURAN_KELOMPOK) {
         const kelompok = item.belumTertagih.slice(i, i + UKURAN_KELOMPOK);
-        const rows = kelompok.map(s => ({
-          NISN: s.nisn,
-          'Nama Siswa': s.nama,
-          'Tahun Ajaran': tahunAjaranAktif.label,
-          Nama: item.tarif.jenis,
-          Wajib: item.tarif.wajib,
-          Nominal: item.tarif.nominal,
-          'Jatuh Tempo': todayWIB(),
-        }));
+        const rows = kelompok.map(s => {
+          const { nominal, potongan } = nominalSetelahBeasiswa(s.nisn, item.tarif.nominal);
+          if (potongan) jumlahDapatBeasiswa++;
+          return {
+            NISN: s.nisn,
+            'Nama Siswa': s.nama,
+            'Tahun Ajaran': tahunAjaranAktif.label,
+            Nama: item.tarif.jenis,
+            Wajib: item.tarif.wajib,
+            Nominal: nominal,
+            'Jatuh Tempo': todayWIB(),
+          };
+        });
         const result = await bulkAddToSheet('tagihanLain', rows, 'keuangan');
         totalTerbit += result.count;
         setProgress({ current: Math.min(i + kelompok.length, total), total, label: `Menerbitkan "${item.tarif.jenis}"` });
@@ -62,9 +76,9 @@ export default function PenerbitanLainTab() {
         namaUser: currentUser.nama,
         aksi: 'Terbitkan Tagihan',
         modul: 'Tagihan & Biaya',
-        detail: `Menerbitkan tagihan "${item.tarif.jenis}" untuk ${totalTerbit} siswa`,
+        detail: `Menerbitkan tagihan "${item.tarif.jenis}" untuk ${totalTerbit} siswa${jumlahDapatBeasiswa > 0 ? `, ${jumlahDapatBeasiswa} siswa dapat potongan beasiswa` : ''}`,
       });
-      toast(`Tagihan "${item.tarif.jenis}" berhasil diterbitkan untuk ${totalTerbit} siswa.`);
+      toast(`Tagihan "${item.tarif.jenis}" berhasil diterbitkan untuk ${totalTerbit} siswa${jumlahDapatBeasiswa > 0 ? ` (${jumlahDapatBeasiswa} dengan potongan beasiswa)` : ''}.`);
       refreshTagihanLain();
     } catch (err) {
       toast(err.message, 'error');

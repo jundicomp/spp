@@ -79,6 +79,7 @@ export default function Sidebar() {
           <Item to="/pembayaran" canAccess={canAccess('pembayaran')}>Pembayaran &amp; Invoice</Item>
           <Item to="/pemasukan-pengeluaran" canAccess={canAccess('pemasukan-pengeluaran')}>Pemasukan &amp; Pengeluaran Lain</Item>
           <Item to="/tunggakan" canAccess={canAccess('tunggakan')}>Rekap Tunggakan</Item>
+          <Item to="/beasiswa" canAccess={canAccess('beasiswa')}>Beasiswa</Item>
           <Item to="/laporan-keuangan" canAccess={canAccess('laporan-keuangan')}>Laporan Keuangan</Item>
         </NavGroup>
 

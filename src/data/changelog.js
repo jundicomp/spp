@@ -4,6 +4,17 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.11.0',
+    tanggal: '2026-09-11',
+    poin: [
+      'Kartu SPP sekarang menampilkan detail siswa (Nama, Kelas, Rombel, Tahun Pelajaran) dan selalu tampil 12 bulan penuh',
+      'Kwitansi ditambah logo & alamat sekolah, tanda tangan "PETUGAS SPP", dan tombol share ke WhatsApp',
+      'Pencarian SPP Peserta Didik bisa difilter per Kelas dan Rombel',
+      'Fitur baru: <b>Beasiswa</b> — atur kategori (Anak Yatim, Dhuafa, dll) dan siswa penerimanya; tagihan SPP/Biaya Lain otomatis dipotong sesuai kategori saat diterbitkan',
+      'Sarpras sekarang punya field Harga Estimasi per unit — total nilai seluruh Sarpras tampil di kartu ringkasan dan laporan',
+    ],
+  },
+  {
     versi: '1.10.2',
     tanggal: '2026-09-08',
     poin: [

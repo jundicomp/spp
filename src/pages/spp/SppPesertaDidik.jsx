@@ -5,6 +5,7 @@ import { statusTagihan } from '../../db/tagihanHelpers';
 import { initials, avatarColor, BULAN_ID } from '../../db/helpers';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 import { shareCardAsImage } from '../../utils/shareCardImage';
+import { bulanTahunAjaran } from '../../db/laporanHelpers';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -50,11 +51,12 @@ function BarisRingkasan({ label, jumlahKolom, labelKolomKe, nilaiKolomKe, isTota
   return <tr className="spp-ringkasan-row">{sel}</tr>;
 }
 
-// Kartu tunggal (dipakai utk SPP MAUPUN Biaya Lain) -- ada header sekolah, judul
-// kartu, TABEL (header+kolom SELALU tampil, walau baris datanya kosong -- supaya
-// kartunya tetap terlihat lengkap seperti template kartu fisik), dan ringkasan
-// jumlah di bawahnya sejajar kolom. Tombol share pojok kanan atas.
-function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows, renderBaris, totalTagihan, totalBayar, filenamePrefix, namaSiswa, labelKolomKe, nilaiKolomKe }) {
+// Kartu tunggal (dipakai utk SPP MAUPUN Biaya Lain) -- ada header sekolah + DETAIL SISWA
+// (nama/kelas/rombel/tahun pelajaran, supaya ikut kefoto saat di-share), judul kartu,
+// TABEL (header+kolom SELALU tampil, walau baris datanya kosong -- supaya kartunya tetap
+// terlihat lengkap seperti template kartu fisik), dan ringkasan jumlah di bawahnya sejajar
+// kolom. Tombol share pojok kanan atas.
+function KartuTagihan({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAjaran, judulKartu, headerKolom, rows, renderBaris, totalTagihan, totalBayar, filenamePrefix, labelKolomKe, nilaiKolomKe }) {
   const cardRef = useRef(null);
   const sisa = totalTagihan - totalBayar;
   const status = statusTagihan(totalTagihan, totalBayar);
@@ -68,10 +70,17 @@ function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows,
         onClick={() => shareCardAsImage(cardRef, `${filenamePrefix} - ${namaSiswa} - ${tahunAjaran}`)}
       >📤</button>
       <div ref={cardRef} style={{ padding: 20, background: '#fff' }}>
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <div style={{ fontWeight: 800, fontSize: 14 }}>{namaSekolah}</div>
           <div style={{ fontWeight: 700, fontSize: 13, marginTop: 2 }}>{judulKartu}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Tahun Pelajaran: {tahunAjaran}</div>
+        </div>
+        <div style={{ background: '#F6F8F5', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 12.5 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 4, columnGap: 10 }}>
+            <div><span style={{ color: 'var(--muted)' }}>Nama</span>: <b>{namaSiswa}</b></div>
+            <div><span style={{ color: 'var(--muted)' }}>Tahun Pelajaran</span>: <b>{tahunAjaran}</b></div>
+            <div><span style={{ color: 'var(--muted)' }}>Kelas</span>: <b>{kelasLabel || '-'}</b></div>
+            <div><span style={{ color: 'var(--muted)' }}>Rombel</span>: <b>{rombelLabel || '-'}</b></div>
+          </div>
         </div>
         <table>
           <thead><tr>{headerKolom.map((h, i) => <th key={h} style={i === nilaiKolomKe ? { textAlign: 'right' } : undefined}>{h}</th>)}</tr></thead>
@@ -98,10 +107,20 @@ function KartuTagihan({ namaSekolah, tahunAjaran, judulKartu, headerKolom, rows,
   );
 }
 
-function TahunSection({ namaSekolah, namaSiswa, tahunAjaran, items, defaultOpen }) {
+function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAjaran, items, defaultOpen }) {
   const [open, setOpen] = useState(!!defaultOpen);
-  const spp = items.filter(t => t.refType === 'SPP').sort((a, b) => (a.tahunKalender - b.tahunKalender) || (BULAN_ID.indexOf(a.bulan) - BULAN_ID.indexOf(b.bulan)));
+  const sppAsli = items.filter(t => t.refType === 'SPP');
   const lain = items.filter(t => t.refType === 'LAIN');
+
+  // Kartu SPP HARUS selalu menampilkan 12 bulan (Juli-Juni) penuh -- bulan yg belum
+  // diterbitkan tagihannya SENGAJA tetap ditampilkan (bukan disembunyikan) dgn tulisan
+  // "(belum terbit)" abu-abu miring, supaya kartu ini genuinely terlihat spt kartu SPP
+  // fisik 1 tahun ajaran penuh, bukan cuma daftar transaksi yg sudah ada.
+  const sppDua12Bulan = bulanTahunAjaran(tahunAjaran).map(b => {
+    const t = sppAsli.find(x => x.bulan === b.label.split(' ')[0] && Number(x.tahunKalender) === b.calYear);
+    return t ? { ...t, sudahTerbit: true } : { id: `kosong-${b.label}`, bulan: b.label.split(' ')[0], tahunKalender: b.calYear, sudahTerbit: false, nominal: 0, terbayar: 0, status: null };
+  });
+
   const totalTagihanSemua = items.reduce((s, t) => s + t.nominal, 0);
   const totalBayarSemua = items.reduce((s, t) => s + t.terbayar, 0);
   const statusTahun = statusTagihan(totalTagihanSemua, totalBayarSemua);
@@ -116,19 +135,24 @@ function TahunSection({ namaSekolah, namaSiswa, tahunAjaran, items, defaultOpen 
         <div style={{ padding: 16 }}>
           <div className="spp-kartu-grid">
             <KartuTagihan
-              namaSekolah={namaSekolah} namaSiswa={namaSiswa} tahunAjaran={tahunAjaran}
+              namaSekolah={namaSekolah} namaSiswa={namaSiswa} kelasLabel={kelasLabel} rombelLabel={rombelLabel} tahunAjaran={tahunAjaran}
               judulKartu="KARTU SPP" filenamePrefix="Kartu SPP"
               headerKolom={['No', 'Bulan', 'Nominal', 'Status']}
               labelKolomKe={1} nilaiKolomKe={2}
-              rows={spp}
+              rows={sppDua12Bulan}
               renderBaris={(t, idx) => (
-                <tr key={t.id}><td>{idx + 1}</td><td>{t.bulan} {t.tahunKalender}</td><td style={{ textAlign: 'right' }}>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+                <tr key={t.id}>
+                  <td>{idx + 1}</td>
+                  <td>{t.bulan} {t.tahunKalender}</td>
+                  <td style={{ textAlign: 'right' }}>{t.sudahTerbit ? formatRupiah(t.nominal) : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>-</span>}</td>
+                  <td>{t.sudahTerbit ? <StatusBadge status={t.status} /> : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>(belum terbit)</span>}</td>
+                </tr>
               )}
-              totalTagihan={spp.reduce((s, t) => s + t.nominal, 0)}
-              totalBayar={spp.reduce((s, t) => s + t.terbayar, 0)}
+              totalTagihan={sppAsli.reduce((s, t) => s + t.nominal, 0)}
+              totalBayar={sppAsli.reduce((s, t) => s + t.terbayar, 0)}
             />
             <KartuTagihan
-              namaSekolah={namaSekolah} namaSiswa={namaSiswa} tahunAjaran={tahunAjaran}
+              namaSekolah={namaSekolah} namaSiswa={namaSiswa} kelasLabel={kelasLabel} rombelLabel={rombelLabel} tahunAjaran={tahunAjaran}
               judulKartu="KARTU BIAYA LAIN (DI LUAR SPP)" filenamePrefix="Kartu Biaya Lain"
               headerKolom={['Jenis Biaya', 'Nominal', 'Status']}
               labelKolomKe={0} nilaiKolomKe={1}
@@ -147,18 +171,32 @@ function TahunSection({ namaSekolah, namaSiswa, tahunAjaran, items, defaultOpen 
 }
 
 export default function SppPesertaDidik() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas } = useAppData();
   const [term, setTerm] = useState('');
   const inputRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
+  const [filterKelas, setFilterKelas] = useState('');
+  const [filterRombel, setFilterRombel] = useState('');
+
+  const daftarKelas = useMemo(() => Array.from(new Set(siswa.map(s => s.kelasTingkat).filter(Boolean))).sort(), [siswa]);
+  const daftarRombel = useMemo(() => kelas.filter(k => !filterKelas || k.tingkat === filterKelas), [kelas, filterKelas]);
 
   const suggestions = useMemo(() => {
     if (!term.trim()) return [];
     const t = term.toLowerCase();
-    return siswa.filter(s => s.nama.toLowerCase().includes(t) || s.nisn.includes(t)).slice(0, 6);
-  }, [term, siswa]);
+    return siswa
+      .filter(s => s.nama.toLowerCase().includes(t) || s.nisn.includes(t))
+      .filter(s => !filterKelas || s.kelasTingkat === filterKelas)
+      .filter(s => {
+        if (!filterRombel) return true;
+        const rombelDipilih = kelas.find(k => k.id === filterRombel);
+        return rombelDipilih && s.kelasTingkat === rombelDipilih.tingkat;
+      })
+      .slice(0, 6);
+  }, [term, siswa, filterKelas, filterRombel, kelas]);
 
   const selected = siswa.find(s => s.id === selectedId);
+  const rombelSelected = selected ? kelas.find(k => k.tingkat === selected.kelasTingkat) : null;
 
   const riwayatSiswa = useMemo(() => {
     if (!selected) return [];
@@ -205,6 +243,22 @@ export default function SppPesertaDidik() {
 
       <div className="card">
         <div className="card-body">
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Filter Kelas</label>
+              <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setFilterRombel(''); }} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
+                <option value="">Semua Kelas</option>
+                {daftarKelas.map(k => <option key={k} value={k}>Kelas {k}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Filter Rombel</label>
+              <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
+                <option value="">Semua Rombel</option>
+                {daftarRombel.map(r => <option key={r.id} value={r.id}>{r.namaKelas}</option>)}
+              </select>
+            </div>
+          </div>
           <div style={{ maxWidth: 420 }}>
             <input
               ref={inputRef}
@@ -265,7 +319,12 @@ export default function SppPesertaDidik() {
           )}
 
           {keuanganSiap && perTahunAjaran.map(([ta, items], idx) => (
-            <TahunSection key={ta} namaSekolah={profilSekolah?.nama || 'MI Ikhlasiyah'} namaSiswa={selected.nama} tahunAjaran={ta} items={items} defaultOpen={idx === 0} />
+            <TahunSection
+              key={ta} namaSekolah={profilSekolah?.nama || 'MI Ikhlasiyah'} namaSiswa={selected.nama}
+              kelasLabel={selected.kelasTingkat ? `Kelas ${selected.kelasTingkat}` : '-'}
+              rombelLabel={rombelSelected?.namaKelas || '-'}
+              tahunAjaran={ta} items={items} defaultOpen={idx === 0}
+            />
           ))}
         </>
       )}

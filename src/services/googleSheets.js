@@ -176,3 +176,13 @@ export const fetchAkunFromSheet = () => fetchFromSheet('akunBukuBesar', 'keuanga
 export const addAkunToSheet = (row) => addToSheet('akunBukuBesar', row, 'keuangan');
 export const updateAkunInSheet = (row) => updateInSheet('akunBukuBesar', row, 'keuangan');
 export const deleteAkunFromSheet = (no) => deleteFromSheet('akunBukuBesar', no, 'keuangan');
+
+export const fetchBeasiswaKategoriFromSheet = () => fetchFromSheet('beasiswaKategori', 'keuangan');
+export const addBeasiswaKategoriToSheet = (row) => addToSheet('beasiswaKategori', row, 'keuangan');
+export const updateBeasiswaKategoriInSheet = (row) => updateInSheet('beasiswaKategori', row, 'keuangan');
+export const deleteBeasiswaKategoriFromSheet = (no) => deleteFromSheet('beasiswaKategori', no, 'keuangan');
+
+export const fetchBeasiswaSiswaFromSheet = () => fetchFromSheet('beasiswaSiswa', 'keuangan');
+export const addBeasiswaSiswaToSheet = (row) => addToSheet('beasiswaSiswa', row, 'keuangan');
+export const updateBeasiswaSiswaInSheet = (row) => updateInSheet('beasiswaSiswa', row, 'keuangan');
+export const deleteBeasiswaSiswaFromSheet = (no) => deleteFromSheet('beasiswaSiswa', no, 'keuangan');

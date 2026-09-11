@@ -9,7 +9,8 @@ import { useAppData } from '../../context/AppContext';
 import { printElementById } from '../../utils/exportTable';
 import { exportLaporanKeWord } from '../../utils/exportWord';
 import InfoCard from '../../components/common/InfoCard';
-import { IconCheckCircle, IconAlertTriangle, IconXCircle } from '../../components/common/icons';
+import { IconCheckCircle, IconAlertTriangle, IconXCircle, IconMoney } from '../../components/common/icons';
+import Rupiah from '../../components/common/Rupiah';
 
 const KONDISI_LIST = ['Baik', 'Rusak Ringan', 'Rusak Berat'];
 
@@ -22,21 +23,23 @@ export default function LaporanRekapAset() {
   const perKategori = useMemo(() => {
     const map = {};
     aset.forEach(a => {
-      if (!map[a.kategori]) map[a.kategori] = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0, total: 0 };
+      if (!map[a.kategori]) map[a.kategori] = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0, total: 0, nilai: 0 };
       map[a.kategori]['Baik'] += a.baik;
       map[a.kategori]['Rusak Ringan'] += a.rusakRingan;
       map[a.kategori]['Rusak Berat'] += a.rusakBerat;
       map[a.kategori].total += a.total;
+      map[a.kategori].nilai += a.nilaiTotal;
     });
     return map;
   }, [aset]);
 
   const totalKondisi = useMemo(() => {
-    const t = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0 };
+    const t = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0, nilai: 0 };
     aset.forEach(a => {
       t['Baik'] += a.baik;
       t['Rusak Ringan'] += a.rusakRingan;
       t['Rusak Berat'] += a.rusakBerat;
+      t.nilai += a.nilaiTotal;
     });
     return t;
   }, [aset]);
@@ -67,7 +70,7 @@ export default function LaporanRekapAset() {
   }
 
   async function handleExportWord() {
-    const kategoriRows = Object.entries(perKategori).map(([k, v]) => [k, v['Baik'], v['Rusak Ringan'], v['Rusak Berat'], v.total]);
+    const kategoriRows = Object.entries(perKategori).map(([k, v]) => [k, v['Baik'], v['Rusak Ringan'], v['Rusak Berat'], v.total, formatRupiah(v.nilai)]);
     const pinjamRows = sedangDipinjam.map(p => [p.namaAset, `${p.peminjam} (${p.jenisPeminjam})`, p.jumlah, formatTanggalTampil(p.rencanaKembali), p.terlambat ? 'Terlambat' : 'Dipinjam']);
 
     await exportLaporanKeWord({
@@ -77,8 +80,8 @@ export default function LaporanRekapAset() {
       bagian: [
         {
           judul: '1. Kondisi Aset per Kategori',
-          catatan: 'Jumlah unit dikelompokkan per kategori dan kondisi.',
-          headers: ['Kategori', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Total'],
+          catatan: `Jumlah unit dan nilai estimasi dikelompokkan per kategori. Total Nilai Estimasi Sarpras: ${formatRupiah(totalKondisi.nilai)}`,
+          headers: ['Kategori', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Total', 'Nilai Estimasi'],
           rows: kategoriRows,
           kosongMessage: 'Belum ada data aset.',
         },
@@ -121,24 +124,32 @@ export default function LaporanRekapAset() {
               <InfoCard icon={IconCheckCircle} color="c-green" value={totalKondisi['Baik']} label="Unit Kondisi Baik" />
               <InfoCard icon={IconAlertTriangle} color="c-gold" value={totalKondisi['Rusak Ringan']} label="Unit Rusak Ringan" />
               <InfoCard icon={IconXCircle} color="c-red" value={totalKondisi['Rusak Berat']} label="Unit Rusak Berat" />
+              <InfoCard icon={IconMoney} color="c-purple" value={formatRupiah(totalKondisi.nilai)} label="Total Nilai Estimasi Sarpras" valueFontSize={17} />
             </div>
 
             <div className="card">
-              <div className="card-head"><div><h3>1. Kondisi Aset per Kategori</h3><p>Jumlah unit dikelompokkan per kategori dan kondisi.</p></div></div>
+              <div className="card-head"><div><h3>1. Kondisi Aset per Kategori</h3><p>Jumlah unit dan nilai estimasi dikelompokkan per kategori dan kondisi.</p></div></div>
               <div className="card-body">
                 {Object.keys(perKategori).length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada data aset.</p>}
                 {Object.keys(perKategori).length > 0 && (
                   <div className="table-scroll">
                     <table>
-                      <thead><tr><th>Kategori</th>{KONDISI_LIST.map(k => <th key={k}>{k}</th>)}<th>Total</th></tr></thead>
+                      <thead><tr><th>Kategori</th>{KONDISI_LIST.map(k => <th key={k}>{k}</th>)}<th>Total Unit</th><th style={{ textAlign: 'right' }}>Nilai Estimasi</th></tr></thead>
                       <tbody>
                         {Object.entries(perKategori).map(([kategori, v]) => (
                           <tr key={kategori}>
                             <td>{kategori}</td>
                             {KONDISI_LIST.map(k => <td key={k}>{v[k] || 0}</td>)}
                             <td style={{ fontWeight: 700 }}>{v.total}</td>
+                            <td style={{ textAlign: 'right' }}><Rupiah value={v.nilai} bold /></td>
                           </tr>
                         ))}
+                        <tr style={{ fontWeight: 800, background: '#F6F8F5' }}>
+                          <td>Total Keseluruhan</td>
+                          {KONDISI_LIST.map(k => <td key={k}>{totalKondisi[k] || 0}</td>)}
+                          <td>{totalKondisi['Baik'] + totalKondisi['Rusak Ringan'] + totalKondisi['Rusak Berat']}</td>
+                          <td style={{ textAlign: 'right' }}><Rupiah value={totalKondisi.nilai} bold /></td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>

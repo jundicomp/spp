@@ -19,6 +19,7 @@ import ChangelogPage from './pages/pengaturan/ChangelogPage';
 import TagihanBiaya from './pages/keuangan/TagihanBiaya';
 import PembayaranInvoice from './pages/keuangan/PembayaranInvoice';
 import PemasukanPengeluaran from './pages/keuangan/PemasukanPengeluaran';
+import BeasiswaPage from './pages/keuangan/BeasiswaPage';
 import RekapTunggakan from './pages/keuangan/RekapTunggakan';
 import LaporanKeuangan from './pages/keuangan/LaporanKeuangan';
 import DataAset from './pages/sarpras/DataAset';
@@ -52,6 +53,7 @@ function Gate() {
         <Route path="/tagihan" element={<TagihanBiaya />} />
         <Route path="/pembayaran" element={<PembayaranInvoice />} />
         <Route path="/pemasukan-pengeluaran" element={<PemasukanPengeluaran />} />
+        <Route path="/beasiswa" element={<BeasiswaPage />} />
         <Route path="/tunggakan" element={<RekapTunggakan />} />
         <Route path="/laporan-keuangan" element={<LaporanKeuangan />} />
         <Route path="/aset" element={<DataAset />} />

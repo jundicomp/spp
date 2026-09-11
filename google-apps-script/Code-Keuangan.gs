@@ -71,6 +71,14 @@ const SHEETS = {
     // menafsirkan ulang isinya sama sekali.
     textColumns: ['Kode Akun'],
   },
+  beasiswaKategori: {
+    name: 'Beasiswa Kategori',
+    headers: ['No', 'Nama Kategori', 'Keterangan', 'Potongan SPP (%)', 'Potongan Biaya Lain (%)'],
+  },
+  beasiswaSiswa: {
+    name: 'Beasiswa Siswa',
+    headers: ['No', 'NISN', 'Nama Siswa', 'Kategori Beasiswa', 'Tanggal Mulai', 'Keterangan'],
+  },
 };
 
 function doGet(e) {

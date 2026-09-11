@@ -1,8 +1,8 @@
-// "Kode", "Baik", "Rusak Ringan", "Rusak Berat", "Gambar" ditaruh di AKHIR (kompatibel
-// mundur). "Kondisi"+"Jumlah" versi LAMA tetap ada di Sheets (data lama tidak hilang),
-// tapi form & tampilan sekarang pakai kolom Baik/RR/RB terpisah -- Total dihitung
-// otomatis (Baik+RR+RB), TIDAK diisi manual.
-export const ASET_HEADERS = ['No', 'Kode', 'Nama Aset', 'Kategori', 'Lokasi', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Tahun Perolehan', 'Keterangan'];
+// "Kode", "Baik", "Rusak Ringan", "Rusak Berat", "Gambar", "Harga Estimasi" ditaruh di
+// AKHIR (kompatibel mundur). "Kondisi"+"Jumlah" versi LAMA tetap ada di Sheets (data
+// lama tidak hilang), tapi form & tampilan sekarang pakai kolom Baik/RR/RB terpisah --
+// Total dihitung otomatis (Baik+RR+RB), TIDAK diisi manual.
+export const ASET_HEADERS = ['No', 'Kode', 'Nama Aset', 'Kategori', 'Lokasi', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Tahun Perolehan', 'Keterangan', 'Harga Estimasi'];
 
 export const KATEGORI_ASET_OPTIONS = [
   'Furniture', 'Elektronik', 'Alat Peraga / Edukasi', 'Alat Olahraga',
@@ -23,13 +23,14 @@ export const ASET_FIELDS = [
   { key: 'Baik', label: 'Jumlah Kondisi Baik', type: 'number' },
   { key: 'Rusak Ringan', label: 'Jumlah Rusak Ringan (RR)', type: 'number' },
   { key: 'Rusak Berat', label: 'Jumlah Rusak Berat (RB)', type: 'number' },
+  { key: 'Harga Estimasi', label: 'Harga Estimasi per Unit (Rp)', type: 'number', placeholder: 'mis. 250000 -- opsional, utk hitung total nilai Sarpras' },
   { key: 'Tahun Perolehan', label: 'Tahun Perolehan', type: 'number', placeholder: 'mis. 2024' },
   { key: 'Keterangan', label: 'Keterangan', type: 'text' },
   { key: 'Gambar', label: 'Foto Aset', type: 'image' },
 ];
 
 export function emptyAsetRow() {
-  return { Kode: '', 'Nama Aset': '', Kategori: '', Lokasi: '', Baik: '', 'Rusak Ringan': '', 'Rusak Berat': '', 'Tahun Perolehan': '', Keterangan: '', Gambar: '' };
+  return { Kode: '', 'Nama Aset': '', Kategori: '', Lokasi: '', Baik: '', 'Rusak Ringan': '', 'Rusak Berat': '', 'Harga Estimasi': '', 'Tahun Perolehan': '', Keterangan: '', Gambar: '' };
 }
 
 // Logika breakdown Baik/RR/RB -- DIPISAH jadi fungsi sendiri (bukan cuma di dalam
@@ -60,6 +61,7 @@ export function hitungBreakdownAset(row) {
 
 export function normalizeSheetAset(row, idx) {
   const { baik, rusakRingan, rusakBerat, total } = hitungBreakdownAset(row);
+  const hargaEstimasi = Number(row['Harga Estimasi']) || 0;
   return {
     id: 'ASET-' + (row['No'] ?? idx),
     no: row['No'],
@@ -68,6 +70,8 @@ export function normalizeSheetAset(row, idx) {
     kategori: String(row['Kategori'] ?? '').trim(),
     lokasi: String(row['Lokasi'] ?? '').trim(),
     baik, rusakRingan, rusakBerat, total,
+    hargaEstimasi,
+    nilaiTotal: hargaEstimasi * total, // harga per unit x jumlah unit (semua kondisi)
     tahunPerolehan: row['Tahun Perolehan'],
     keterangan: String(row['Keterangan'] ?? '').trim(),
     gambar: String(row['Gambar'] ?? '').trim(),
