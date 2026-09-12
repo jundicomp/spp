@@ -171,7 +171,7 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
 }
 
 export default function SppPesertaDidik() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas, beasiswaSiswa } = useAppData();
   const [term, setTerm] = useState('');
   const inputRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -180,6 +180,24 @@ export default function SppPesertaDidik() {
 
   const daftarKelas = useMemo(() => Array.from(new Set(siswa.map(s => s.kelasTingkat).filter(Boolean))).sort(), [siswa]);
   const daftarRombel = useMemo(() => kelas.filter(k => !filterKelas || k.tingkat === filterKelas), [kelas, filterKelas]);
+
+  const siswaTerfilter = useMemo(() => {
+    return siswa
+      .filter(s => !filterKelas || s.kelasTingkat === filterKelas)
+      .filter(s => {
+        if (!filterRombel) return true;
+        const rombelDipilih = kelas.find(k => k.id === filterRombel);
+        return rombelDipilih && s.kelasTingkat === rombelDipilih.tingkat;
+      });
+  }, [siswa, filterKelas, filterRombel]);
+
+  const keteranganFilter = useMemo(() => {
+    if (!filterKelas && !filterRombel) return null;
+    const rombelDipilih = filterRombel ? kelas.find(k => k.id === filterRombel) : null;
+    if (rombelDipilih) return `Terdapat ${siswaTerfilter.length} Siswa Kelas ${rombelDipilih.tingkat} Rombel ${rombelDipilih.namaKelas} dari ${siswa.length} Siswa`;
+    if (filterKelas) return `Terdapat ${siswaTerfilter.length} Siswa Kelas ${filterKelas} dari ${siswa.length} Siswa`;
+    return null;
+  }, [filterKelas, filterRombel, siswaTerfilter, siswa, kelas]);
 
   const suggestions = useMemo(() => {
     if (!term.trim()) return [];
@@ -197,6 +215,7 @@ export default function SppPesertaDidik() {
 
   const selected = siswa.find(s => s.id === selectedId);
   const rombelSelected = selected ? kelas.find(k => k.tingkat === selected.kelasTingkat) : null;
+  const beasiswaSelected = selected ? beasiswaSiswa.find(b => b.nisn === selected.nisn) : null;
 
   const riwayatSiswa = useMemo(() => {
     if (!selected) return [];
@@ -232,6 +251,7 @@ export default function SppPesertaDidik() {
           <div>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>Jumlah siswa terdaftar</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green-dark)' }}>{siswa.length} Siswa</div>
+            {keteranganFilter && <div style={{ fontSize: 12.5, color: 'var(--green-dark)', marginTop: 4, fontWeight: 600 }}>{keteranganFilter}</div>}
           </div>
           {siswaLoading && <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>Memuat data...</span>}
         </div>
@@ -295,6 +315,11 @@ export default function SppPesertaDidik() {
                 <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
                   NISN: {selected.nisn || '-'} &nbsp;·&nbsp; Kelas: {selected.kelasTingkat || '-'} &nbsp;·&nbsp; Jenis Kelamin: {selected.jenisKelamin || '-'}
                 </div>
+                {beasiswaSelected && (
+                  <div style={{ marginTop: 6 }}>
+                    <span className="badge badge-purple">🎓 Penerima Beasiswa: {beasiswaSelected.kategoriBeasiswa}</span>
+                  </div>
+                )}
                 {keuanganSiap && (
                   <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <span className="badge badge-gold">Total Tagihan: {formatRupiah(totalKeseluruhan.totalTagihan)}</span>

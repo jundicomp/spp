@@ -4,6 +4,22 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.12.1',
+    tanggal: '2026-09-11',
+    poin: [
+      'Tampilan "Lihat" Sarpras dirombak total: kartu lengkap dengan kop surat sekolah, foto+detail berdampingan, total nilai estimasi, dan tombol share ke gambar',
+    ],
+  },
+  {
+    versi: '1.12.0',
+    tanggal: '2026-09-11',
+    poin: [
+      'Pencarian SPP Peserta Didik sekarang menampilkan keterangan jumlah siswa hasil filter (mis. "Terdapat 3 Siswa Kelas 1 Rombel Arofah dari 488 Siswa")',
+      'Badge "Penerima Beasiswa" muncul di bawah nama siswa (SPP Peserta Didik & Portofolio Siswa) — tidak ikut tampil di Kartu SPP/Biaya Lain',
+      'Tampilan "Lihat Detail" Sarpras dirombak total — ada kop surat sekolah, foto & kondisi di kiri, detail lengkap + total nilai di kanan, bisa dibagikan sebagai gambar',
+    ],
+  },
+  {
     versi: '1.11.0',
     tanggal: '2026-09-11',
     poin: [

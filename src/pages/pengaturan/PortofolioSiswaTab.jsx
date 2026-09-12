@@ -28,9 +28,10 @@ function StatChip({ value, label, variant }) {
 }
 
 export default function PortofolioSiswaTab() {
-  const { siswa, allTagihan, tagihanTerbayar } = useAppData();
+  const { siswa, allTagihan, tagihanTerbayar, beasiswaSiswa } = useAppData();
   const [cari, setCari] = useState('');
   const [dipilih, setDipilih] = useState(null);
+  const beasiswaDipilih = dipilih ? beasiswaSiswa.find(b => b.nisn === dipilih.nisn) : null;
   const inputRef = useRef(null);
 
   const saran = useMemo(() => {
@@ -101,6 +102,9 @@ export default function PortofolioSiswaTab() {
                   <span style={{ background: 'rgba(255,255,255,.2)', padding: '4px 12px', borderRadius: 999, fontSize: 11 }}>{dipilih.status || 'Aktif'}</span>
                   <span style={{ background: 'rgba(255,255,255,.2)', padding: '4px 12px', borderRadius: 999, fontSize: 11 }}>Kelas {dipilih.kelasTingkat || '-'}</span>
                   <span style={{ background: 'rgba(255,255,255,.2)', padding: '4px 12px', borderRadius: 999, fontSize: 11 }}>{dipilih.jenisKelamin || '-'}</span>
+                  {beasiswaDipilih && (
+                    <span style={{ background: 'var(--gold)', color: 'var(--green-dark)', padding: '4px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>🎓 {beasiswaDipilih.kategoriBeasiswa}</span>
+                  )}
                 </div>
               </div>
               <div style={{ height: 4, background: 'var(--gold)' }} />
