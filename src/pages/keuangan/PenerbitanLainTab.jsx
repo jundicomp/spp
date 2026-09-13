@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { bulkAddToSheet, addLogEntry } from '../../services/googleSheets';
-import { formatRupiah, todayWIB } from '../../db/helpers';
+import { formatRupiah, todayWIB, parseTanggalFleksibel } from '../../db/helpers';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import ProgressModal from '../../components/common/ProgressModal';
@@ -38,6 +38,10 @@ export default function PenerbitanLainTab() {
   function nominalSetelahBeasiswa(nisn, nominalPenuh) {
     const b = beasiswaSiswa.find(x => x.nisn === nisn);
     if (!b) return { nominal: nominalPenuh, potongan: null };
+    // Sama seperti SPP: potongan cuma berlaku kalau tagihan ini diterbitkan (hari ini)
+    // PADA ATAU SETELAH Tanggal Mulai beasiswanya.
+    const mulai = parseTanggalFleksibel(b.tanggalMulai);
+    if (mulai && Date.now() < mulai.getTime()) return { nominal: nominalPenuh, potongan: null };
     const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
     if (!kategori || !kategori.potonganBiayaLain) return { nominal: nominalPenuh, potongan: null };
     const nominal = Math.round(nominalPenuh * (1 - kategori.potonganBiayaLain / 100));
@@ -65,6 +69,7 @@ export default function PenerbitanLainTab() {
             Wajib: item.tarif.wajib,
             Nominal: nominal,
             'Jatuh Tempo': todayWIB(),
+            Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${potongan.potonganBiayaLain}%)` : '',
           };
         });
         const result = await bulkAddToSheet('tagihanLain', rows, 'keuangan');

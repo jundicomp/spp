@@ -40,11 +40,15 @@ const SHEETS = {
   },
   tagihanSpp: {
     name: 'Tagihan SPP',
-    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Bulan', 'Tahun Kalender', 'Nominal', 'Jatuh Tempo'],
+    // "Keterangan" ditaruh di AKHIR (kompatibel mundur) -- diisi otomatis SEKALI saat
+    // penerbitan kalau ada potongan beasiswa yg berlaku (mis. "Potongan Beasiswa: Anak
+    // Yatim (100%)"), supaya tercatat permanen -- tidak berubah lagi walau beasiswanya
+    // belakangan dicabut (konsisten dgn prinsip "fakta historis pada momen transaksi").
+    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Bulan', 'Tahun Kalender', 'Nominal', 'Jatuh Tempo', 'Keterangan'],
   },
   tagihanLain: {
     name: 'Tagihan Lain',
-    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo'],
+    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan'],
   },
   pembayaran: {
     name: 'Pembayaran',

@@ -137,7 +137,7 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
             <KartuTagihan
               namaSekolah={namaSekolah} namaSiswa={namaSiswa} kelasLabel={kelasLabel} rombelLabel={rombelLabel} tahunAjaran={tahunAjaran}
               judulKartu="KARTU SPP" filenamePrefix="Kartu SPP"
-              headerKolom={['No', 'Bulan', 'Nominal', 'Status']}
+              headerKolom={['No', 'Bulan', 'Nominal', 'Status', 'Keterangan']}
               labelKolomKe={1} nilaiKolomKe={2}
               rows={sppDua12Bulan}
               renderBaris={(t, idx) => (
@@ -146,6 +146,7 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
                   <td>{t.bulan} {t.tahunKalender}</td>
                   <td style={{ textAlign: 'right' }}>{t.sudahTerbit ? formatRupiah(t.nominal) : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>-</span>}</td>
                   <td>{t.sudahTerbit ? <StatusBadge status={t.status} /> : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>(belum terbit)</span>}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>{t.keterangan || '-'}</td>
                 </tr>
               )}
               totalTagihan={sppAsli.reduce((s, t) => s + t.nominal, 0)}
@@ -154,11 +155,16 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
             <KartuTagihan
               namaSekolah={namaSekolah} namaSiswa={namaSiswa} kelasLabel={kelasLabel} rombelLabel={rombelLabel} tahunAjaran={tahunAjaran}
               judulKartu="KARTU BIAYA LAIN (DI LUAR SPP)" filenamePrefix="Kartu Biaya Lain"
-              headerKolom={['Jenis Biaya', 'Nominal', 'Status']}
+              headerKolom={['Jenis Biaya', 'Nominal', 'Status', 'Keterangan']}
               labelKolomKe={0} nilaiKolomKe={1}
               rows={lain}
               renderBaris={(t) => (
-                <tr key={t.id}><td>{t.label}</td><td style={{ textAlign: 'right' }}>{formatRupiah(t.nominal)}</td><td><StatusBadge status={t.status} /></td></tr>
+                <tr key={t.id}>
+                  <td>{t.label}</td>
+                  <td style={{ textAlign: 'right' }}>{formatRupiah(t.nominal)}</td>
+                  <td><StatusBadge status={t.status} /></td>
+                  <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>{t.keterangan || '-'}</td>
+                </tr>
               )}
               totalTagihan={lain.reduce((s, t) => s + t.nominal, 0)}
               totalBayar={lain.reduce((s, t) => s + t.terbayar, 0)}

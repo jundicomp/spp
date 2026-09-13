@@ -11,6 +11,7 @@ export function normalizeSheetTagihanSpp(row, idx) {
     tahunKalender: row['Tahun Kalender'],
     nominal: Number(row['Nominal']) || 0,
     jatuhTempo: row['Jatuh Tempo'],
+    keterangan: String(row['Keterangan'] ?? '').trim(),
   };
 }
 
@@ -26,6 +27,7 @@ export function normalizeSheetTagihanLain(row, idx) {
     wajib: String(row['Wajib'] ?? '').trim(),
     nominal: Number(row['Nominal']) || 0,
     jatuhTempo: row['Jatuh Tempo'],
+    keterangan: String(row['Keterangan'] ?? '').trim(),
   };
 }
 
@@ -36,6 +38,10 @@ export function hitungTerbayar(pembayaran, refType, refNo) {
 }
 
 export function statusTagihan(nominal, terbayar) {
+  // Tagihan Rp 0 (mis. dari potongan beasiswa 100%) SECARA LOGIS sudah "Lunas" --
+  // tidak ada yang perlu dibayar sama sekali. Sebelumnya ini nyangkut selamanya di
+  // "Belum Lunas" krn form Pembayaran menolak nominal Rp 0 (bug nyata yg ditemukan).
+  if (nominal <= 0) return 'Lunas';
   if (terbayar <= 0) return 'Belum Lunas';
   if (terbayar >= nominal) return 'Lunas';
   return 'Sebagian';

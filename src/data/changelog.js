@@ -4,6 +4,21 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.14.0',
+    tanggal: '2026-09-13',
+    poin: [
+      'Kartu SPP dan Kartu Biaya Lain sekarang punya kolom "Keterangan" — menampilkan info potongan beasiswa (kategori & persentase) untuk bulan yang mendapat potongan',
+    ],
+  },
+  {
+    versi: '1.13.0',
+    tanggal: '2026-09-13',
+    poin: [
+      'Perbaikan bug: tagihan dengan potongan beasiswa 100% (Rp 0) sekarang otomatis berstatus "Lunas" saat diterbitkan, tidak lagi nyangkut selamanya di "Belum Lunas"',
+      'Field "Tanggal Mulai" pada Siswa Penerima Beasiswa sekarang benar-benar berfungsi — potongan hanya berlaku untuk tagihan mulai bulan itu ke depan, bukan lagi cuma catatan',
+    ],
+  },
+  {
     versi: '1.12.1',
     tanggal: '2026-09-11',
     poin: [

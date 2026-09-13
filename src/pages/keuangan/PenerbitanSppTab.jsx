@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BULAN_ID } from '../../db/helpers';
+import { BULAN_ID, parseTanggalFleksibel } from '../../db/helpers';
 import { cariTarifSppUntukKelas } from '../../db/tarifFields';
 import { bulkAddTagihanSppToSheet, addLogEntry } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
@@ -67,9 +67,15 @@ export default function PenerbitanSppTab() {
   // dihitung SEKALI SAAT PENERBITAN, jadi nominal final tersimpan apa adanya di
   // tagihan (bukan dihitung ulang tiap tampil) -- konsisten dgn prinsip "fakta
   // historis pada momen transaksi" yg dipakai di modul lain.
-  function nominalSetelahBeasiswa(nisn, nominalPenuh) {
+  function nominalSetelahBeasiswa(nisn, nominalPenuh, tanggalMulaiBulanTagihan) {
     const b = beasiswaSiswa.find(x => x.nisn === nisn);
     if (!b) return { nominal: nominalPenuh, potongan: null };
+    // Potongan HANYA berlaku kalau bulan tagihan ini >= Tanggal Mulai beasiswanya --
+    // sebelumnya field ini cuma catatan, tidak benar-benar dicek (bug ditemukan &
+    // diperbaiki). Kalau Tanggal Mulai kosong, dianggap berlaku sejak kapan pun
+    // (kompatibel dgn data lama yg belum pernah diisi tanggalnya).
+    const mulai = parseTanggalFleksibel(b.tanggalMulai);
+    if (mulai && tanggalMulaiBulanTagihan < mulai.getTime()) return { nominal: nominalPenuh, potongan: null };
     const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
     if (!kategori || !kategori.potonganSpp) return { nominal: nominalPenuh, potongan: null };
     const nominal = Math.round(nominalPenuh * (1 - kategori.potonganSpp / 100));
@@ -90,7 +96,8 @@ export default function PenerbitanSppTab() {
         const rows = kelompok.map(s => {
           const tarifSiswa = cariTarifSppUntukKelas(tarif, tahunAjaranAktif.label, s.kelasTingkat);
           const nominalPenuh = tarifSiswa ? tarifSiswa.nominal : 0;
-          const { nominal, potongan } = nominalSetelahBeasiswa(s.nisn, nominalPenuh);
+          const tanggalAwalBulanTagihan = new Date(item.calYear, item.monthIdx, 1).getTime();
+          const { nominal, potongan } = nominalSetelahBeasiswa(s.nisn, nominalPenuh, tanggalAwalBulanTagihan);
           if (potongan) jumlahDapatBeasiswa++;
           return {
             NISN: s.nisn,
@@ -100,6 +107,7 @@ export default function PenerbitanSppTab() {
             'Tahun Kalender': item.calYear,
             Nominal: nominal,
             'Jatuh Tempo': `10/${item.monthIdx + 1}/${item.calYear}`,
+            Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${potongan.potonganSpp}%)` : '',
           };
         });
         const result = await bulkAddTagihanSppToSheet(rows);
