@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import { addPembayaranToSheet, addLogEntry } from '../../services/googleSheets';
 import { statusTagihan } from '../../db/tagihanHelpers';
+import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { METODE_BAYAR_OPTIONS, SARAN_AKUN_PER_METODE } from '../../db/pembayaranFields';
 import { akunAktivaOptions } from '../../db/akunBukuBesarFields';
 import { useAppData } from '../../context/AppContext';
@@ -18,7 +19,7 @@ function formatRupiah(n) {
 }
 
 export default function PembayaranTab() {
-  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun } = useAppData();
+  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun, beasiswaSiswa, beasiswaKategori } = useAppData();
   const { currentUser } = useAuth();
 
   const [term, setTerm] = useState('');
@@ -43,15 +44,17 @@ export default function PembayaranTab() {
 
   const tagihanBelumLunasSiswa = useMemo(() => {
     if (!selectedSiswa) return [];
+    const cutoffMs = Date.now();
     return allTagihan
       .filter(t => t.nisn === selectedSiswa.nisn)
       .map(t => {
         const terbayar = tagihanTerbayar(t.refType, t.no);
-        const sisa = t.nominal - terbayar;
-        return { ...t, terbayar, sisa, status: statusTagihan(t.nominal, terbayar) };
+        const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs);
+        const sisa = nominalEfektif - terbayar;
+        return { ...t, nominalAsli: t.nominal, nominalEfektif, potonganBeasiswa: potongan, terbayar, sisa, status: statusTagihan(nominalEfektif, terbayar) };
       })
-      .filter(t => t.sisa > 0);
-  }, [selectedSiswa, allTagihan, tagihanTerbayar]);
+      .filter(t => t.sisa > 0 || t.potonganBeasiswa); // tetap tampil kalau ada potongan blm "diklaim" walau sisa efektif 0
+  }, [selectedSiswa, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori]);
 
   const selectedTagihan = tagihanBelumLunasSiswa.find(t => t.id === selectedTagihanId);
 
@@ -76,8 +79,12 @@ export default function PembayaranTab() {
     e.preventDefault();
     if (!selectedTagihan) { toast('Pilih tagihan yang mau dibayar dulu.', 'error'); return; }
     const nom = Number(nominal);
-    if (!nom || nom <= 0) { toast('Nominal harus lebih dari 0.', 'error'); return; }
-    if (nom > selectedTagihan.sisa) { toast(`Nominal tidak boleh melebihi sisa tagihan (${formatRupiah(selectedTagihan.sisa)}).`, 'error'); return; }
+    // Nominal 0 CUMA boleh kalau memang sisa tagihan ini SUDAH 0 gara-gara potongan
+    // beasiswa 100% (kasus "SPP diterbitkan dulu, beasiswa dipasang belakangan") --
+    // di luar itu tetap wajib > 0 spt biasa.
+    const bolehNol = selectedTagihan.potonganBeasiswa && selectedTagihan.sisa === 0;
+    if ((!nom || nom <= 0) && !bolehNol) { toast('Nominal harus lebih dari 0.', 'error'); return; }
+    if (nom < 0 || nom > selectedTagihan.sisa) { toast(`Nominal tidak boleh melebihi sisa tagihan (${formatRupiah(selectedTagihan.sisa)}).`, 'error'); return; }
     setSaving(true);
     setPhase('saving');
     try {
@@ -91,6 +98,9 @@ export default function PembayaranTab() {
         'Tanggal Bayar': tanggalBayar,
         Metode: metode,
         Akun: akunPenerima,
+        Keterangan: selectedTagihan.potonganBeasiswa
+          ? `Potongan Beasiswa: ${selectedTagihan.potonganBeasiswa.kategori.nama} (${selectedTagihan.potonganBeasiswa.persen}%) -- nominal asli ${formatRupiah(selectedTagihan.nominalAsli)}`
+          : '',
       };
       await addPembayaranToSheet(row);
       await addLogEntry({
@@ -98,7 +108,7 @@ export default function PembayaranTab() {
         namaUser: currentUser.nama,
         aksi: 'Catat Pembayaran',
         modul: 'Pembayaran & Invoice',
-        detail: `Pembayaran ${selectedTagihan.label} sebesar ${formatRupiah(nom)} dari ${selectedSiswa.nama}`,
+        detail: `Pembayaran ${selectedTagihan.label} sebesar ${formatRupiah(nom)} dari ${selectedSiswa.nama}${selectedTagihan.potonganBeasiswa ? ` (dapat potongan beasiswa ${selectedTagihan.potonganBeasiswa.kategori.nama})` : ''}`,
       });
       setPhase('done');
       await new Promise(r => setTimeout(r, 1100)); // biarkan pesan sukses terlihat sebentar
@@ -186,6 +196,23 @@ export default function PembayaranTab() {
           }
         >
           <div style={{ background: 'var(--green-soft)', borderRadius: 10, padding: 18, margin: '-4px -4px 4px' }}>
+            {selectedTagihan.potonganBeasiswa && (
+              <div style={{ background: '#fff', borderRadius: 8, padding: '12px 16px', marginBottom: 16, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' }}>
+                  <span>Nominal Tagihan Asli</span>
+                  <span style={{ textDecoration: 'line-through', color: 'var(--muted)' }}>{formatRupiah(selectedTagihan.nominalAsli)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '4px 0' }}>
+                  <span>Potongan Beasiswa <span style={{ background: 'var(--gold)', color: 'var(--green-dark)', fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 999, marginLeft: 6 }}>🎓 {selectedTagihan.potonganBeasiswa.kategori.nama} -{selectedTagihan.potonganBeasiswa.persen}%</span></span>
+                  <span style={{ color: 'var(--red)' }}>- {formatRupiah(selectedTagihan.nominalAsli - selectedTagihan.nominalEfektif)}</span>
+                </div>
+                <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--green-soft)', borderRadius: 8, padding: '10px 14px' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green-dark)' }}>Nominal Setelah Potongan</span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--green-dark)' }}>{formatRupiah(selectedTagihan.nominalEfektif)}</span>
+                </div>
+              </div>
+            )}
             <div className="form-grid">
               <div className="field">
                 <label>Nominal Dibayar (Rp)</label>

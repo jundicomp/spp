@@ -3,6 +3,7 @@ import Page from '../../components/layout/Page';
 import DataTable from '../../components/common/DataTable';
 import { useAppData } from '../../context/AppContext';
 import { statusTagihan } from '../../db/tagihanHelpers';
+import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { formatRupiah, parseTanggalFleksibel, formatTanggalTampil } from '../../db/helpers';
 import { isConfigured } from '../../services/googleSheets';
 import { exportToExcel } from '../../utils/exportTable';
@@ -21,7 +22,7 @@ function hariTerlambat(jatuhTempo) {
 const STATUS_FILTER_OPTIONS = ['Semua Siswa', 'Aktif', 'Lulus', 'Pindah', 'Berhenti'];
 
 export default function RekapTunggakan() {
-  const { allTagihan, tagihanTerbayar, siswa, tagihanSppLoaded, tagihanLainLoaded } = useAppData();
+  const { allTagihan, tagihanTerbayar, siswa, tagihanSppLoaded, tagihanLainLoaded, beasiswaSiswa, beasiswaKategori } = useAppData();
   const [putihkanTarget, setPutihkanTarget] = useState(null);
   const [filterStatusSiswa, setFilterStatusSiswa] = useState('Semua Siswa');
 
@@ -32,16 +33,18 @@ export default function RekapTunggakan() {
   }, [siswa]);
 
   const tunggakanSemua = useMemo(() => {
+    const cutoffMs = Date.now();
     return allTagihan
       .map(t => {
         const terbayar = tagihanTerbayar(t.refType, t.no);
-        const sisa = t.nominal - terbayar;
+        const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs);
+        const sisa = nominalEfektif - terbayar;
         const terlambat = hariTerlambat(t.jatuhTempo);
         const statusSiswa = siswaStatusByNisn[t.nisn] || 'Aktif';
-        return { ...t, terbayar, sisa, terlambat, statusSiswa, status: statusTagihan(t.nominal, terbayar) };
+        return { ...t, nominalAsli: t.nominal, nominal: nominalEfektif, potonganBeasiswa: potongan, terbayar, sisa, terlambat, statusSiswa, status: statusTagihan(nominalEfektif, terbayar) };
       })
       .filter(t => t.sisa > 0 && t.terlambat > 0); // genuinely menunggak: sisa ada DAN sudah lewat jatuh tempo
-  }, [allTagihan, tagihanTerbayar, siswaStatusByNisn]);
+  }, [allTagihan, tagihanTerbayar, siswaStatusByNisn, beasiswaSiswa, beasiswaKategori]);
 
   const tunggakan = useMemo(
     () => filterStatusSiswa === 'Semua Siswa' ? tunggakanSemua : tunggakanSemua.filter(t => t.statusSiswa === filterStatusSiswa),

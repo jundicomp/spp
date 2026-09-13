@@ -6,7 +6,7 @@ import Rupiah from '../../components/common/Rupiah';
 import { exportToExcel } from '../../utils/exportTable';
 
 export default function NeracaTab() {
-  const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain, allTagihan, akun, pembayaranLoaded, pengeluaranLoaded, pemasukanLainLoaded } = useAppData();
+  const { tahunAjaran, tahunAjaranAktif, pembayaran, pengeluaran, pemasukanLain, allTagihan, akun, pembayaranLoaded, pengeluaranLoaded, pemasukanLainLoaded, beasiswaSiswa, beasiswaKategori } = useAppData();
   const [taLabel, setTaLabel] = useState(null);
   const [bulanIdx, setBulanIdx] = useState(null); // null = "Sampai Hari Ini"
 
@@ -41,11 +41,11 @@ export default function NeracaTab() {
     });
     const totalKas = saldoPerAkun.reduce((s, a) => s + a.saldo, 0);
 
-    const piutang = piutangAsOf(allTagihan, pembayaran, cutoffMs);
+    const piutang = piutangAsOf(allTagihan, pembayaran, cutoffMs, beasiswaSiswa, beasiswaKategori);
 
     const totalAktiva = totalKas + piutang;
     return { saldoPerAkun, totalKas, piutang, totalAktiva };
-  }, [pembayaran, pengeluaran, pemasukanLain, allTagihan, cutoffMs, daftarAkunKasBank]);
+  }, [pembayaran, pengeluaran, pemasukanLain, allTagihan, cutoffMs, daftarAkunKasBank, beasiswaSiswa, beasiswaKategori]);
 
   const dataSiap = pembayaranLoaded || pengeluaranLoaded || pemasukanLainLoaded;
 

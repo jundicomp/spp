@@ -1,5 +1,6 @@
 import { BULAN_ID, parseTanggalFleksibel } from './helpers';
 import { METODE_PEMUTIHAN } from './pembayaranFields';
+import { nominalEfektifTagihan } from './beasiswaFields';
 
 // Tanggal PIUTANG "muncul" (debit) utk 1 tagihan -- SENGAJA BUKAN tanggal jatuh tempo,
 // krn siswa BIASA membayar SEBELUM jatuh tempo. Kalau piutang baru dianggap muncul di
@@ -64,7 +65,7 @@ export function rekapPemasukanBulanan(tahunAjaranLabel, pembayaran, pemasukanLai
 // Piutang Siswa "as-of" suatu titik waktu -- tagihan yg jatuh temponya sudah lewat
 // cutoff, dikurangi yg sudah dibayar SEBELUM/PADA cutoff itu. Dipakai BERSAMA oleh
 // Neraca dan Buku Besar supaya angka piutangnya SELALU konsisten di kedua laporan.
-export function piutangAsOf(allTagihan, pembayaran, cutoffMs) {
+export function piutangAsOf(allTagihan, pembayaran, cutoffMs, beasiswaSiswa = [], beasiswaKategori = []) {
   return allTagihan.reduce((s, t) => {
     const muncul = parseTanggalFleksibel(tanggalPiutangMuncul(t));
     if (!muncul || muncul.getTime() > cutoffMs) return s;
@@ -72,7 +73,11 @@ export function piutangAsOf(allTagihan, pembayaran, cutoffMs) {
       .filter(p => p.refType === t.refType && p.refNo === t.no && p.metode !== 'Pemutihan Piutang')
       .filter(p => { const d = parseTanggalFleksibel(p.tanggalBayar); return d && d.getTime() <= cutoffMs; })
       .reduce((sum, p) => sum + p.nominal, 0);
-    const sisa = t.nominal - dibayarSampaiCutoff;
+    // Nominal yg dipakai utk piutang adalah nominal EFEKTIF (mempertimbangkan beasiswa yg
+    // aktif per cutoffMs) -- bukan nominal mentah yg tersimpan di Sheet -- supaya kasus
+    // "SPP diterbitkan dulu, beasiswa dipasang belakangan" tidak keliru dianggap piutang.
+    const { nominalEfektif } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs);
+    const sisa = nominalEfektif - dibayarSampaiCutoff;
     return s + (sisa > 0 ? sisa : 0);
   }, 0);
 }

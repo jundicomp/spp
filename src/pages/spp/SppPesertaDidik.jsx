@@ -6,6 +6,7 @@ import { initials, avatarColor, BULAN_ID } from '../../db/helpers';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 import { shareCardAsImage } from '../../utils/shareCardImage';
 import { bulanTahunAjaran } from '../../db/laporanHelpers';
+import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -109,6 +110,8 @@ function KartuTagihan({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
 
 function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAjaran, items, defaultOpen }) {
   const [open, setOpen] = useState(!!defaultOpen);
+  // "items" di sini SUDAH nominal efektif (mempertimbangkan beasiswa yg aktif sekarang) --
+  // dihitung 1x di komponen induk (riwayatSiswa), tidak perlu dihitung ulang di sini.
   const sppAsli = items.filter(t => t.refType === 'SPP');
   const lain = items.filter(t => t.refType === 'LAIN');
 
@@ -144,9 +147,22 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
                 <tr key={t.id}>
                   <td>{idx + 1}</td>
                   <td>{t.bulan} {t.tahunKalender}</td>
-                  <td style={{ textAlign: 'right' }}>{t.sudahTerbit ? formatRupiah(t.nominal) : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>-</span>}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    {t.sudahTerbit ? (
+                      t.potonganBeasiswa ? (
+                        <>
+                          <span style={{ display: 'block', textDecoration: 'line-through', color: 'var(--muted)', fontSize: 11 }}>{formatRupiah(t.nominalAsli)}</span>
+                          <span style={{ display: 'block', fontWeight: 800 }}>{formatRupiah(t.nominal)}</span>
+                        </>
+                      ) : formatRupiah(t.nominal)
+                    ) : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>-</span>}
+                  </td>
                   <td>{t.sudahTerbit ? <StatusBadge status={t.status} /> : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>(belum terbit)</span>}</td>
-                  <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>{t.keterangan || '-'}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>
+                    {t.potonganBeasiswa
+                      ? `Potongan Beasiswa: ${t.potonganBeasiswa.kategori.nama} (${t.potonganBeasiswa.persen}%) — diterapkan saat bayar`
+                      : (t.keterangan || '-')}
+                  </td>
                 </tr>
               )}
               totalTagihan={sppAsli.reduce((s, t) => s + t.nominal, 0)}
@@ -161,9 +177,20 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
               renderBaris={(t) => (
                 <tr key={t.id}>
                   <td>{t.label}</td>
-                  <td style={{ textAlign: 'right' }}>{formatRupiah(t.nominal)}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    {t.potonganBeasiswa ? (
+                      <>
+                        <span style={{ display: 'block', textDecoration: 'line-through', color: 'var(--muted)', fontSize: 11 }}>{formatRupiah(t.nominalAsli)}</span>
+                        <span style={{ display: 'block', fontWeight: 800 }}>{formatRupiah(t.nominal)}</span>
+                      </>
+                    ) : formatRupiah(t.nominal)}
+                  </td>
                   <td><StatusBadge status={t.status} /></td>
-                  <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>{t.keterangan || '-'}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>
+                    {t.potonganBeasiswa
+                      ? `Potongan Beasiswa: ${t.potonganBeasiswa.kategori.nama} (${t.potonganBeasiswa.persen}%) — diterapkan saat bayar`
+                      : (t.keterangan || '-')}
+                  </td>
                 </tr>
               )}
               totalTagihan={lain.reduce((s, t) => s + t.nominal, 0)}
@@ -177,7 +204,7 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
 }
 
 export default function SppPesertaDidik() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas, beasiswaSiswa } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas, beasiswaSiswa, beasiswaKategori } = useAppData();
   const [term, setTerm] = useState('');
   const inputRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -225,13 +252,15 @@ export default function SppPesertaDidik() {
 
   const riwayatSiswa = useMemo(() => {
     if (!selected) return [];
+    const cutoffMs = Date.now();
     return allTagihan
       .filter(t => t.nisn === selected.nisn)
       .map(t => {
         const terbayar = tagihanTerbayar(t.refType, t.no);
-        return { ...t, terbayar, status: statusTagihan(t.nominal, terbayar) };
+        const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs);
+        return { ...t, nominalAsli: t.nominal, nominal: nominalEfektif, potonganBeasiswa: potongan, terbayar, status: statusTagihan(nominalEfektif, terbayar) };
       });
-  }, [selected, allTagihan, tagihanTerbayar]);
+  }, [selected, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori]);
 
   const perTahunAjaran = useMemo(() => {
     const map = {};

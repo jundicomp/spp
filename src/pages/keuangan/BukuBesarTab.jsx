@@ -6,6 +6,7 @@ import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 import { AKUN_BAWAAN, AKUN_FIELDS, AKUN_HEADERS, emptyAkunRow } from '../../db/akunBukuBesarFields';
 import { addAkunToSheet, updateAkunInSheet, deleteAkunFromSheet, fetchAkunFromSheet } from '../../services/googleSheets';
 import { pembayaranAsli, bulanTahunAjaran, piutangAsOf, tanggalPiutangMuncul } from '../../db/laporanHelpers';
+import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { formatTanggalTampil, parseTanggalFleksibel } from '../../db/helpers';
 import Rupiah from '../../components/common/Rupiah';
 import { exportToExcel } from '../../utils/exportTable';
@@ -13,7 +14,7 @@ import { exportToExcel } from '../../utils/exportTable';
 // Bangun daftar mutasi MENTAH (blm difilter periode) utk 1 akun -- dipisah jadi
 // fungsi sendiri supaya bisa dipakai utk 2 keperluan: (a) menghitung Saldo Awal
 // (replay semua mutasi SEBELUM periode terpilih), (b) menampilkan mutasi periode itu.
-function bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, allTagihan) {
+function bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, allTagihan, beasiswaSiswa, beasiswaKategori) {
   const asli = pembayaranAsli(pembayaran);
   let items = [];
 
@@ -47,7 +48,7 @@ function bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, all
         const d = parseTanggalFleksibel(p.tanggalBayar);
         if (d && tglMuncul && d.getTime() < tglMuncul.getTime()) tglDipakai = p.tanggalBayar;
       });
-      return { tanggal: tglDipakai, ket: `Tagihan Baru: ${t.label} — ${t.namaSiswa}`, debit: t.nominal, kredit: 0 };
+      return { tanggal: tglDipakai, ket: `Tagihan Baru: ${t.label} — ${t.namaSiswa}`, debit: nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, Date.now()).nominalEfektif, kredit: 0 };
     });
     items = [
       ...items,
@@ -69,7 +70,7 @@ function bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, all
 }
 
 export default function BukuBesarTab() {
-  const { akun, pembayaran, pemasukanLain, pengeluaran, allTagihan, tahunAjaran, tahunAjaranAktif, refreshAkun } = useAppData();
+  const { akun, pembayaran, pemasukanLain, pengeluaran, allTagihan, tahunAjaran, tahunAjaranAktif, refreshAkun, beasiswaSiswa, beasiswaKategori } = useAppData();
   const [modalOpen, setModalOpen] = useState(false);
   const [kelolaOpen, setKelolaOpen] = useState(false);
   const [refreshSignal, setRefreshSignal] = useState(0);
@@ -94,7 +95,7 @@ export default function BukuBesarTab() {
 
   const { mutasi, saldoAwal } = useMemo(() => {
     if (!akunAktif) return { mutasi: [], saldoAwal: 0 };
-    const itemMentah = bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, allTagihan);
+    const itemMentah = bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, allTagihan, beasiswaSiswa, beasiswaKategori);
 
     // SALDO AWAL periode = saldo akhir bulan SEBELUMNYA (bukan mulai dari 0 tiap kali
     // difilter) -- dihitung dgn me-replay semua mutasi SEBELUM cutoffAwal. Khusus
@@ -103,7 +104,7 @@ export default function BukuBesarTab() {
     let awal = 0;
     if (cutoffAwalMs !== null) {
       if (akunAktif.id === 'BAWAAN-piutang') {
-        awal = piutangAsOf(allTagihan, pembayaran, cutoffAwalMs - 1);
+        awal = piutangAsOf(allTagihan, pembayaran, cutoffAwalMs - 1, beasiswaSiswa, beasiswaKategori);
       } else {
         const sebelum = itemMentah.filter(it => parseTanggalFleksibel(it.tanggal).getTime() < cutoffAwalMs);
         awal = sebelum.reduce((s, it) => {
@@ -127,7 +128,7 @@ export default function BukuBesarTab() {
       return { ...it, saldo };
     });
     return { mutasi: hasil, saldoAwal: awal };
-  }, [akunAktif, pembayaran, pemasukanLain, pengeluaran, allTagihan, cutoffAwalMs, cutoffAkhirMs]);
+  }, [akunAktif, pembayaran, pemasukanLain, pengeluaran, allTagihan, cutoffAwalMs, cutoffAkhirMs, beasiswaSiswa, beasiswaKategori]);
 
   const totalDebit = mutasi.reduce((s, m) => s + m.debit, 0);
   const totalKredit = mutasi.reduce((s, m) => s + m.kredit, 0);
@@ -143,10 +144,10 @@ export default function BukuBesarTab() {
 
   function handleExportSemuaAkun() {
     const rows = semuaAkun.map(a => {
-      const itemMentah = bangunItemMentah(a, pembayaran, pemasukanLain, pengeluaran, allTagihan);
+      const itemMentah = bangunItemMentah(a, pembayaran, pemasukanLain, pengeluaran, allTagihan, beasiswaSiswa, beasiswaKategori);
       let awal = 0;
       if (cutoffAwalMs !== null) {
-        if (a.id === 'BAWAAN-piutang') awal = piutangAsOf(allTagihan, pembayaran, cutoffAwalMs - 1);
+        if (a.id === 'BAWAAN-piutang') awal = piutangAsOf(allTagihan, pembayaran, cutoffAwalMs - 1, beasiswaSiswa, beasiswaKategori);
         else awal = itemMentah.filter(it => parseTanggalFleksibel(it.tanggal).getTime() < cutoffAwalMs)
           .reduce((s, it) => s + (a.saldoNormal === 'Kredit' ? (it.kredit - it.debit) : (it.debit - it.kredit)), 0);
       }

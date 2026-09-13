@@ -39,3 +39,33 @@ export function normalizeSheetBeasiswaSiswa(row, idx) {
     keterangan: String(row['Keterangan'] ?? '').trim(),
   };
 }
+
+// Cek apakah 1 siswa (by NISN) punya beasiswa yg AKTIF pada suatu titik waktu (cutoffMs) --
+// dipakai BERSAMA oleh form Pembayaran, Kartu SPP, dan semua perhitungan piutang/status,
+// supaya definisi "aktif" SELALU konsisten di semua tempat. "Aktif" berarti: siswa
+// terdaftar di beasiswaSiswa DAN kategorinya masih ada DAN (Tanggal Mulai kosong ATAU
+// Tanggal Mulai <= cutoffMs).
+export function cekBeasiswaAktif(nisn, beasiswaSiswa, beasiswaKategori, cutoffMs) {
+  const b = beasiswaSiswa.find(x => x.nisn === nisn);
+  if (!b) return null;
+  const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
+  if (!kategori) return null;
+  const mulai = b.tanggalMulai ? new Date(b.tanggalMulai) : null;
+  if (mulai && !isNaN(mulai.getTime()) && cutoffMs < mulai.getTime()) return null;
+  return kategori;
+}
+
+// Nominal SEHARUSNYA (efektif) utk 1 tagihan, MEMPERHITUNGKAN beasiswa yg SEKARANG aktif --
+// dipakai utk kasus "SPP diterbitkan dulu, beasiswa dipasang belakangan": nominal yg
+// TERSIMPAN di Sheet tetap harga penuh (tidak diubah), tapi utk tampilan/status/piutang,
+// yg dipakai adalah nominal EFEKTIF ini (sudah dipotong kalau beasiswanya berlaku).
+// refType: 'SPP' pakai potonganSpp, 'LAIN' pakai potonganBiayaLain.
+export function nominalEfektifTagihan(tagihan, beasiswaSiswa, beasiswaKategori, cutoffMs) {
+  const kategori = cekBeasiswaAktif(tagihan.nisn, beasiswaSiswa, beasiswaKategori, cutoffMs);
+  if (!kategori) return { nominalEfektif: tagihan.nominal, potongan: null };
+  const persen = tagihan.refType === 'SPP' ? kategori.potonganSpp : kategori.potonganBiayaLain;
+  if (!persen) return { nominalEfektif: tagihan.nominal, potongan: null };
+  const nominalEfektif = Math.round(tagihan.nominal * (1 - persen / 100));
+  if (nominalEfektif >= tagihan.nominal) return { nominalEfektif: tagihan.nominal, potongan: null };
+  return { nominalEfektif, potongan: { kategori, persen } };
+}

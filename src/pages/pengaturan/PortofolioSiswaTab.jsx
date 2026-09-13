@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { formatRupiah, formatTanggalTampil, initials } from '../../db/helpers';
+import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { printElementById } from '../../utils/exportTable';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 
@@ -42,11 +43,12 @@ export default function PortofolioSiswaTab() {
 
   const keuangan = useMemo(() => {
     if (!dipilih) return null;
+    const cutoffMs = Date.now();
     const milikSiswa = allTagihan.filter(t => t.nisn === dipilih.nisn);
-    const totalTagihan = milikSiswa.reduce((s, t) => s + t.nominal, 0);
-    const totalSisa = milikSiswa.reduce((s, t) => s + Math.max(0, t.nominal - tagihanTerbayar(t.refType, t.no)), 0);
+    const totalTagihan = milikSiswa.reduce((s, t) => s + nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs).nominalEfektif, 0);
+    const totalSisa = milikSiswa.reduce((s, t) => s + Math.max(0, nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs).nominalEfektif - tagihanTerbayar(t.refType, t.no)), 0);
     return { totalTagihan, totalSisa, statusLunas: totalSisa === 0 };
-  }, [dipilih, allTagihan, tagihanTerbayar]);
+  }, [dipilih, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori]);
 
   function pilih(s) { setDipilih(s); setCari(s.nama); }
   function gantiSiswa() { setDipilih(null); setCari(''); }

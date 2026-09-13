@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.15.0',
+    tanggal: '2026-09-13',
+    poin: [
+      'Beasiswa sekarang bisa dipasang SETELAH tagihan terlanjur terbit — potongan otomatis dihitung saat lihat kartu/bayar, tidak perlu hapus & terbitkan ulang tagihan lama',
+      'Form Catat Pembayaran menampilkan kotak potongan beasiswa (harga asli dicoret, badge kategori, nominal setelah potongan) dan otomatis mengisi nominal yang harus dibayar',
+      'Kartu SPP, Rekap Tunggakan, Neraca, Buku Besar, dan Portofolio Siswa semua ikut menghitung potongan ini secara konsisten',
+    ],
+  },
+  {
     versi: '1.14.0',
     tanggal: '2026-09-13',
     poin: [
