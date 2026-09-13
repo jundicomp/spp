@@ -76,7 +76,7 @@ export function piutangAsOf(allTagihan, pembayaran, cutoffMs, beasiswaSiswa = []
     // Nominal yg dipakai utk piutang adalah nominal EFEKTIF (mempertimbangkan beasiswa yg
     // aktif per cutoffMs) -- bukan nominal mentah yg tersimpan di Sheet -- supaya kasus
     // "SPP diterbitkan dulu, beasiswa dipasang belakangan" tidak keliru dianggap piutang.
-    const { nominalEfektif } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs);
+    const { nominalEfektif } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, dibayarSampaiCutoff);
     const sisa = nominalEfektif - dibayarSampaiCutoff;
     return s + (sisa > 0 ? sisa : 0);
   }, 0);

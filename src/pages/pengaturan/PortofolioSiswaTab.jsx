@@ -45,8 +45,13 @@ export default function PortofolioSiswaTab() {
     if (!dipilih) return null;
     const cutoffMs = Date.now();
     const milikSiswa = allTagihan.filter(t => t.nisn === dipilih.nisn);
-    const totalTagihan = milikSiswa.reduce((s, t) => s + nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs).nominalEfektif, 0);
-    const totalSisa = milikSiswa.reduce((s, t) => s + Math.max(0, nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs).nominalEfektif - tagihanTerbayar(t.refType, t.no)), 0);
+    let totalTagihan = 0, totalSisa = 0;
+    milikSiswa.forEach(t => {
+      const terbayar = tagihanTerbayar(t.refType, t.no);
+      const { nominalEfektif } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
+      totalTagihan += nominalEfektif;
+      totalSisa += Math.max(0, nominalEfektif - terbayar);
+    });
     return { totalTagihan, totalSisa, statusLunas: totalSisa === 0 };
   }, [dipilih, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori]);
 

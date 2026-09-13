@@ -160,8 +160,8 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
                   <td>{t.sudahTerbit ? <StatusBadge status={t.status} /> : <span style={{ fontStyle: 'italic', color: 'var(--muted)' }}>(belum terbit)</span>}</td>
                   <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>
                     {t.potonganBeasiswa
-                      ? `Potongan Beasiswa: ${t.potonganBeasiswa.kategori.nama} (${t.potonganBeasiswa.persen}%) — diterapkan saat bayar`
-                      : (t.keterangan || '-')}
+                      ? `Beasiswa`
+                      : (t.keterangan ? (t.keterangan.includes('Beasiswa') ? 'Beasiswa' : t.keterangan) : '-')}
                   </td>
                 </tr>
               )}
@@ -188,8 +188,8 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
                   <td><StatusBadge status={t.status} /></td>
                   <td style={{ fontSize: 11.5, color: 'var(--purple-dark)' }}>
                     {t.potonganBeasiswa
-                      ? `Potongan Beasiswa: ${t.potonganBeasiswa.kategori.nama} (${t.potonganBeasiswa.persen}%) — diterapkan saat bayar`
-                      : (t.keterangan || '-')}
+                      ? `Beasiswa`
+                      : (t.keterangan ? (t.keterangan.includes('Beasiswa') ? 'Beasiswa' : t.keterangan) : '-')}
                   </td>
                 </tr>
               )}
@@ -257,7 +257,7 @@ export default function SppPesertaDidik() {
       .filter(t => t.nisn === selected.nisn)
       .map(t => {
         const terbayar = tagihanTerbayar(t.refType, t.no);
-        const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs);
+        const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
         return { ...t, nominalAsli: t.nominal, nominal: nominalEfektif, potonganBeasiswa: potongan, terbayar, status: statusTagihan(nominalEfektif, terbayar) };
       });
   }, [selected, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori]);

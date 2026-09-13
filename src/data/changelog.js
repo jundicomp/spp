@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.15.1',
+    tanggal: '2026-09-13',
+    poin: [
+      'Perbaikan bug penting: SPP yang sudah pernah dibayar SEBELUM beasiswa dipasang tidak lagi ikut disunat jadi Rp 0 — potongan sekarang benar-benar hanya berlaku maju (ke tagihan yang belum dibayar)',
+      'Keterangan potongan di Kartu SPP disingkat jadi "Beasiswa" saja, tidak lagi kalimat panjang',
+    ],
+  },
+  {
     versi: '1.15.0',
     tanggal: '2026-09-13',
     poin: [

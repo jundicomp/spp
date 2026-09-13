@@ -60,7 +60,12 @@ export function cekBeasiswaAktif(nisn, beasiswaSiswa, beasiswaKategori, cutoffMs
 // TERSIMPAN di Sheet tetap harga penuh (tidak diubah), tapi utk tampilan/status/piutang,
 // yg dipakai adalah nominal EFEKTIF ini (sudah dipotong kalau beasiswanya berlaku).
 // refType: 'SPP' pakai potonganSpp, 'LAIN' pakai potonganBiayaLain.
-export function nominalEfektifTagihan(tagihan, beasiswaSiswa, beasiswaKategori, cutoffMs) {
+export function nominalEfektifTagihan(tagihan, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar = 0) {
+  // PENTING: beasiswa berlaku MAJU saja -- kalau tagihan ini SUDAH PERNAH dibayar
+  // (sebagian ATAU lunas) SEBELUM beasiswanya dipasang, jangan disunat jadi nol.
+  // Uang yg sudah benar-benar masuk kas tidak boleh "menghilang" gara-gara beasiswa
+  // dipasang belakangan -- diskon cuma utk sisa yg BELUM dibayar sama sekali.
+  if (terbayar > 0) return { nominalEfektif: tagihan.nominal, potongan: null };
   const kategori = cekBeasiswaAktif(tagihan.nisn, beasiswaSiswa, beasiswaKategori, cutoffMs);
   if (!kategori) return { nominalEfektif: tagihan.nominal, potongan: null };
   const persen = tagihan.refType === 'SPP' ? kategori.potonganSpp : kategori.potonganBiayaLain;

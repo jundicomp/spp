@@ -48,7 +48,8 @@ function bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, all
         const d = parseTanggalFleksibel(p.tanggalBayar);
         if (d && tglMuncul && d.getTime() < tglMuncul.getTime()) tglDipakai = p.tanggalBayar;
       });
-      return { tanggal: tglDipakai, ket: `Tagihan Baru: ${t.label} — ${t.namaSiswa}`, debit: nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, Date.now()).nominalEfektif, kredit: 0 };
+      const totalTerbayarUntukIni = bayarUntukIni.reduce((s, p) => s + p.nominal, 0);
+      return { tanggal: tglDipakai, ket: `Tagihan Baru: ${t.label} — ${t.namaSiswa}`, debit: nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, Date.now(), totalTerbayarUntukIni).nominalEfektif, kredit: 0 };
     });
     items = [
       ...items,
