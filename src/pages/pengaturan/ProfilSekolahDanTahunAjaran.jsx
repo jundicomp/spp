@@ -1,13 +1,13 @@
-import { useState } from 'react';
 import Page from '../../components/layout/Page';
 import ProfilSekolahForm from './ProfilSekolahForm';
 import TahunAjaranTab from './TahunAjaranTab';
 import { isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
+import useTabAccess from '../../hooks/useTabAccess';
 
 export default function ProfilSekolahDanTahunAjaran() {
   const { tahunAjaranAktif } = useAppData();
-  const [tab, setTab] = useState('profil');
+  const { tab, setTab, bolehTab } = useTabAccess('profil', ['profil', 'tahun']);
 
   return (
     <Page pageId="profil" title="Profil Sekolah & Tahun Ajaran" path="Pengaturan / Modul / Profil Sekolah">
@@ -31,12 +31,12 @@ export default function ProfilSekolahDanTahunAjaran() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'profil' ? 'active' : ''}`} onClick={() => setTab('profil')}>🏫 PROFIL SEKOLAH</button>
-          <button className={`seg-tab ${tab === 'tahun' ? 'active' : ''}`} onClick={() => setTab('tahun')}>📅 TAHUN AJARAN</button>
+          {bolehTab('profil') && <button className={`seg-tab ${tab === 'profil' ? 'active' : ''}`} onClick={() => setTab('profil')}>🏫 PROFIL SEKOLAH</button>}
+          {bolehTab('tahun') && <button className={`seg-tab ${tab === 'tahun' ? 'active' : ''}`} onClick={() => setTab('tahun')}>📅 TAHUN AJARAN</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'profil' && <ProfilSekolahForm />}
-          {tab === 'tahun' && <TahunAjaranTab />}
+          {tab === 'profil' && bolehTab('profil') && <ProfilSekolahForm />}
+          {tab === 'tahun' && bolehTab('tahun') && <TahunAjaranTab />}
         </div>
       </div>
     </Page>

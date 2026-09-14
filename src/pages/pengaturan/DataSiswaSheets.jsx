@@ -9,10 +9,11 @@ import PortofolioSiswaTab from './PortofolioSiswaTab';
 import NotifikasiSiswaPerluTindakLanjut from '../../components/common/NotifikasiSiswaPerluTindakLanjut';
 import { useAppData } from '../../context/AppContext';
 import { isConfigured } from '../../services/googleSheets';
+import useTabAccess from '../../hooks/useTabAccess';
 
 export default function DataSiswaSheets() {
   const { siswa, siswaLoaded, refreshSiswa } = useAppData();
-  const [tab, setTab] = useState('tabel');
+  const { tab, setTab, bolehTab } = useTabAccess('siswa', ['tabel', 'rombel', 'riwayat', 'portofolio', 'manual', 'excel']);
   const [refreshKey, setRefreshKey] = useState(0);
   const bump = () => { setRefreshKey(k => k + 1); refreshSiswa(); };
 
@@ -68,12 +69,12 @@ export default function DataSiswaSheets() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA SISWA (TABEL)</button>
-          <button className={`seg-tab ${tab === 'rombel' ? 'active' : ''}`} onClick={() => setTab('rombel')}>🏫 ROMBEL</button>
-          <button className={`seg-tab ${tab === 'riwayat' ? 'active' : ''}`} onClick={() => setTab('riwayat')}>🎓 RIWAYAT SISWA</button>
-          <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>
-          <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>
-          <button className={`seg-tab ${tab === 'excel' ? 'active' : ''}`} onClick={() => setTab('excel')}>📊 UPLOAD EXCEL</button>
+          {bolehTab('tabel') && <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA SISWA (TABEL)</button>}
+          {bolehTab('rombel') && <button className={`seg-tab ${tab === 'rombel' ? 'active' : ''}`} onClick={() => setTab('rombel')}>🏫 ROMBEL</button>}
+          {bolehTab('riwayat') && <button className={`seg-tab ${tab === 'riwayat' ? 'active' : ''}`} onClick={() => setTab('riwayat')}>🎓 RIWAYAT SISWA</button>}
+          {bolehTab('portofolio') && <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>}
+          {bolehTab('manual') && <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>}
+          {bolehTab('excel') && <button className={`seg-tab ${tab === 'excel' ? 'active' : ''}`} onClick={() => setTab('excel')}>📊 UPLOAD EXCEL</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
           {!isConfigured() && (
@@ -82,12 +83,12 @@ export default function DataSiswaSheets() {
               <strong> Pengaturan &gt; System &gt; Pengaturan Koneksi</strong> dulu.
             </div></div>
           )}
-          {tab === 'tabel' && <StoredDataTable refreshKey={refreshKey} />}
-          {tab === 'rombel' && <RombelTab />}
-          {tab === 'riwayat' && <RiwayatSiswaTab />}
-          {tab === 'portofolio' && <PortofolioSiswaTab />}
-          {tab === 'manual' && <ManualForm onSaved={bump} />}
-          {tab === 'excel' && <ExcelUpload onSaved={bump} />}
+          {tab === 'tabel' && bolehTab('tabel') && <StoredDataTable refreshKey={refreshKey} />}
+          {tab === 'rombel' && bolehTab('rombel') && <RombelTab />}
+          {tab === 'riwayat' && bolehTab('riwayat') && <RiwayatSiswaTab />}
+          {tab === 'portofolio' && bolehTab('portofolio') && <PortofolioSiswaTab />}
+          {tab === 'manual' && bolehTab('manual') && <ManualForm onSaved={bump} />}
+          {tab === 'excel' && bolehTab('excel') && <ExcelUpload onSaved={bump} />}
         </div>
       </div>
     </Page>

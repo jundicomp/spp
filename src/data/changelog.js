@@ -4,6 +4,16 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.17.0',
+    tanggal: '2026-09-14',
+    poin: [
+      'Manajemen User: bisa tambah role/jabatan baru sendiri lewat tombol "+ Tambah Role"',
+      'Hak akses sekarang tersimpan permanen (sebelumnya hilang tiap refresh halaman)',
+      'Manajemen Hak Akses sekarang bisa diatur sampai level tab di dalam tiap menu (klik ▸ untuk buka), bukan cuma per-menu',
+      'Riwayat Pembaruan (Changelog) sekarang juga bisa diatur hak aksesnya',
+    ],
+  },
+  {
     versi: '1.16.0',
     tanggal: '2026-09-14',
     poin: [

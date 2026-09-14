@@ -112,11 +112,18 @@ export function AuthProvider({ children }) {
     setCurrentUser(u => ({ ...u, password: newPassword }));
   }, [currentUser]);
 
-  const canAccess = useCallback((pageId) => {
+  // pageId = ID halaman (mis. "tagihan"). tabId OPSIONAL = ID tab di dalam halaman itu
+  // (mis. "penerbitan") -- kalau diisi, dicek DUA lapis: halamannya sendiri harus boleh
+  // DULU, baru dicek izin spesifik tab-nya (key gabungan "tagihan.penerbitan"). Kalau
+  // izin tab itu belum pernah diatur (undefined), default-nya TETAP boleh (kompatibel
+  // mundur -- role lama yg belum pernah atur level tab tidak tiba2 kehilangan akses).
+  const canAccess = useCallback((pageId, tabId) => {
     if (!currentUser) return false;
     const roleperm = permissions[currentUser.role];
     if (!roleperm) return true;
-    return roleperm[pageId] !== false;
+    if (roleperm[pageId] === false) return false;
+    if (tabId) return roleperm[`${pageId}.${tabId}`] !== false;
+    return true;
   }, [currentUser, permissions]);
 
   return (

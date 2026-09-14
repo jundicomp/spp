@@ -8,6 +8,7 @@ import { useAppData } from '../../context/AppContext';
 import InfoCard from '../../components/common/InfoCard';
 import { IconGraduationCap, IconUsers } from '../../components/common/icons';
 import PortofolioGuruTab from './PortofolioGuruTab';
+import useTabAccess from '../../hooks/useTabAccess';
 
 const FILTER_OPTIONS = ['Guru', 'Staff']; // opsi filter cuma 2 -- "Guru & Staff" otomatis muncul di keduanya
 
@@ -20,7 +21,7 @@ function cocokFilterKategori(kategoriBaris, filter) {
 
 export default function DataGuru() {
   const { guru, refreshGuru } = useAppData();
-  const [tab, setTab] = useState('tabel');
+  const { tab, setTab, bolehTab } = useTabAccess('guru', ['tabel', 'manual', 'portofolio']);
   const [filterKategori, setFilterKategori] = useState('Semua');
 
   // "Guru & Staff" dihitung di KEDUA statistik -- orang itu genuinely berperan ganda.
@@ -48,12 +49,12 @@ export default function DataGuru() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA GURU & STAFF (TABEL)</button>
-          <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH</button>
-          <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>
+          {bolehTab('tabel') && <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA GURU & STAFF (TABEL)</button>}
+          {bolehTab('manual') && <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH</button>}
+          {bolehTab('portofolio') && <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'tabel' && (
+          {tab === 'tabel' && bolehTab('tabel') && (
             <GenericStoredTable
               title="Data Guru & Staff (Tabel)"
               subtitle="Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini."
@@ -75,7 +76,7 @@ export default function DataGuru() {
               }
             />
           )}
-          {tab === 'manual' && (
+          {tab === 'manual' && bolehTab('manual') && (
             <GenericManualForm
               fields={GURU_FIELDS}
               emptyRow={emptyGuruRow}
@@ -85,7 +86,7 @@ export default function DataGuru() {
               subtitle="Pilih Kategori di awal form -- data langsung tersimpan ke baris baru di Google Sheets."
             />
           )}
-          {tab === 'portofolio' && <PortofolioGuruTab />}
+          {tab === 'portofolio' && bolehTab('portofolio') && <PortofolioGuruTab />}
         </div>
       </div>
     </Page>

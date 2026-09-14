@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Page from '../../components/layout/Page';
+import useTabAccess from '../../hooks/useTabAccess';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 import { buildKelasFields, KELAS_HEADERS, emptyKelasRow } from '../../db/kelasFields';
@@ -8,7 +9,7 @@ import { useAppData } from '../../context/AppContext';
 
 export default function DataKelas() {
   const { kelas, guru, siswa, refreshKelas } = useAppData();
-  const [tab, setTab] = useState('tabel');
+  const { tab, setTab, bolehTab } = useTabAccess('kelas', ['tabel', 'manual']);
 
   const waliKelasOptions = useMemo(
     () => guru.filter(g => g.status === 'Aktif' && (g.kategori === 'Guru' || g.kategori === 'Guru & Staff')).map(g => g.nama).sort(),
@@ -40,11 +41,11 @@ export default function DataKelas() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA KELAS (TABEL)</button>
-          <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>
+          {bolehTab('tabel') && <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA KELAS (TABEL)</button>}
+          {bolehTab('manual') && <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'tabel' && (
+          {tab === 'tabel' && bolehTab('tabel') && (
             <GenericStoredTable
               title="Data Kelas & Rombel (Tabel)"
               subtitle="Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini."
@@ -59,7 +60,7 @@ export default function DataKelas() {
               onChanged={refreshKelas}
             />
           )}
-          {tab === 'manual' && (
+          {tab === 'manual' && bolehTab('manual') && (
             <GenericManualForm
               fields={fields}
               emptyRow={emptyKelasRow}

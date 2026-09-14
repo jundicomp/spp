@@ -85,6 +85,20 @@ const SHEETS = {
     name: 'Users',
     headers: ['No', 'Nama', 'Role', 'Username', 'Password', 'Email'],
   },
+  roles: {
+    name: 'Roles',
+    headers: ['No', 'Nama Role'],
+  },
+  hakAkses: {
+    name: 'Hak Akses',
+    // 1 baris = 1 ROLE. Kolom "PermissionsJson" berisi SELURUH izin role itu sbg JSON,
+    // mis. {"tagihan":true,"tagihan.penerbitan-spp":true,"tagihan.tarif":false,...} --
+    // kunci bisa ID halaman ATAU "halaman.tab" utk detail sampai level tab. Disimpan
+    // sbg 1 blob JSON per role (bukan 1 baris per centang) supaya update selalu simpel:
+    // baca baris role itu, gabung perubahan, tulis ulang JSON-nya -- tanpa perlu cari
+    // baris mana yg harus di-update satu-satu tiap kali 1 centang berubah.
+    headers: ['No', 'Role', 'PermissionsJson'],
+  },
   log: {
     name: 'LogAktivitas',
     headers: ['No', 'Waktu', 'Username', 'Nama User', 'Aksi', 'Modul', 'Detail'],

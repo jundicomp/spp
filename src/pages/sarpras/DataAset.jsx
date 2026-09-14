@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import Page from '../../components/layout/Page';
+import useTabAccess from '../../hooks/useTabAccess';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 import { ASET_FIELDS, ASET_HEADERS, emptyAsetRow, hitungBreakdownAset } from '../../db/asetFields';
@@ -17,7 +18,7 @@ const HEADERS_TAMPIL = [...ASET_HEADERS.slice(0, 8), 'Total', ...ASET_HEADERS.sl
 
 export default function DataAset() {
   const { aset, refreshAset } = useAppData();
-  const [tab, setTab] = useState('tabel');
+  const { tab, setTab, bolehTab } = useTabAccess('aset', ['tabel', 'manual']);
   const [lihatAset, setLihatAset] = useState(null);
 
   const ringkasan = useMemo(() => {
@@ -57,11 +58,11 @@ export default function DataAset() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA ASET (TABEL)</button>
-          <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>
+          {bolehTab('tabel') && <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA ASET (TABEL)</button>}
+          {bolehTab('manual') && <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'tabel' && (
+          {tab === 'tabel' && bolehTab('tabel') && (
             <GenericStoredTable
               title="Data Aset & Inventaris (Tabel)"
               subtitle="Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini."
@@ -79,7 +80,7 @@ export default function DataAset() {
               )}
             />
           )}
-          {tab === 'manual' && (
+          {tab === 'manual' && bolehTab('manual') && (
             <GenericManualForm
               fields={ASET_FIELDS}
               emptyRow={emptyAsetRow}

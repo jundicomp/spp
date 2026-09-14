@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Page from '../../components/layout/Page';
 import PemasukanLainTab from './PemasukanLainTab';
 import JurnalPengeluaranTab from './JurnalPengeluaranTab';
@@ -7,9 +7,10 @@ import { useAppData } from '../../context/AppContext';
 import { formatRupiah, todayWIB } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconTrendUp, IconTrendDown, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
+import useTabAccess from '../../hooks/useTabAccess';
 
 export default function PemasukanPengeluaran() {
-  const [tab, setTab] = useState('pemasukan');
+  const { tab, setTab, bolehTab } = useTabAccess('pemasukan-pengeluaran', ['pemasukan', 'pengeluaran']);
   const { pemasukanLain, pengeluaran, pemasukanLainLoaded, pengeluaranLoaded } = useAppData();
 
   const ringkasan = useMemo(() => {
@@ -48,12 +49,12 @@ export default function PemasukanPengeluaran() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'pemasukan' ? 'active' : ''}`} onClick={() => setTab('pemasukan')}>💰 PEMASUKAN LAIN</button>
-          <button className={`seg-tab ${tab === 'pengeluaran' ? 'active' : ''}`} onClick={() => setTab('pengeluaran')}>📒 PENGELUARAN</button>
+          {bolehTab('pemasukan') && <button className={`seg-tab ${tab === 'pemasukan' ? 'active' : ''}`} onClick={() => setTab('pemasukan')}>💰 PEMASUKAN LAIN</button>}
+          {bolehTab('pengeluaran') && <button className={`seg-tab ${tab === 'pengeluaran' ? 'active' : ''}`} onClick={() => setTab('pengeluaran')}>📒 PENGELUARAN</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'pemasukan' && <PemasukanLainTab />}
-          {tab === 'pengeluaran' && <JurnalPengeluaranTab />}
+          {tab === 'pemasukan' && bolehTab('pemasukan') && <PemasukanLainTab />}
+          {tab === 'pengeluaran' && bolehTab('pengeluaran') && <JurnalPengeluaranTab />}
         </div>
       </div>
     </Page>

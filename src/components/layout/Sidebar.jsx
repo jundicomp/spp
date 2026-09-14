@@ -112,9 +112,13 @@ export default function Sidebar() {
       <div className="sidebar-foot">
         Jundicomp © 2026
         <div style={{ fontSize: 10.5, opacity: .7, marginTop: 3 }}>
-          <NavLink to="/changelog" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }} title="Lihat riwayat pembaruan aplikasi">
-            v{pkg.version}
-          </NavLink> · {formatWaktuBuild(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null)}
+          {canAccess('changelog') ? (
+            <NavLink to="/changelog" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }} title="Lihat riwayat pembaruan aplikasi">
+              v{pkg.version}
+            </NavLink>
+          ) : (
+            <span>v{pkg.version}</span>
+          )} · {formatWaktuBuild(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null)}
         </div>
       </div>
     </aside>

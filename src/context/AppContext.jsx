@@ -19,6 +19,8 @@ import {
   fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet, fetchPemasukanLainFromSheet, fetchAkunFromSheet,
   fetchBeasiswaKategoriFromSheet, fetchBeasiswaSiswaFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured, fetchAllFromSheet,
+  fetchRolesFromSheet, addRoleToSheet, deleteRoleFromSheet,
+  fetchHakAksesFromSheet, saveHakAksesRole,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
 
@@ -27,6 +29,7 @@ const AppDataContext = createContext(null);
 const HAK_AKSES_PAGES = [
   { id: 'dashboard', label: 'Dashboard', grup: 'Umum' },
   { id: 'profil-saya', label: 'Profil Saya', grup: 'Umum' },
+  { id: 'changelog', label: 'Riwayat Pembaruan (Changelog)', grup: 'Umum' },
   { id: 'spp', label: 'SPP Peserta Didik', grup: 'SPP' },
   { id: 'tagihan', label: 'Tagihan & Biaya', grup: 'Keuangan' },
   { id: 'pembayaran', label: 'Pembayaran & Invoice', grup: 'Keuangan' },
@@ -51,23 +54,150 @@ const HAK_AKSES_PAGES = [
 
 const ADMIN_ONLY_PAGES = ['koneksi-sheets', 'pengaturan-sistem'];
 
-function buildDefaultPermissions() {
+// Daftar TAB di dalam tiap halaman yg punya sub-tab -- dipakai Manajemen Hak Akses
+// utk atur izin sampai level tab (bukan cuma per-halaman). Halaman yg TIDAK disebut
+// di sini dianggap tidak punya tab (izinnya cuma level halaman spt biasa). Key ID
+// tab di sini HARUS SAMA PERSIS dgn string dipakai di setTab('...') halaman terkait.
+const HAK_AKSES_TABS = {
+  tagihan: [
+    { id: 'penerbitan', label: 'Penerbitan SPP' },
+    { id: 'lain', label: 'Penerbitan Lain' },
+    { id: 'tarif', label: 'Tarif' },
+  ],
+  pembayaran: [
+    { id: 'pembayaran', label: 'Pembayaran' },
+    { id: 'invoice', label: 'Invoice' },
+  ],
+  'pemasukan-pengeluaran': [
+    { id: 'pemasukan', label: 'Pemasukan Lain' },
+    { id: 'pengeluaran', label: 'Pengeluaran' },
+  ],
+  'laporan-keuangan': [
+    { id: 'bukubesar', label: 'Buku Besar' },
+    { id: 'cashflow', label: 'Cashflow' },
+    { id: 'rekap', label: 'Rekapitulasi' },
+    { id: 'labarugi', label: 'Laba Rugi' },
+    { id: 'neraca', label: 'Neraca' },
+  ],
+  beasiswa: [
+    { id: 'kategori', label: 'Kategori Beasiswa' },
+    { id: 'siswa', label: 'Siswa Penerima' },
+  ],
+  aset: [
+    { id: 'tabel', label: 'Data Aset (Tabel)' },
+    { id: 'manual', label: 'Tambah Manual' },
+  ],
+  'peminjaman-aset': [
+    { id: 'tabel', label: 'Daftar Peminjaman' },
+    { id: 'manual', label: 'Catat Peminjaman' },
+  ],
+  'pemeliharaan-aset': [
+    { id: 'tabel', label: 'Daftar Pemeliharaan' },
+    { id: 'manual', label: 'Catat Pemeliharaan' },
+  ],
+  'manajemen-user': [
+    { id: 'tambah', label: 'Tambah User' },
+    { id: 'daftar', label: 'Daftar User' },
+  ],
+  profil: [
+    { id: 'profil', label: 'Profil Sekolah' },
+    { id: 'tahun', label: 'Tahun Ajaran' },
+  ],
+  kelas: [
+    { id: 'tabel', label: 'Data Kelas (Tabel)' },
+    { id: 'manual', label: 'Tambah Manual' },
+  ],
+  guru: [
+    { id: 'tabel', label: 'Data Guru & Staff (Tabel)' },
+    { id: 'manual', label: 'Tambah' },
+    { id: 'portofolio', label: 'Portofolio' },
+  ],
+  siswa: [
+    { id: 'tabel', label: 'Data Siswa (Tabel)' },
+    { id: 'rombel', label: 'Rombel' },
+    { id: 'riwayat', label: 'Riwayat Siswa' },
+    { id: 'portofolio', label: 'Portofolio' },
+    { id: 'manual', label: 'Tambah Manual' },
+    { id: 'excel', label: 'Upload Excel' },
+  ],
+};
+
+// 4 role BAWAAN yg selalu ada (Admin & Kepala Sekolah py perlakuan khusus di bawah) --
+// role TAMBAHAN yg dibuat lewat "+ Tambah Role" digabung di ATAS daftar ini, TIDAK
+// menggantikannya, supaya role bawaan tidak pernah hilang begitu saja.
+const ROLE_BAWAAN = ['Kepala Sekolah', 'Bendahara / TU', 'Staf TU', 'Admin'];
+
+function buildDefaultPermissionsUntukRole(role) {
   const perms = {};
-  permissionRoles.forEach(role => {
-    perms[role] = {};
-    HAK_AKSES_PAGES.forEach(p => {
-      if (ADMIN_ONLY_PAGES.includes(p.id)) {
-        perms[role][p.id] = role === 'Admin';
-      } else {
-        perms[role][p.id] = !(halamanSensitif.includes(p.id) && !['Kepala Sekolah', 'Admin'].includes(role));
-      }
-    });
+  HAK_AKSES_PAGES.forEach(p => {
+    if (ADMIN_ONLY_PAGES.includes(p.id)) {
+      perms[p.id] = role === 'Admin';
+    } else {
+      perms[p.id] = !(halamanSensitif.includes(p.id) && !['Kepala Sekolah', 'Admin'].includes(role));
+    }
   });
   return perms;
 }
 
 export function AppProvider({ children }) {
-  const [permissions, setPermissions] = useState(buildDefaultPermissions());
+  const [permissions, setPermissions] = useState({});
+  const [rolesTambahan, setRolesTambahan] = useState([]); // dari Sheet, di LUAR 4 role bawaan
+  const [hakAksesRows, setHakAksesRows] = useState([]); // dipakai cari "No" baris role saat update
+  const permissionRoles = useMemo(() => [...ROLE_BAWAAN, ...rolesTambahan], [rolesTambahan]);
+
+  const isiRolesHakAksesDariRows = useCallback((roleRows, hakRows) => {
+    setRolesTambahan(roleRows.map(r => String(r['Nama Role'] ?? '').trim()).filter(Boolean));
+    setHakAksesRows(hakRows);
+    const permMap = {};
+    hakRows.forEach(row => {
+      const role = String(row['Role'] ?? '').trim();
+      try { permMap[role] = JSON.parse(row['PermissionsJson'] || '{}'); } catch { permMap[role] = {}; }
+    });
+    setPermissions(permMap);
+  }, []);
+
+  const muatRolesDanHakAkses = useCallback(async () => {
+    if (!isConfigured()) return;
+    try {
+      const [roleRows, hakRows] = await Promise.all([fetchRolesFromSheet(), fetchHakAksesFromSheet()]);
+      isiRolesHakAksesDariRows(roleRows, hakRows);
+    } catch (err) {
+      // Diam2 gagal -- role/permission tetap pakai default bawaan di bawah (fallback).
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // addRole: cuma role TAMBAHAN (di luar 4 bawaan) yg bisa ditambah lewat sini.
+  const addRole = useCallback(async (namaRole) => {
+    const nama = namaRole.trim();
+    if (!nama) throw new Error('Nama role tidak boleh kosong.');
+    if (permissionRoles.includes(nama)) throw new Error('Role dengan nama itu sudah ada.');
+    await addRoleToSheet(nama);
+    await muatRolesDanHakAkses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionRoles]);
+
+  // Ubah 1 izin (halaman ATAU "halaman.tab") utk 1 role -- update state LANGSUNG
+  // (biar UI responsif), lalu simpan JSON lengkap role itu ke Sheet di belakang layar.
+  const setPermission = useCallback(async (role, itemId, checked) => {
+    setPermissions(prev => {
+      const updated = { ...(prev[role] || {}), [itemId]: checked };
+      const next = { ...prev, [role]: updated };
+      const existingRow = hakAksesRows.find(r => String(r['Role'] ?? '').trim() === role);
+      saveHakAksesRole(role, updated, existingRow?.['No']).then(() => muatRolesDanHakAkses()).catch(() => {});
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hakAksesRows]);
+
+  const permissionsUntukTampil = useMemo(() => {
+    const hasil = {};
+    permissionRoles.forEach(role => {
+      hasil[role] = permissions[role] || buildDefaultPermissionsUntukRole(role);
+    });
+    return hasil;
+  }, [permissionRoles, permissions]);
+
   const [toasts, setToasts] = useState([]);
 
   // ---- Data induk: SUMBER ASLINYA Google Sheets, bukan lagi data dami ----
@@ -136,11 +266,13 @@ export function AppProvider({ children }) {
         asetRes.setFromBatch(semua.aset || []);
         tahunAjaranRes.setFromBatch(semua.tahunAjaran || []);
         isiProfilDariRows(semua.profil || []);
+        isiRolesHakAksesDariRows(semua.roles || [], semua.hakAkses || []);
       } catch (err) {
         if (batal) return;
         // Cadangan: kalau batch gagal, tetap coba 1-per-1 spt versi lama.
         siswaRes.refresh(); kelasRes.refresh(); guruRes.refresh(); asetRes.refresh(); tahunAjaranRes.refresh();
         refreshProfil();
+        muatRolesDanHakAkses();
       }
     }
     async function muatKeuangan() {
@@ -207,9 +339,9 @@ export function AppProvider({ children }) {
     beasiswaSiswa: beasiswaSiswaRes.data, beasiswaSiswaLoading: beasiswaSiswaRes.loading, beasiswaSiswaLoaded: beasiswaSiswaRes.loaded, refreshBeasiswaSiswa: beasiswaSiswaRes.refresh,
     allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
-    permissions, setPermissions,
+    permissions: permissionsUntukTampil, setPermission, addRole, muatRolesDanHakAkses,
     toast, toasts,
-    HAK_AKSES_PAGES, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,
+    HAK_AKSES_PAGES, HAK_AKSES_TABS, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

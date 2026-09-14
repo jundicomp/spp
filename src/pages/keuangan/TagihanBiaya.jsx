@@ -1,12 +1,12 @@
-import { useState } from 'react';
 import Page from '../../components/layout/Page';
 import PenerbitanSppTab from './PenerbitanSppTab';
 import PenerbitanLainTab from './PenerbitanLainTab';
 import TarifTab from './TarifTab';
 import { isConfigured } from '../../services/googleSheets';
+import useTabAccess from '../../hooks/useTabAccess';
 
 export default function TagihanBiaya() {
-  const [tab, setTab] = useState('penerbitan');
+  const { tab, setTab, bolehTab } = useTabAccess('tagihan', ['penerbitan', 'lain', 'tarif']);
 
   return (
     <Page pageId="tagihan" title="Tagihan & Biaya" path="Keuangan / Tagihan & Biaya">
@@ -19,14 +19,14 @@ export default function TagihanBiaya() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'penerbitan' ? 'active' : ''}`} onClick={() => setTab('penerbitan')}>📅 PENERBITAN SPP</button>
-          <button className={`seg-tab ${tab === 'lain' ? 'active' : ''}`} onClick={() => setTab('lain')}>🧾 PENERBITAN LAIN</button>
-          <button className={`seg-tab ${tab === 'tarif' ? 'active' : ''}`} onClick={() => setTab('tarif')}>💰 TARIF</button>
+          {bolehTab('penerbitan') && <button className={`seg-tab ${tab === 'penerbitan' ? 'active' : ''}`} onClick={() => setTab('penerbitan')}>📅 PENERBITAN SPP</button>}
+          {bolehTab('lain') && <button className={`seg-tab ${tab === 'lain' ? 'active' : ''}`} onClick={() => setTab('lain')}>🧾 PENERBITAN LAIN</button>}
+          {bolehTab('tarif') && <button className={`seg-tab ${tab === 'tarif' ? 'active' : ''}`} onClick={() => setTab('tarif')}>💰 TARIF</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'penerbitan' && <PenerbitanSppTab />}
-          {tab === 'lain' && <PenerbitanLainTab />}
-          {tab === 'tarif' && <TarifTab />}
+          {tab === 'penerbitan' && bolehTab('penerbitan') && <PenerbitanSppTab />}
+          {tab === 'lain' && bolehTab('lain') && <PenerbitanLainTab />}
+          {tab === 'tarif' && bolehTab('tarif') && <TarifTab />}
         </div>
       </div>
     </Page>

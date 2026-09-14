@@ -140,6 +140,20 @@ export async function setActiveTahunAjaranOnSheet(no) {
 
 // ---- Log aktivitas ----
 export const fetchLogFromSheet = () => fetchFromSheet('log');
+
+export const fetchRolesFromSheet = () => fetchFromSheet('roles');
+export const addRoleToSheet = (namaRole) => addToSheet('roles', { 'Nama Role': namaRole });
+export const deleteRoleFromSheet = (no) => deleteFromSheet('roles', no);
+
+export const fetchHakAksesFromSheet = () => fetchFromSheet('hakAkses');
+// Upsert 1 baris per role: kalau role itu sudah py baris (existingNo diisi), UPDATE;
+// kalau belum (existingNo null/undefined), ADD baris baru. Dipakai stlh menggabung
+// perubahan izin ke JSON lengkap milik role itu.
+export function saveHakAksesRole(role, permissionsObj, existingNo) {
+  const row = { Role: role, PermissionsJson: JSON.stringify(permissionsObj) };
+  if (existingNo) return updateInSheet('hakAkses', { No: existingNo, ...row });
+  return addToSheet('hakAkses', row);
+}
 export async function addLogEntry({ username, namaUser, aksi, modul, detail }) {
   const row = {
     Waktu: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Page from '../../components/layout/Page';
 import PembayaranTab from './PembayaranTab';
 import InvoiceTab from './InvoiceTab';
@@ -8,9 +8,10 @@ import { pembayaranAsli } from '../../db/laporanHelpers';
 import { formatRupiah, parseTanggalFleksibel, todayWIB } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconReceipt, IconMoney, IconCalendarClock, IconFileText, IconAlertCircle } from '../../components/common/icons';
+import useTabAccess from '../../hooks/useTabAccess';
 
 export default function PembayaranInvoice() {
-  const [tab, setTab] = useState('pembayaran');
+  const { tab, setTab, bolehTab } = useTabAccess('pembayaran', ['pembayaran', 'invoice']);
   const { pembayaran, pembayaranLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded } = useAppData();
 
   const ringkasan = useMemo(() => {
@@ -52,12 +53,12 @@ export default function PembayaranInvoice() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'pembayaran' ? 'active' : ''}`} onClick={() => setTab('pembayaran')}>💳 PEMBAYARAN</button>
-          <button className={`seg-tab ${tab === 'invoice' ? 'active' : ''}`} onClick={() => setTab('invoice')}>📄 INVOICE</button>
+          {bolehTab('pembayaran') && <button className={`seg-tab ${tab === 'pembayaran' ? 'active' : ''}`} onClick={() => setTab('pembayaran')}>💳 PEMBAYARAN</button>}
+          {bolehTab('invoice') && <button className={`seg-tab ${tab === 'invoice' ? 'active' : ''}`} onClick={() => setTab('invoice')}>📄 INVOICE</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'pembayaran' && <PembayaranTab />}
-          {tab === 'invoice' && <InvoiceTab />}
+          {tab === 'pembayaran' && bolehTab('pembayaran') && <PembayaranTab />}
+          {tab === 'invoice' && bolehTab('invoice') && <InvoiceTab />}
         </div>
       </div>
     </Page>

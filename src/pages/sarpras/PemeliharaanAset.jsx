@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Page from '../../components/layout/Page';
+import useTabAccess from '../../hooks/useTabAccess';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 import { buildPemeliharaanFields, PEMELIHARAAN_HEADERS, emptyPemeliharaanRow } from '../../db/pemeliharaanFields';
@@ -8,7 +9,7 @@ import { useAppData } from '../../context/AppContext';
 
 export default function PemeliharaanAset() {
   const { aset } = useAppData();
-  const [tab, setTab] = useState('tabel');
+  const { tab, setTab, bolehTab } = useTabAccess('pemeliharaan-aset', ['tabel', 'manual']);
 
   const asetOptions = useMemo(() => aset.map(a => a.nama).sort(), [aset]);
   const fields = useMemo(() => buildPemeliharaanFields(asetOptions), [asetOptions]);
@@ -23,11 +24,11 @@ export default function PemeliharaanAset() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>DAFTAR PEMELIHARAAN</button>
-          <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>CATAT PEMELIHARAAN</button>
+          {bolehTab('tabel') && <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>DAFTAR PEMELIHARAAN</button>}
+          {bolehTab('manual') && <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>CATAT PEMELIHARAAN</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'tabel' && (
+          {tab === 'tabel' && bolehTab('tabel') && (
             <GenericStoredTable
               title="Daftar Pemeliharaan Aset"
               subtitle="Riwayat servis, perbaikan, dan penggantian part."
@@ -42,7 +43,7 @@ export default function PemeliharaanAset() {
               onChanged={() => {}}
             />
           )}
-          {tab === 'manual' && (
+          {tab === 'manual' && bolehTab('manual') && (
             <GenericManualForm
               fields={fields}
               emptyRow={emptyPemeliharaanRow}

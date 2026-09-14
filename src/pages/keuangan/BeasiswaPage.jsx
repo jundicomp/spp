@@ -1,11 +1,11 @@
-import { useState } from 'react';
 import Page from '../../components/layout/Page';
 import BeasiswaKategoriTab from './BeasiswaKategoriTab';
 import BeasiswaSiswaTab from './BeasiswaSiswaTab';
 import { isConfigured } from '../../services/googleSheets';
+import useTabAccess from '../../hooks/useTabAccess';
 
 export default function BeasiswaPage() {
-  const [tab, setTab] = useState('kategori');
+  const { tab, setTab, bolehTab } = useTabAccess('beasiswa', ['kategori', 'siswa']);
 
   return (
     <Page pageId="beasiswa" title="Beasiswa" path="Keuangan / Beasiswa">
@@ -17,12 +17,12 @@ export default function BeasiswaPage() {
 
       <div className="card">
         <div className="seg-tabs">
-          <button className={`seg-tab ${tab === 'kategori' ? 'active' : ''}`} onClick={() => setTab('kategori')}>🏷️ KATEGORI BEASISWA</button>
-          <button className={`seg-tab ${tab === 'siswa' ? 'active' : ''}`} onClick={() => setTab('siswa')}>👥 SISWA PENERIMA</button>
+          {bolehTab('kategori') && <button className={`seg-tab ${tab === 'kategori' ? 'active' : ''}`} onClick={() => setTab('kategori')}>🏷️ KATEGORI BEASISWA</button>}
+          {bolehTab('siswa') && <button className={`seg-tab ${tab === 'siswa' ? 'active' : ''}`} onClick={() => setTab('siswa')}>👥 SISWA PENERIMA</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-          {tab === 'kategori' && <BeasiswaKategoriTab />}
-          {tab === 'siswa' && <BeasiswaSiswaTab />}
+          {tab === 'kategori' && bolehTab('kategori') && <BeasiswaKategoriTab />}
+          {tab === 'siswa' && bolehTab('siswa') && <BeasiswaSiswaTab />}
         </div>
       </div>
     </Page>
