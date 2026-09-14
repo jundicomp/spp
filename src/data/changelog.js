@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.16.0',
+    tanggal: '2026-09-14',
+    poin: [
+      'Kecepatan koneksi ke Google Sheets ditingkatkan — dari 14 permintaan terpisah setiap buka aplikasi, sekarang digabung jadi cuma 2 permintaan besar. Diharapkan lebih jarang muncul "tidak terhubung" dan loading awal lebih cepat',
+    ],
+  },
+  {
     versi: '1.15.1',
     tanggal: '2026-09-13',
     poin: [

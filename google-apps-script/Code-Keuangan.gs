@@ -90,16 +90,30 @@ function doGet(e) {
   if (!e.parameter || e.parameter.secret !== SECRET) {
     return jsonResponse_({ ok: false, error: 'Akses ditolak: kata sandi tidak cocok atau tidak disertakan.' });
   }
+  // Mode BATCH: sheet=ALL mengembalikan SEMUA sheet sekaligus dalam 1 respons --
+  // dipakai saat load pertama kali (login/buka app), supaya browser TIDAK perlu
+  // menembak banyak request terpisah (masing2 request ke Apps Script punya overhead
+  // sendiri & kena kuota bersama -- gabung jadi 1 mengurangi beban & kegagalan
+  // "tidak terhubung" akibat kuota kepenuhan). Request tunggal (utk refresh setelah
+  // tambah/edit/hapus) TETAP jalan spt biasa lewat sheet=<nama>, TIDAK berubah.
+  if (e.parameter.sheet === 'ALL') {
+    const semua = {};
+    Object.keys(SHEETS).forEach(key => { semua[key] = readSheetData_(SHEETS[key]); });
+    return jsonResponse_({ ok: true, data: semua });
+  }
   const which = SHEETS[e.parameter.sheet] ? e.parameter.sheet : 'tarif';
   const cfg = SHEETS[which];
+  return jsonResponse_({ ok: true, data: readSheetData_(cfg) });
+}
+
+function readSheetData_(cfg) {
   const sheet = getSheet_(cfg);
   const data = sheet.getDataRange().getValues();
-  const rows = data.slice(1).filter(r => r.some(cell => cell !== '')).map(row => {
+  return data.slice(1).filter(r => r.some(cell => cell !== '')).map(row => {
     const obj = {};
     cfg.headers.forEach((h, i) => { obj[h] = formatCellValue_(row[i]); });
     return obj;
   });
-  return jsonResponse_({ ok: true, data: rows });
 }
 
 // Kalau sel diketik manual di Sheets dgn format yg dikenali sbg tanggal, Google Sheets

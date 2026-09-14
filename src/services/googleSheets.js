@@ -28,6 +28,22 @@ export async function fetchFromSheet(sheetName = 'siswa', target = 'master') {
   return json.data;
 }
 
+// Ambil SEMUA sheet dari 1 target (Master/Keuangan) dalam SATU request -- dipakai
+// saat load pertama (login/buka app) supaya browser tidak perlu menembak banyak
+// request terpisah sekaligus (tiap request ke Apps Script punya overhead & kena
+// kuota bersama -- gabung jadi 1 mengurangi beban & kegagalan "tidak terhubung").
+// Hasilnya objek {namaSheet: [...rows]}, sesuai kunci di SHEETS pada Code.gs.
+export async function fetchAllFromSheet(target = 'master') {
+  const { url, secret } = getSheetsConfig(target);
+  if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
+  const sep = url.includes('?') ? '&' : '?';
+  const res = await fetch(url + sep + 'sheet=ALL&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
+  if (!res.ok) throw new Error('Gagal menghubungi Apps Script (HTTP ' + res.status + ').');
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');
+  return json.data; // { sheetName: [...rows], ... }
+}
+
 async function postToSheet(body, target = 'master') {
   const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);

@@ -18,7 +18,7 @@ import {
   fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet, fetchAsetFromSheet,
   fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet, fetchPemasukanLainFromSheet, fetchAkunFromSheet,
   fetchBeasiswaKategoriFromSheet, fetchBeasiswaSiswaFromSheet,
-  setActiveTahunAjaranOnSheet, isConfigured,
+  setActiveTahunAjaranOnSheet, isConfigured, fetchAllFromSheet,
 } from '../services/googleSheets';
 import useSheetResource from '../hooks/useSheetResource';
 
@@ -71,42 +71,104 @@ export function AppProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   // ---- Data induk: SUMBER ASLINYA Google Sheets, bukan lagi data dami ----
-  const siswaRes = useSheetResource(fetchSiswaFromSheet, normalizeSheetSiswa);
-  const kelasRes = useSheetResource(fetchKelasFromSheet, normalizeSheetKelas);
-  const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru);
-  const asetRes = useSheetResource(fetchAsetFromSheet, normalizeSheetAset);
-  const tahunAjaranRes = useSheetResource(fetchTahunAjaranFromSheet, normalizeSheetTahunAjaran);
-  const tarifRes = useSheetResource(fetchTarifFromSheet, normalizeSheetTarif, 'keuangan');
-  const tagihanSppRes = useSheetResource(fetchTagihanSppFromSheet, normalizeSheetTagihanSpp, 'keuangan');
-  const tagihanLainRes = useSheetResource(fetchTagihanLainFromSheet, normalizeSheetTagihanLain, 'keuangan');
-  const pembayaranRes = useSheetResource(fetchPembayaranFromSheet, normalizeSheetPembayaran, 'keuangan');
-  const pengeluaranRes = useSheetResource(fetchPengeluaranFromSheet, normalizeSheetPengeluaran, 'keuangan');
-  const pemasukanLainRes = useSheetResource(fetchPemasukanLainFromSheet, normalizeSheetPemasukanLain, 'keuangan');
-  const akunRes = useSheetResource(fetchAkunFromSheet, normalizeSheetAkun, 'keuangan');
-  const beasiswaKategoriRes = useSheetResource(fetchBeasiswaKategoriFromSheet, normalizeSheetBeasiswaKategori, 'keuangan');
-  const beasiswaSiswaRes = useSheetResource(fetchBeasiswaSiswaFromSheet, normalizeSheetBeasiswaSiswa, 'keuangan');
+  // "deferInitialFetch: true" di SEMUANYA -- data awal diisi SEKALIGUS lewat batch
+  // (lihat useEffect fetchAllFromSheet di bawah), bukan 14 request terpisah saat
+  // mount. refresh() manual (setelah tambah/edit/hapus) TETAP 1 request spt biasa.
+  const defer = { deferInitialFetch: true };
+  const siswaRes = useSheetResource(fetchSiswaFromSheet, normalizeSheetSiswa, 'master', defer);
+  const kelasRes = useSheetResource(fetchKelasFromSheet, normalizeSheetKelas, 'master', defer);
+  const guruRes = useSheetResource(fetchGuruFromSheet, normalizeSheetGuru, 'master', defer);
+  const asetRes = useSheetResource(fetchAsetFromSheet, normalizeSheetAset, 'master', defer);
+  const tahunAjaranRes = useSheetResource(fetchTahunAjaranFromSheet, normalizeSheetTahunAjaran, 'master', defer);
+  const tarifRes = useSheetResource(fetchTarifFromSheet, normalizeSheetTarif, 'keuangan', defer);
+  const tagihanSppRes = useSheetResource(fetchTagihanSppFromSheet, normalizeSheetTagihanSpp, 'keuangan', defer);
+  const tagihanLainRes = useSheetResource(fetchTagihanLainFromSheet, normalizeSheetTagihanLain, 'keuangan', defer);
+  const pembayaranRes = useSheetResource(fetchPembayaranFromSheet, normalizeSheetPembayaran, 'keuangan', defer);
+  const pengeluaranRes = useSheetResource(fetchPengeluaranFromSheet, normalizeSheetPengeluaran, 'keuangan', defer);
+  const pemasukanLainRes = useSheetResource(fetchPemasukanLainFromSheet, normalizeSheetPemasukanLain, 'keuangan', defer);
+  const akunRes = useSheetResource(fetchAkunFromSheet, normalizeSheetAkun, 'keuangan', defer);
+  const beasiswaKategoriRes = useSheetResource(fetchBeasiswaKategoriFromSheet, normalizeSheetBeasiswaKategori, 'keuangan', defer);
+  const beasiswaSiswaRes = useSheetResource(fetchBeasiswaSiswaFromSheet, normalizeSheetBeasiswaSiswa, 'keuangan', defer);
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
+  // TIDAK auto-fetch sendiri saat mount lagi (dulu +1 request terpisah) -- diisi
+  // lewat batch Master di bawah. refreshProfil() manual TETAP jalan spt biasa.
   const [profilSekolah, setProfilSekolahRaw] = useState(null);
-  const [profilLoading, setProfilLoading] = useState(false);
+  const [profilLoading, setProfilLoading] = useState(true);
   const [profilExists, setProfilExists] = useState(false);
+  const isiProfilDariRows = useCallback((rows) => {
+    if (rows.length > 0) {
+      setProfilSekolahRaw(normalizeSheetProfil(rows[0]));
+      setProfilExists(true);
+    } else {
+      setProfilSekolahRaw(null);
+      setProfilExists(false);
+    }
+    setProfilLoading(false);
+  }, []);
   const refreshProfil = useCallback(async () => {
-    if (!isConfigured()) { setProfilSekolahRaw(null); return; }
+    if (!isConfigured()) { setProfilSekolahRaw(null); setProfilLoading(false); return; }
     setProfilLoading(true);
     try {
       const rows = await fetchProfilFromSheet();
-      if (rows.length > 0) {
-        setProfilSekolahRaw(normalizeSheetProfil(rows[0]));
-        setProfilExists(true);
-      } else {
-        setProfilSekolahRaw(null);
-        setProfilExists(false);
-      }
+      isiProfilDariRows(rows);
     } finally {
       setProfilLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { refreshProfil(); }, [refreshProfil]);
+
+  // ---- Load AWAL: 1 request gabungan per target (Master & Keuangan), BUKAN 14+1
+  // request terpisah -- lihat catatan di useSheetResource.js & fetchAllFromSheet().
+  // Kalau batch GAGAL utk 1 target (mis. sedang ada gangguan sesaat), jatuhkan ke
+  // cara lama (refresh() 1-per-1 utk target itu saja) sbg cadangan, supaya user
+  // tidak sepenuhnya macet cuma krn 1 request gabungan gagal.
+  useEffect(() => {
+    let batal = false;
+    async function muatMaster() {
+      if (!isConfigured('master')) { isiProfilDariRows([]); return; }
+      try {
+        const semua = await fetchAllFromSheet('master');
+        if (batal) return;
+        siswaRes.setFromBatch(semua.siswa || []);
+        kelasRes.setFromBatch(semua.kelas || []);
+        guruRes.setFromBatch(semua.guru || []);
+        asetRes.setFromBatch(semua.aset || []);
+        tahunAjaranRes.setFromBatch(semua.tahunAjaran || []);
+        isiProfilDariRows(semua.profil || []);
+      } catch (err) {
+        if (batal) return;
+        // Cadangan: kalau batch gagal, tetap coba 1-per-1 spt versi lama.
+        siswaRes.refresh(); kelasRes.refresh(); guruRes.refresh(); asetRes.refresh(); tahunAjaranRes.refresh();
+        refreshProfil();
+      }
+    }
+    async function muatKeuangan() {
+      if (!isConfigured('keuangan')) return;
+      try {
+        const semua = await fetchAllFromSheet('keuangan');
+        if (batal) return;
+        tarifRes.setFromBatch(semua.tarif || []);
+        tagihanSppRes.setFromBatch(semua.tagihanSpp || []);
+        tagihanLainRes.setFromBatch(semua.tagihanLain || []);
+        pembayaranRes.setFromBatch(semua.pembayaran || []);
+        pengeluaranRes.setFromBatch(semua.pengeluaran || []);
+        pemasukanLainRes.setFromBatch(semua.pemasukanLain || []);
+        akunRes.setFromBatch(semua.akunBukuBesar || []);
+        beasiswaKategoriRes.setFromBatch(semua.beasiswaKategori || []);
+        beasiswaSiswaRes.setFromBatch(semua.beasiswaSiswa || []);
+      } catch (err) {
+        if (batal) return;
+        tarifRes.refresh(); tagihanSppRes.refresh(); tagihanLainRes.refresh(); pembayaranRes.refresh();
+        pengeluaranRes.refresh(); pemasukanLainRes.refresh(); akunRes.refresh();
+        beasiswaKategoriRes.refresh(); beasiswaSiswaRes.refresh();
+      }
+    }
+    muatMaster();
+    muatKeuangan();
+    return () => { batal = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
