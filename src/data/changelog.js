@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.25.1',
+    tanggal: '2026-09-15',
+    poin: [
+      'Bersihkan Data Duplikat: tambah tombol "Lihat Detail" per kelompok ambigu — menampilkan rincian setiap baris dan pembayarannya, supaya bisa diputuskan manual bukan cuma percaya label',
+    ],
+  },
+  {
     versi: '1.25.0',
     tanggal: '2026-09-15',
     poin: [

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Fragment } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
 import { deleteTagihanSppFromSheet, deleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda } from '../../services/googleSheets';
@@ -13,16 +13,16 @@ import ProgressModal from '../../components/common/ProgressModal';
 function analisisKelompok(rows, pembayaranByRefNo) {
   const punyaPembayaran = rows.filter(r => pembayaranByRefNo.has(r.no));
   if (punyaPembayaran.length > 1) {
-    return { aman: false, alasan: 'Lebih dari 1 baris dalam kelompok ini punya riwayat pembayaran -- tidak disentuh, perlu diperiksa manual.', simpan: null, hapus: [] };
+    return { aman: false, alasan: 'Lebih dari 1 baris dalam kelompok ini punya riwayat pembayaran -- tidak disentuh, perlu diperiksa manual.', simpan: null, hapus: [], punyaPembayaran };
   }
   if (punyaPembayaran.length === 1) {
     const simpan = punyaPembayaran[0];
-    return { aman: true, alasan: null, simpan, hapus: rows.filter(r => r.no !== simpan.no) };
+    return { aman: true, alasan: null, simpan, hapus: rows.filter(r => r.no !== simpan.no), punyaPembayaran };
   }
   // Tidak ada yg py pembayaran sama sekali -- simpan yg PALING AWAL (No terkecil = pertama dibuat).
   const terurut = [...rows].sort((a, b) => Number(a.no) - Number(b.no));
   const simpan = terurut[0];
-  return { aman: true, alasan: null, simpan, hapus: terurut.slice(1) };
+  return { aman: true, alasan: null, simpan, hapus: terurut.slice(1), punyaPembayaran };
 }
 
 export default function BersihkanDuplikat() {
@@ -30,6 +30,7 @@ export default function BersihkanDuplikat() {
   const { currentUser } = useAuth();
   const [memproses, setMemproses] = useState(false);
   const [memperbaikiNomor, setMemperbaikiNomor] = useState(false);
+  const [terbukaDetail, setTerbukaDetail] = useState({}); // { [kunci]: true }
 
   // Deteksi "No" yg KEBETULAN dobel dlm 1 sheet yg SAMA (akibat bug lama, race
   // condition saat penerbitan cepat berturut-turut -- sudah diperbaiki di server,
@@ -97,10 +98,17 @@ export default function BersihkanDuplikat() {
       rows.forEach(r => { punyaPembayaranMap.set(r.no, pembayaranByRefNo.has(`${r.refType}-${r.no}`)); });
       const cekPembayaran = { has: (no) => punyaPembayaranMap.get(no) };
       const analisis = analisisKelompok(rows, cekPembayaran);
-      hasil.push({ kunci, refType: rows[0].refType, nisn: rows[0].nisn, namaSiswa: rows[0].namaSiswa, label: rows[0].label, bulan: rows[0].bulan, tahunKalender: rows[0].tahunKalender, jumlahBaris: rows.length, ...analisis });
+      // Lampirkan detail PEMBAYARAN ASLI (tanggal, nominal, metode) utk tiap baris yg
+      // kedapatan "punya pembayaran" -- supaya user bisa lihat SENDIRI kenapa suatu
+      // kelompok dianggap ambigu, bukan cuma percaya label "Ambigu" begitu saja.
+      const punyaPembayaranDetail = (analisis.punyaPembayaran || []).map(r => ({
+        ...r,
+        detailBayar: pembayaran.filter(p => p.refType === r.refType && p.refNo === r.no),
+      }));
+      hasil.push({ kunci, refType: rows[0].refType, nisn: rows[0].nisn, namaSiswa: rows[0].namaSiswa, label: rows[0].label, bulan: rows[0].bulan, tahunKalender: rows[0].tahunKalender, jumlahBaris: rows.length, rows, ...analisis, punyaPembayaranDetail });
     });
     return hasil.sort((a, b) => b.jumlahBaris - a.jumlahBaris);
-  }, [allTagihan, pembayaranByRefNo]);
+  }, [allTagihan, pembayaranByRefNo, pembayaran]);
 
   const kelompokAman = kelompokDuplikat.filter(k => k.aman);
   const kelompokAmbigu = kelompokDuplikat.filter(k => !k.aman);
@@ -245,19 +253,55 @@ export default function BersihkanDuplikat() {
               </thead>
               <tbody>
                 {kelompokDuplikat.map(k => (
-                  <tr key={k.kunci}>
-                    <td>{k.nisn}</td>
-                    <td>{k.namaSiswa}</td>
-                    <td>{k.refType === 'SPP' ? `SPP ${k.bulan} ${k.tahunKalender}` : k.label}</td>
-                    <td style={{ fontWeight: 700 }}>{k.jumlahBaris} baris</td>
-                    <td>
-                      {k.aman ? (
-                        <span className="badge badge-green">Simpan 1, hapus {k.hapus.length}</span>
-                      ) : (
-                        <span className="badge badge-red" title={k.alasan}>⚠️ Ambigu — dilewati</span>
-                      )}
-                    </td>
-                  </tr>
+                  <Fragment key={k.kunci}>
+                    <tr>
+                      <td>{k.nisn}</td>
+                      <td>{k.namaSiswa}</td>
+                      <td>{k.refType === 'SPP' ? `SPP ${k.bulan} ${k.tahunKalender}` : k.label}</td>
+                      <td style={{ fontWeight: 700 }}>{k.jumlahBaris} baris</td>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {k.aman ? (
+                          <span className="badge badge-green">Simpan 1, hapus {k.hapus.length}</span>
+                        ) : (
+                          <span className="badge badge-red" title={k.alasan}>⚠️ Ambigu — dilewati</span>
+                        )}
+                        <button className="btn btn-sm" onClick={() => setTerbukaDetail(t => ({ ...t, [k.kunci]: !t[k.kunci] }))}>
+                          {terbukaDetail[k.kunci] ? 'Tutup Detail' : 'Lihat Detail'}
+                        </button>
+                      </td>
+                    </tr>
+                    {terbukaDetail[k.kunci] && (
+                      <tr>
+                        <td colSpan={5} style={{ background: '#FAFBFA', padding: 0 }}>
+                          <div style={{ padding: '12px 16px' }}>
+                            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 8 }}>
+                              Rincian {k.jumlahBaris} baris dalam kelompok ini ("No" &amp; status pembayaran)
+                            </div>
+                            <table style={{ margin: 0 }}>
+                              <thead><tr><th>No (Sheet)</th><th>Nominal</th><th>Status Bayar</th><th>Detail Pembayaran (kalau ada)</th></tr></thead>
+                              <tbody>
+                                {k.rows.slice().sort((a, b) => Number(a.no) - Number(b.no)).map(r => {
+                                  const bayarUntukIni = k.punyaPembayaranDetail.find(x => x.no === r.no);
+                                  return (
+                                    <tr key={r.no}>
+                                      <td>{r.no}</td>
+                                      <td>{formatRupiah(r.nominal)}</td>
+                                      <td>{bayarUntukIni ? <span className="badge badge-green">Ada pembayaran</span> : <span style={{ color: 'var(--muted)' }}>-</span>}</td>
+                                      <td style={{ fontSize: 12 }}>
+                                        {bayarUntukIni && bayarUntukIni.detailBayar.map(d => (
+                                          <div key={d.no}>{formatRupiah(d.nominal)} — {d.tanggalBayar} — {d.metode}</div>
+                                        ))}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
