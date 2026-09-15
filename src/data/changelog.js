@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Pembayaran: tambah filter Pilih Kelas dan Pilih Rombel di atas kolom Cari Siswa, supaya lebih mudah menemukan siswa di sekolah yang rombelnya banyak/nama miripan',
+      '"Bayar Sekaligus" sekarang jadi tombol di sebelah "Pilih Tagihan Belum Lunas" (bukan tab terpisah lagi) — begitu siswa ditemukan, klik tombolnya langsung buka form Bayar Sekaligus dalam bentuk pop-up, tidak perlu pindah tab & cari ulang siswa yang sama',
+    ],
+  },
+  {
     versi: '1.30.0',
     tanggal: '2026-09-15',
     poin: [

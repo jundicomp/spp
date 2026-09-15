@@ -64,7 +64,7 @@ export function cekBeasiswaAktif(nisn, beasiswaSiswa, beasiswaKategori, cutoffMs
 // tampilan/efektif spt nominalEfektifTagihan di atas -- ini dipakai SEBELUM baris
 // tagihan itu ada, utk menentukan nominal yg akan DITULIS ke Sheet) -- dipakai
 // BERSAMA oleh KEDUA jalur yg bisa menerbitkan tagihan SPP baru: Penerbitan SPP
-// bulanan (PenerbitanSppTab) dan Bayar SPP Sekaligus (BayarSekaligusTab, saat harus
+// bulanan (PenerbitanSppTab) dan Bayar SPP Sekaligus (BayarSekaligusModal, saat harus
 // menerbitkan dulu bulan yg blm py tagihan sebelum bisa dibayar) -- supaya potongan
 // beasiswa yg tersimpan APA ADANYA di kolom Nominal selalu dihitung dgn cara yg
 // SAMA PERSIS, di mana pun tagihan itu "lahir".

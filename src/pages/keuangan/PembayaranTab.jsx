@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { initials, avatarColor, todayWIB, formatTanggalTampil, normalisasiTanggalUntukInput } from '../../db/helpers';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
 import KwitansiModal from './KwitansiModal';
+import BayarSekaligusModal from './BayarSekaligusModal';
 import Modal from '../../components/common/Modal';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 import SaveProgressModal from '../../components/common/SaveProgressModal';
@@ -31,7 +32,7 @@ function formatRupiah(n) {
 }
 
 export default function PembayaranTab() {
-  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun, beasiswaSiswa, beasiswaKategori, profilSekolah } = useAppData();
+  const { siswa, kelas, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun, beasiswaSiswa, beasiswaKategori, profilSekolah } = useAppData();
   const { currentUser } = useAuth();
 
   const [term, setTerm] = useState('');
@@ -45,6 +46,30 @@ export default function PembayaranTab() {
   const [saving, setSaving] = useState(false);
   const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
+  const [bayarSekaligus, setBayarSekaligus] = useState(false);
+
+  // Filter Kelas & Rombel -- diterapkan SEBELUM pencarian nama/NISN, supaya mudah
+  // menemukan siswa yg namanya mirip/sama di sekolah dgn banyak rombel. Sumber
+  // pilihannya dari data KONFIGURASI Kelas (menu Data Kelas & Rombel), sama spt
+  // pola yg dipakai di Laporan Rombel.
+  const [filterKelas, setFilterKelas] = useState('');
+  const [filterRombel, setFilterRombel] = useState('');
+
+  const daftarKelasOptions = useMemo(() => {
+    const set = new Set(kelas.map(k => k.tingkat).filter(Boolean));
+    return Array.from(set).sort();
+  }, [kelas]);
+
+  const daftarRombelOptions = useMemo(() => {
+    if (!filterKelas) return [];
+    const set = new Set(kelas.filter(k => k.tingkat === filterKelas).map(k => k.namaKelas).filter(Boolean));
+    return Array.from(set).sort();
+  }, [kelas, filterKelas]);
+
+  function gantiFilterKelas(v) {
+    setFilterKelas(v);
+    setFilterRombel('');
+  }
 
   // Filter tanggal riwayat pembayaran -- default kosong (tampil semua), diisi biar
   // bisa lihat transaksi hari per hari (dari=sampai=tanggal yg sama) atau rentang.
@@ -69,8 +94,12 @@ export default function PembayaranTab() {
   const suggestions = useMemo(() => {
     if (!term.trim() || selectedSiswaId) return [];
     const t = term.toLowerCase();
-    return siswa.filter(s => s.nama.toLowerCase().includes(t) || s.nisn.includes(t)).slice(0, 6);
-  }, [term, siswa, selectedSiswaId]);
+    return siswa
+      .filter(s => !filterKelas || s.kelasTingkat === filterKelas)
+      .filter(s => !filterRombel || s.rombel === filterRombel)
+      .filter(s => s.nama.toLowerCase().includes(t) || s.nisn.includes(t))
+      .slice(0, 6);
+  }, [term, siswa, selectedSiswaId, filterKelas, filterRombel]);
 
   const selectedSiswa = siswa.find(s => s.id === selectedSiswaId);
 
@@ -196,6 +225,23 @@ export default function PembayaranTab() {
         <div className="card-head"><div><h3>Catat Pembayaran</h3><p>Cari siswa, pilih tagihan yang mau dibayar, lalu simpan.</p></div></div>
         <form onSubmit={submitPembayaran}>
           <div className="card-body">
+            <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+              <div className="field" style={{ minWidth: 160 }}>
+                <label>Pilih Kelas</label>
+                <select value={filterKelas} onChange={e => gantiFilterKelas(e.target.value)}>
+                  <option value="">Semua Kelas</option>
+                  {daftarKelasOptions.map(k => <option key={k} value={k}>Kelas {k}</option>)}
+                </select>
+              </div>
+              <div className="field" style={{ minWidth: 160 }}>
+                <label>Pilih Rombel</label>
+                <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)} disabled={!filterKelas}>
+                  <option value="">Semua Rombel</option>
+                  {daftarRombelOptions.map(r => <option key={r} value={r}>Rombel {r}</option>)}
+                </select>
+              </div>
+            </div>
+
             <div style={{ maxWidth: 420, marginBottom: 18 }}>
               <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 5 }}>Cari Siswa</label>
               <input
@@ -218,7 +264,10 @@ export default function PembayaranTab() {
 
             {selectedSiswa && (
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Pilih Tagihan Belum Lunas</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)' }}>Pilih Tagihan Belum Lunas</label>
+                  <button type="button" className="btn btn-sm" onClick={() => setBayarSekaligus(true)}>🗓️ Bayar Sekaligus</button>
+                </div>
                 {tagihanBelumLunasSiswa.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Semua tagihan siswa ini sudah lunas. 🎉</p>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {tagihanBelumLunasSiswa.map(t => (
@@ -367,6 +416,7 @@ export default function PembayaranTab() {
       </div>
 
       {lihatKwitansi && <KwitansiModal pembayaran={lihatKwitansi} onClose={() => setLihatKwitansi(null)} />}
+      {bayarSekaligus && selectedSiswa && <BayarSekaligusModal siswa={selectedSiswa} onClose={() => setBayarSekaligus(false)} />}
       {phase && <SaveProgressModal phase={phase} />}
     </>
   );
