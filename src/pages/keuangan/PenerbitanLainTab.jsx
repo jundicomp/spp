@@ -84,7 +84,13 @@ export default function PenerbitanLainTab() {
         detail: `Menerbitkan tagihan "${item.tarif.jenis}" untuk ${totalTerbit} siswa${jumlahDapatBeasiswa > 0 ? `, ${jumlahDapatBeasiswa} siswa dapat potongan beasiswa` : ''}`,
       });
       toast(`Tagihan "${item.tarif.jenis}" berhasil diterbitkan untuk ${totalTerbit} siswa${jumlahDapatBeasiswa > 0 ? ` (${jumlahDapatBeasiswa} dengan potongan beasiswa)` : ''}.`);
-      refreshTagihanLain();
+      // PENTING: WAJIB ditunggu (await) sebelum tombol aktif lagi -- BUG NYATA yg
+      // ditemukan (76 baris "uang perpisahan" dobel utk 1 siswa): sebelumnya refresh
+      // ini TIDAK ditunggu, jadi tombol "Terbitkan" langsung bisa diklik lagi SAAT
+      // data lokal (daftar siswa yg "belum tertagih") masih basi -- kalau admin klik
+      // lagi krn Apps Script terasa lambat, siswa yg BARU SAJA ditagih masih dianggap
+      // "belum tertagih" dan diterbitkan LAGI, berulang-ulang.
+      await refreshTagihanLain();
     } catch (err) {
       toast(err.message, 'error');
     } finally {

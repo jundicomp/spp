@@ -122,7 +122,10 @@ export default function PenerbitanSppTab() {
         detail: `Menerbitkan tagihan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} untuk ${totalTerbit} siswa (nominal menyesuaikan tarif per kelas${jumlahDapatBeasiswa > 0 ? `, ${jumlahDapatBeasiswa} siswa dapat potongan beasiswa` : ''})`,
       });
       toast(`Tagihan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} berhasil diterbitkan untuk ${totalTerbit} siswa${jumlahDapatBeasiswa > 0 ? ` (${jumlahDapatBeasiswa} dengan potongan beasiswa)` : ''}.`);
-      refreshTagihanSpp();
+      // PENTING: WAJIB ditunggu (await) sebelum tombol aktif lagi -- sama persis dgn
+      // bug yg ditemukan di Penerbitan Lain (lihat catatan di file itu): tanpa await,
+      // tombol bisa diklik lagi saat data lokal masih basi, menerbitkan dobel.
+      await refreshTagihanSpp();
     } catch (err) {
       toast(err.message, 'error');
     } finally {

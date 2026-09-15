@@ -4,6 +4,21 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.22.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Fitur baru (khusus Kepala Sekolah/Admin): halaman "Bersihkan Data Duplikat" — deteksi & hapus otomatis tagihan SPP/Biaya Lain yang kembar, aman karena tidak pernah menyentuh baris yang sudah dibayar',
+      'Halaman yang sama juga mendeteksi tagihan Biaya Lain yang kelas siswanya tidak cocok lagi dengan Tarif yang berlaku sekarang',
+    ],
+  },
+  {
+    versi: '1.21.2',
+    tanggal: '2026-09-15',
+    poin: [
+      'Perbaikan bug serius: tagihan SPP/Biaya Lain bisa terbit dobel berulang kali kalau tombol "Terbitkan" diklik lagi sebelum data selesai diperbarui — sekarang tombol benar-benar terkunci sampai data terkonfirmasi',
+    ],
+  },
+  {
     versi: '1.21.1',
     tanggal: '2026-09-15',
     poin: [
