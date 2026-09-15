@@ -245,6 +245,8 @@ export const deleteTagihanSppFromSheet = (no) => deleteFromSheet('tagihanSpp', n
 export const fetchTagihanLainFromSheet = () => fetchFromSheet('tagihanLain', 'keuangan');
 export const addTagihanLainToSheet = (row) => addToSheet('tagihanLain', row, 'keuangan');
 export const updateTagihanLainInSheet = (row) => updateInSheet('tagihanLain', row, 'keuangan');
+export const updateTagihanSppInSheet = (row) => updateInSheet('tagihanSpp', row, 'keuangan');
+export const updatePembayaranInSheet = (row) => updateInSheet('pembayaran', row, 'keuangan');
 export const deleteTagihanLainFromSheet = (no) => deleteFromSheet('tagihanLain', no, 'keuangan');
 
 export const fetchPembayaranFromSheet = () => fetchFromSheet('pembayaran', 'keuangan');

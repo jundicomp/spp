@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.26.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Bersihkan Data Duplikat: tambah tombol "🔗 Konsolidasikan" untuk kelompok Ambigu — menggabungkan jadi 1 tagihan, semua riwayat pembayaran ikut dipindahkan (tidak hilang), dan kelebihan bayar (kalau genuinely terjadi) ditampilkan jujur agar bisa ditindaklanjuti',
+    ],
+  },
+  {
     versi: '1.25.1',
     tanggal: '2026-09-15',
     poin: [

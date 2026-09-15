@@ -1,7 +1,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
-import { deleteTagihanSppFromSheet, deleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda } from '../../services/googleSheets';
+import { deleteTagihanSppFromSheet, deleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda, fetchPembayaranFromSheet, updatePembayaranInSheet } from '../../services/googleSheets';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../db/helpers';
 import ProgressModal from '../../components/common/ProgressModal';
@@ -141,6 +141,58 @@ export default function BersihkanDuplikat() {
     return hasil;
   }, [allTagihan, tarif, siswaByNisn, pembayaranByRefNo]);
 
+  // Gabungkan 1 kelompok AMBIGU jadi 1 baris tagihan -- prinsip "1 tagihan = 1 baris":
+  // semua PEMBAYARAN yg tadinya "nyasar" ke baris-baris duplikat lain DIPINDAH (RefNo
+  // diarahkan ulang) ke baris yg disimpan, BUKAN dihapus/hilang -- baris duplikat yg
+  // pembayarannya sudah dipindah baru aman dihapus. Kalau hasil akhirnya jadi lebih
+  // besar dari nominal tagihan (kelebihan bayar genuinely terjadi), user diberi tahu
+  // scr eksplisit supaya bisa ditindaklanjuti manual (refund/kreditkan ke bulan lain).
+  async function konsolidasikanKelompok(k) {
+    const totalDibayarSemua = k.punyaPembayaranDetail.reduce((s, r) => s + r.detailBayar.reduce((s2, d) => s2 + d.nominal, 0), 0);
+    const nominalAsli = k.rows[0]?.nominal || 0;
+    const pesanKelebihan = totalDibayarSemua > nominalAsli
+      ? `\n\n⚠️ PERHATIAN: total pembayaran gabungan (${formatRupiah(totalDibayarSemua)}) LEBIH BESAR dari nominal tagihan (${formatRupiah(nominalAsli)}) -- ini kelebihan bayar SUNGGUHAN, tindak lanjuti manual (refund ke orang tua, atau kreditkan ke tagihan bulan lain).`
+      : '';
+    if (!confirm(`Gabungkan ${k.jumlahBaris} baris "${k.refType === 'SPP' ? `SPP ${k.bulan} ${k.tahunKalender}` : k.label}" milik ${k.namaSiswa} jadi 1 baris? Semua riwayat pembayaran akan dipindah ke baris yg disimpan, baris lainnya dihapus.${pesanKelebihan}`)) return;
+
+    setMemproses(true);
+    try {
+      const simpan = [...k.rows].sort((a, b) => Number(a.no) - Number(b.no))[0];
+      const dihapus = k.rows.filter(r => r.no !== simpan.no);
+
+      // Pindahkan SEMUA pembayaran yg tadinya nunjuk ke baris LAIN (bukan yg disimpan)
+      // supaya nunjuk ke baris yg disimpan -- pakai data MENTAH biar field lain (Metode,
+      // Akun, dst) tidak ikut hilang saat ditulis ulang.
+      const rawPembayaran = await fetchPembayaranFromSheet();
+      for (const r of dihapus) {
+        const pembayaranNyasar = rawPembayaran.filter(p => p['RefType'] === k.refType && Number(p['RefNo']) === Number(r.no));
+        for (const p of pembayaranNyasar) {
+          await updatePembayaranInSheet({ ...p, RefNo: simpan.no });
+        }
+      }
+      // Baris yg SUDAH tidak py pembayaran lagi (sudah dipindah) baru aman dihapus.
+      for (const r of dihapus) {
+        if (k.refType === 'SPP') await deleteTagihanSppFromSheet(r.no);
+        else await deleteTagihanLainFromSheet(r.no);
+      }
+
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Konsolidasi Tagihan Ambigu',
+        modul: 'Tagihan & Biaya',
+        detail: `Menggabungkan ${k.jumlahBaris} baris "${k.refType === 'SPP' ? `SPP ${k.bulan} ${k.tahunKalender}` : k.label}" milik ${k.namaSiswa} (${k.nisn}) jadi 1 baris (No=${simpan.no}), ${dihapus.length} baris dihapus, riwayat pembayaran dipindahkan${totalDibayarSemua > nominalAsli ? ' -- TERDETEKSI KELEBIHAN BAYAR' : ''}`,
+      });
+      await refreshTagihanSpp();
+      await refreshTagihanLain();
+      toast(`Berhasil digabung jadi 1 baris.${totalDibayarSemua > nominalAsli ? ' Ada kelebihan bayar, mohon tindak lanjuti manual.' : ''}`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setMemproses(false);
+    }
+  }
+
   async function bersihkanSemua() {
     if (totalBarisAkanDihapus === 0) return;
     if (!confirm(`Akan menghapus ${totalBarisAkanDihapus} baris duplikat dari ${kelompokAman.length} kelompok. Baris yang punya riwayat pembayaran TIDAK akan dihapus. Lanjutkan?`)) return;
@@ -263,7 +315,12 @@ export default function BersihkanDuplikat() {
                         {k.aman ? (
                           <span className="badge badge-green">Simpan 1, hapus {k.hapus.length}</span>
                         ) : (
-                          <span className="badge badge-red" title={k.alasan}>⚠️ Ambigu — dilewati</span>
+                          <>
+                            <span className="badge badge-red" title={k.alasan}>⚠️ Ambigu — dilewati</span>
+                            <button className="btn btn-sm btn-primary" onClick={() => konsolidasikanKelompok(k)} disabled={memproses}>
+                              🔗 Konsolidasikan
+                            </button>
+                          </>
                         )}
                         <button className="btn btn-sm" onClick={() => setTerbukaDetail(t => ({ ...t, [k.kunci]: !t[k.kunci] }))}>
                           {terbukaDetail[k.kunci] ? 'Tutup Detail' : 'Lihat Detail'}
