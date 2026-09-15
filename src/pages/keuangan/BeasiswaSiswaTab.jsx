@@ -75,7 +75,7 @@ export default function BeasiswaSiswaTab() {
       let estimasiPotonganSpp = 0;
       if (s && kategori && tahunAjaranAktif) {
         const t = cariTarifSppUntukKelas(tarif, tahunAjaranAktif.label, s.kelasTingkat);
-        if (t) estimasiPotonganSpp = Math.round(t.nominal * (kategori.potonganSpp / 100));
+        if (t) estimasiPotonganSpp = Math.min(kategori.potonganSpp, t.nominal);
       }
       return { ...b, kelasTingkat: s?.kelasTingkat || '-', potonganSpp: kategori?.potonganSpp || 0, potonganBiayaLain: kategori?.potonganBiayaLain || 0, estimasiPotonganSpp };
     });
@@ -113,7 +113,7 @@ export default function BeasiswaSiswaTab() {
               { key: 'nisn', label: 'NISN', accessor: r => r.nisn },
               { key: 'kelasTingkat', label: 'Kelas', accessor: r => r.kelasTingkat ? `Kelas ${r.kelasTingkat}` : '-' },
               { key: 'kategoriBeasiswa', label: 'Kategori Beasiswa', accessor: r => r.kategoriBeasiswa },
-              { key: 'potongan', label: 'Potongan', accessor: r => `SPP ${r.potonganSpp}% · Lain ${r.potonganBiayaLain}%` },
+              { key: 'potongan', label: 'Potongan', accessor: r => `SPP ${formatRupiah(r.potonganSpp)} · Lain ${formatRupiah(r.potonganBiayaLain)}` },
               { key: 'tanggalMulai', label: 'Tanggal Mulai', accessor: r => formatTanggalTampil(r.tanggalMulai) },
               { key: 'keterangan', label: 'Keterangan', accessor: r => r.keterangan || '-' },
               { key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => <div className="no-print"><button className="btn btn-sm" onClick={() => hapusSiswa(r)}>🗑️</button></div> },
@@ -151,7 +151,7 @@ export default function BeasiswaSiswaTab() {
                 <label>Kategori Beasiswa <span style={{ color: 'var(--red)' }}>*</span></label>
                 <select value={kategoriDipilih} onChange={e => setKategoriDipilih(e.target.value)}>
                   <option value="">— pilih —</option>
-                  {beasiswaKategori.map(k => <option key={k.id} value={k.nama}>{k.nama} (SPP -{k.potonganSpp}%, Lain -{k.potonganBiayaLain}%)</option>)}
+                  {beasiswaKategori.map(k => <option key={k.id} value={k.nama}>{k.nama} (SPP -{formatRupiah(k.potonganSpp)}, Lain -{formatRupiah(k.potonganBiayaLain)})</option>)}
                 </select>
                 {beasiswaKategori.length === 0 && <p style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 4 }}>Belum ada Kategori Beasiswa. Tambahkan dulu di tab "Kategori Beasiswa".</p>}
               </div>

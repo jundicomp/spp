@@ -99,7 +99,7 @@ export default function PembayaranTab() {
         Metode: metode,
         Akun: akunPenerima,
         Keterangan: selectedTagihan.potonganBeasiswa
-          ? `Potongan Beasiswa: ${selectedTagihan.potonganBeasiswa.kategori.nama} (${selectedTagihan.potonganBeasiswa.persen}%) -- nominal asli ${formatRupiah(selectedTagihan.nominalAsli)}`
+          ? `Potongan Beasiswa: ${selectedTagihan.potonganBeasiswa.kategori.nama} (${formatRupiah(selectedTagihan.potonganBeasiswa.nominalPotongan)}) -- nominal asli ${formatRupiah(selectedTagihan.nominalAsli)}`
           : '',
       };
       await addPembayaranToSheet(row);
@@ -203,7 +203,7 @@ export default function PembayaranTab() {
                   <span style={{ textDecoration: 'line-through', color: 'var(--muted)' }}>{formatRupiah(selectedTagihan.nominalAsli)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '4px 0' }}>
-                  <span>Potongan Beasiswa <span style={{ background: 'var(--gold)', color: 'var(--green-dark)', fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 999, marginLeft: 6 }}>🎓 {selectedTagihan.potonganBeasiswa.kategori.nama} -{selectedTagihan.potonganBeasiswa.persen}%</span></span>
+                  <span>Potongan Beasiswa <span style={{ background: 'var(--gold)', color: 'var(--green-dark)', fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 999, marginLeft: 6 }}>🎓 {selectedTagihan.potonganBeasiswa.kategori.nama} -{formatRupiah(selectedTagihan.potonganBeasiswa.nominalPotongan)}</span></span>
                   <span style={{ color: 'var(--red)' }}>- {formatRupiah(selectedTagihan.nominalAsli - selectedTagihan.nominalEfektif)}</span>
                 </div>
                 <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />

@@ -1,14 +1,14 @@
-export const BEASISWA_KATEGORI_HEADERS = ['No', 'Nama Kategori', 'Keterangan', 'Potongan SPP (%)', 'Potongan Biaya Lain (%)'];
+export const BEASISWA_KATEGORI_HEADERS = ['No', 'Nama Kategori', 'Keterangan', 'Potongan SPP (Rp)', 'Potongan Biaya Lain (Rp)'];
 
 export const BEASISWA_KATEGORI_FIELDS = [
   { key: 'Nama Kategori', label: 'Nama Kategori', type: 'text', required: true, placeholder: 'mis. Anak Yatim, Dhuafa, Anak Guru, Kebutuhan Khusus' },
-  { key: 'Keterangan', label: 'Keterangan Manfaat', type: 'text', required: true, placeholder: 'mis. Gratis SPP penuh, atau Potongan 50% biaya lainnya' },
-  { key: 'Potongan SPP (%)', label: 'Potongan SPP (%)', type: 'number', placeholder: '0-100, mis. 100 = gratis penuh' },
-  { key: 'Potongan Biaya Lain (%)', label: 'Potongan Biaya Lain (%)', type: 'number', placeholder: '0-100' },
+  { key: 'Keterangan', label: 'Keterangan Manfaat', type: 'text', required: true, placeholder: 'mis. Gratis SPP penuh, atau potongan Rp 50.000 biaya lainnya' },
+  { key: 'Potongan SPP (Rp)', label: 'Potongan SPP (Rp)', type: 'number', placeholder: 'Nominal potongan per bulan, mis. 100000. Isi nominal SPP penuh utk gratis total' },
+  { key: 'Potongan Biaya Lain (Rp)', label: 'Potongan Biaya Lain (Rp)', type: 'number', placeholder: 'Nominal potongan, mis. 50000' },
 ];
 
 export function emptyBeasiswaKategoriRow() {
-  return { 'Nama Kategori': '', Keterangan: '', 'Potongan SPP (%)': '', 'Potongan Biaya Lain (%)': '' };
+  return { 'Nama Kategori': '', Keterangan: '', 'Potongan SPP (Rp)': '', 'Potongan Biaya Lain (Rp)': '' };
 }
 
 export function normalizeSheetBeasiswaKategori(row, idx) {
@@ -17,8 +17,8 @@ export function normalizeSheetBeasiswaKategori(row, idx) {
     no: row['No'],
     nama: String(row['Nama Kategori'] ?? '').trim(),
     keterangan: String(row['Keterangan'] ?? '').trim(),
-    potonganSpp: Number(row['Potongan SPP (%)']) || 0,
-    potonganBiayaLain: Number(row['Potongan Biaya Lain (%)']) || 0,
+    potonganSpp: Number(row['Potongan SPP (Rp)']) || 0,
+    potonganBiayaLain: Number(row['Potongan Biaya Lain (Rp)']) || 0,
   };
 }
 
@@ -66,11 +66,21 @@ export function nominalEfektifTagihan(tagihan, beasiswaSiswa, beasiswaKategori, 
   // Uang yg sudah benar-benar masuk kas tidak boleh "menghilang" gara-gara beasiswa
   // dipasang belakangan -- diskon cuma utk sisa yg BELUM dibayar sama sekali.
   if (terbayar > 0) return { nominalEfektif: tagihan.nominal, potongan: null };
+  // Cegah POTONGAN GANDA: kalau tagihan ini SUDAH didiskon saat diterbitkan (beasiswa
+  // sudah ada duluan sebelum tagihan dibuat -- keterangannya sudah tercatat di Sheet
+  // saat itu), nominal yg TERSIMPAN sudah nominal FINAL. Jangan dipotong LAGI di sini,
+  // atau siswa itu kena potongan dua kali (sekali saat terbit, sekali lagi saat tampil).
+  if (tagihan.keterangan && tagihan.keterangan.includes('Potongan Beasiswa')) {
+    return { nominalEfektif: tagihan.nominal, potongan: null };
+  }
   const kategori = cekBeasiswaAktif(tagihan.nisn, beasiswaSiswa, beasiswaKategori, cutoffMs);
   if (!kategori) return { nominalEfektif: tagihan.nominal, potongan: null };
-  const persen = tagihan.refType === 'SPP' ? kategori.potonganSpp : kategori.potonganBiayaLain;
-  if (!persen) return { nominalEfektif: tagihan.nominal, potongan: null };
-  const nominalEfektif = Math.round(tagihan.nominal * (1 - persen / 100));
+  // Potongan sekarang nilai Rupiah LANGSUNG (bukan persentase) -- dikurangkan apa
+  // adanya dari nominal, tidak boleh sampai minus (di-clamp ke 0 kalau potongannya
+  // lebih besar dari tagihannya sendiri).
+  const nominalPotongan = tagihan.refType === 'SPP' ? kategori.potonganSpp : kategori.potonganBiayaLain;
+  if (!nominalPotongan) return { nominalEfektif: tagihan.nominal, potongan: null };
+  const nominalEfektif = Math.max(0, tagihan.nominal - nominalPotongan);
   if (nominalEfektif >= tagihan.nominal) return { nominalEfektif: tagihan.nominal, potongan: null };
-  return { nominalEfektif, potongan: { kategori, persen } };
+  return { nominalEfektif, potongan: { kategori, nominalPotongan: tagihan.nominal - nominalEfektif } };
 }

@@ -77,7 +77,7 @@ const SHEETS = {
   },
   beasiswaKategori: {
     name: 'Beasiswa Kategori',
-    headers: ['No', 'Nama Kategori', 'Keterangan', 'Potongan SPP (%)', 'Potongan Biaya Lain (%)'],
+    headers: ['No', 'Nama Kategori', 'Keterangan', 'Potongan SPP (Rp)', 'Potongan Biaya Lain (Rp)'],
   },
   beasiswaSiswa: {
     name: 'Beasiswa Siswa',

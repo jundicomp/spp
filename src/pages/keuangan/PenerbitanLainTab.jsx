@@ -44,7 +44,7 @@ export default function PenerbitanLainTab() {
     if (mulai && Date.now() < mulai.getTime()) return { nominal: nominalPenuh, potongan: null };
     const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
     if (!kategori || !kategori.potonganBiayaLain) return { nominal: nominalPenuh, potongan: null };
-    const nominal = Math.round(nominalPenuh * (1 - kategori.potonganBiayaLain / 100));
+    const nominal = Math.max(0, nominalPenuh - kategori.potonganBiayaLain);
     return { nominal, potongan: kategori };
   }
 
@@ -69,7 +69,7 @@ export default function PenerbitanLainTab() {
             Wajib: item.tarif.wajib,
             Nominal: nominal,
             'Jatuh Tempo': todayWIB(),
-            Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${potongan.potonganBiayaLain}%)` : '',
+            Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${formatRupiah(potongan.potonganBiayaLain)})` : '',
           };
         });
         const result = await bulkAddToSheet('tagihanLain', rows, 'keuangan');

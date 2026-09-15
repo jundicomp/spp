@@ -78,7 +78,7 @@ export default function PenerbitanSppTab() {
     if (mulai && tanggalMulaiBulanTagihan < mulai.getTime()) return { nominal: nominalPenuh, potongan: null };
     const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
     if (!kategori || !kategori.potonganSpp) return { nominal: nominalPenuh, potongan: null };
-    const nominal = Math.round(nominalPenuh * (1 - kategori.potonganSpp / 100));
+    const nominal = Math.max(0, nominalPenuh - kategori.potonganSpp);
     return { nominal, potongan: kategori };
   }
 
@@ -107,7 +107,7 @@ export default function PenerbitanSppTab() {
             'Tahun Kalender': item.calYear,
             Nominal: nominal,
             'Jatuh Tempo': `10/${item.monthIdx + 1}/${item.calYear}`,
-            Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${potongan.potonganSpp}%)` : '',
+            Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${formatRupiah(potongan.potonganSpp)})` : '',
           };
         });
         const result = await bulkAddTagihanSppToSheet(rows);

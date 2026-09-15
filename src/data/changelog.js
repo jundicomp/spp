@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.20.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Kategori Beasiswa sekarang diisi nilai potongan Rupiah langsung (mis. Rp 40.000), bukan lagi persentase',
+      'Perbaikan bug: potongan beasiswa yang sudah ada sejak tagihan terbit tidak lagi terhitung dua kali saat ditampilkan/dibayar',
+    ],
+  },
+  {
     versi: '1.19.0',
     tanggal: '2026-09-15',
     poin: [
