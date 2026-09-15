@@ -47,21 +47,41 @@ export default function PenerbitanSppTab() {
     if (!tahunAjaranAktif) return [];
     const startYear = parseInt(tahunAjaranAktif.label.split('/')[0]);
     const now = new Date();
+    const totalSiswaAktif = siswaAktif.length;
     const list = [];
     for (let m = 0; m < 12; m++) {
       const monthIdx = (6 + m) % 12; // mulai Juli (index 6)
       const calYear = monthIdx >= 6 ? startYear : startYear + 1;
       const bulanTagihan = tagihanTahunIni.filter(t => t.bulan === BULAN_ID[monthIdx] && Number(t.tahunKalender) === calYear);
-      const sudahTerbit = bulanTagihan.length > 0;
+
+      // Dicek PER SISWA -- bukan cuma "ada/tidak ada tagihan sama sekali" utk bulan
+      // ini. Sebelumnya begitu 1 baris tagihan bulan itu ada (mis. siswa baru pindah,
+      // atau siswa yg bayar SPP di muka), seluruh bulan langsung dicap "Sudah Terbit"
+      // dan tombol Terbitkan-nya HILANG -- padahal ratusan siswa lain blm ditagih sama
+      // sekali (ini yg bikin banyak siswa nyangkut di "Perlu Tindak Lanjut"). Sekarang
+      // dihitung siapa aja yg BELUM py tagihan bulan ini, dan HANYA mereka yg diproses
+      // saat tombol Terbitkan diklik -- yg sudah py (via penerbitan normal ATAU lewat
+      // bayar di muka) otomatis dilewati, tidak dobel.
+      const nisnSudahTertagih = new Set(bulanTagihan.map(t => t.nisn));
+      const siswaBelumTertagih = siswaAktif.filter(s => !nisnSudahTertagih.has(s.nisn));
+      const jumlahBelum = siswaBelumTertagih.length;
+      const jumlahSudah = totalSiswaAktif - jumlahBelum;
+      const sudahTerbitSemua = totalSiswaAktif > 0 && jumlahBelum === 0;
+
       const startOfMonth = new Date(calYear, monthIdx, 1);
       const sudahWaktunya = startOfMonth <= now;
       let status = 'Belum Waktunya';
-      if (sudahTerbit) status = 'Sudah Terbit';
+      if (sudahTerbitSemua) status = 'Sudah Terbit';
+      else if (jumlahSudah > 0) status = 'Terbit Sebagian';
       else if (sudahWaktunya) status = 'Terlambat Terbit';
-      list.push({ monthIdx, calYear, status, jumlahSiswa: bulanTagihan.length, bisaDiterbitkan: !sudahTerbit && sudahWaktunya && semuaTingkatPunyaTarif });
+
+      list.push({
+        monthIdx, calYear, status, jumlahSudah, jumlahBelum, siswaBelumTertagih,
+        bisaDiterbitkan: jumlahBelum > 0 && sudahWaktunya && semuaTingkatPunyaTarif,
+      });
     }
     return list;
-  }, [tahunAjaranAktif, tagihanTahunIni, semuaTingkatPunyaTarif]);
+  }, [tahunAjaranAktif, tagihanTahunIni, siswaAktif, semuaTingkatPunyaTarif]);
 
   // Cari beasiswa aktif siswa ini (kalau ada) & hitung nominal SETELAH potongan --
   // dihitung SEKALI SAAT PENERBITAN, jadi nominal final tersimpan apa adanya di
@@ -84,15 +104,19 @@ export default function PenerbitanSppTab() {
 
   async function terbitkan(item) {
     if (!semuaTingkatPunyaTarif) { toast('Ada kelas yang belum punya Tarif SPP. Lengkapi dulu di tab Tarif.', 'error'); return; }
-    if (siswaAktif.length === 0) { toast('Belum ada siswa aktif.', 'error'); return; }
+    // HANYA siswa yg BELUM py tagihan bulan ini yg diproses -- siswa yg sudah (dari
+    // penerbitan sebelumnya, atau dari bayar SPP di muka) dilewati begitu saja,
+    // supaya tidak dobel tertagih.
+    const daftarSiswa = item.siswaBelumTertagih;
+    if (daftarSiswa.length === 0) { toast('Semua siswa aktif sudah punya tagihan bulan ini.', 'error'); return; }
     setIssuing(item.monthIdx);
-    const total = siswaAktif.length;
-    setProgress({ current: 0, total, label: `Menerbitkan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear}` });
+    const total = daftarSiswa.length;
+    setProgress({ current: 0, total, label: `Menerbitkan SPP ${BULAN_ID[item.monthIdx]} ${item.calYear} (${total} siswa)` });
     try {
       let totalTerbit = 0;
       let jumlahDapatBeasiswa = 0;
-      for (let i = 0; i < siswaAktif.length; i += UKURAN_KELOMPOK) {
-        const kelompok = siswaAktif.slice(i, i + UKURAN_KELOMPOK);
+      for (let i = 0; i < daftarSiswa.length; i += UKURAN_KELOMPOK) {
+        const kelompok = daftarSiswa.slice(i, i + UKURAN_KELOMPOK);
         const rows = kelompok.map(s => {
           const tarifSiswa = cariTarifSppUntukKelas(tarif, tahunAjaranAktif.label, s.kelasTingkat);
           const nominalPenuh = tarifSiswa ? tarifSiswa.nominal : 0;
@@ -136,6 +160,7 @@ export default function PenerbitanSppTab() {
 
   const STATUS_BADGE = {
     'Sudah Terbit': 'badge-green',
+    'Terbit Sebagian': 'badge-gold',
     'Terlambat Terbit': 'badge-red',
     'Belum Waktunya': 'badge-muted',
   };
@@ -173,22 +198,29 @@ export default function PenerbitanSppTab() {
           {tagihanSppLoaded && (
             <div className="table-scroll">
               <table>
-                <thead><tr><th>Bulan</th><th>Status</th><th>Jumlah Siswa</th><th>Aksi</th></tr></thead>
+                <thead><tr><th>No</th><th>Bulan</th><th>Status</th><th>Sudah Terbit</th><th>Belum Terbit</th><th>Aksi</th></tr></thead>
                 <tbody>
-                  {jadwal.map(item => (
-                    <tr key={item.monthIdx}>
-                      <td>{BULAN_ID[item.monthIdx]} {item.calYear}</td>
-                      <td><span className={`badge ${STATUS_BADGE[item.status]}`}>{item.status}</span></td>
-                      <td>{item.status === 'Sudah Terbit' ? item.jumlahSiswa : '-'}</td>
-                      <td>
-                        {item.status !== 'Sudah Terbit' && item.status !== 'Belum Waktunya' && (
-                          <button className="btn btn-sm btn-primary" onClick={() => terbitkan(item)} disabled={issuing === item.monthIdx || !semuaTingkatPunyaTarif}>
-                            {issuing === item.monthIdx ? 'Menerbitkan...' : 'Terbitkan'}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {jadwal.map((item, idx) => {
+                    const belumWaktunya = item.status === 'Belum Waktunya';
+                    return (
+                      <tr key={item.monthIdx}>
+                        <td>{idx + 1}</td>
+                        <td>{BULAN_ID[item.monthIdx]} {item.calYear}</td>
+                        <td><span className={`badge ${STATUS_BADGE[item.status]}`}>{item.status}</span></td>
+                        <td>{belumWaktunya ? '-' : item.jumlahSudah}</td>
+                        <td>{belumWaktunya ? '-' : item.jumlahBelum}</td>
+                        <td>
+                          {item.jumlahBelum > 0 && !belumWaktunya && (
+                            <button className="btn btn-sm btn-primary" onClick={() => terbitkan(item)} disabled={issuing === item.monthIdx || !semuaTingkatPunyaTarif}>
+                              {issuing === item.monthIdx ? 'Menerbitkan...' : (
+                                <>Terbitkan <span style={{ background: 'rgba(255,255,255,.25)', padding: '1px 8px', borderRadius: 999, marginLeft: 4, fontSize: 11.5 }}>{item.jumlahBelum}</span></>
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

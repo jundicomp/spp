@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.29.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Perbaikan akar masalah: Jadwal Penerbitan SPP sebelumnya mengecek "sudah/belum terbit" per BULAN (bukan per siswa) — begitu 1 siswa saja sudah punya tagihan bulan itu (mis. siswa pindahan, atau baru masuk belakangan), tombol Terbitkan langsung hilang dan siswa lain yang belum ditagih jadi nyangkut di "Perlu Tindak Lanjut". Sekarang dicek per siswa: tombol Terbitkan tetap ada selama masih ada yang belum ditagih, dengan jumlahnya ditampilkan langsung di tombol (misal "Terbitkan 473"), dan hanya siswa yang belum punya tagihan itu yang diproses',
+      'Jadwal Penerbitan SPP: tabel sekarang ada kolom No, dan "Jumlah Siswa" dipecah jadi 2 kolom terpisah — "Sudah Terbit" dan "Belum Terbit" — plus status baru "Terbit Sebagian" untuk bulan yang baru sebagian siswanya ditagih',
+    ],
+  },
+  {
     versi: '1.28.1',
     tanggal: '2026-09-15',
     poin: [
