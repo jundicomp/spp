@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BULAN_ID, parseTanggalFleksibel } from '../../db/helpers';
 import { cariTarifSppUntukKelas } from '../../db/tarifFields';
+import { nominalSppSaatTerbit } from '../../db/beasiswaFields';
 import { bulkAddTagihanSppToSheet, addLogEntry } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -83,23 +84,14 @@ export default function PenerbitanSppTab() {
     return list;
   }, [tahunAjaranAktif, tagihanTahunIni, siswaAktif, semuaTingkatPunyaTarif]);
 
-  // Cari beasiswa aktif siswa ini (kalau ada) & hitung nominal SETELAH potongan --
-  // dihitung SEKALI SAAT PENERBITAN, jadi nominal final tersimpan apa adanya di
-  // tagihan (bukan dihitung ulang tiap tampil) -- konsisten dgn prinsip "fakta
-  // historis pada momen transaksi" yg dipakai di modul lain.
+  // Hitung nominal SETELAH potongan beasiswa -- dihitung SEKALI SAAT PENERBITAN, jadi
+  // nominal final tersimpan apa adanya di tagihan (bukan dihitung ulang tiap tampil) --
+  // konsisten dgn prinsip "fakta historis pada momen transaksi" yg dipakai di modul
+  // lain. Logikanya di db/beasiswaFields.js (nominalSppSaatTerbit) -- dipakai BERSAMA
+  // dgn Bayar SPP Sekaligus, supaya potongan dihitung SAMA PERSIS di mana pun tagihan
+  // SPP baru itu diterbitkan.
   function nominalSetelahBeasiswa(nisn, nominalPenuh, tanggalMulaiBulanTagihan) {
-    const b = beasiswaSiswa.find(x => x.nisn === nisn);
-    if (!b) return { nominal: nominalPenuh, potongan: null };
-    // Potongan HANYA berlaku kalau bulan tagihan ini >= Tanggal Mulai beasiswanya --
-    // sebelumnya field ini cuma catatan, tidak benar-benar dicek (bug ditemukan &
-    // diperbaiki). Kalau Tanggal Mulai kosong, dianggap berlaku sejak kapan pun
-    // (kompatibel dgn data lama yg belum pernah diisi tanggalnya).
-    const mulai = parseTanggalFleksibel(b.tanggalMulai);
-    if (mulai && tanggalMulaiBulanTagihan < mulai.getTime()) return { nominal: nominalPenuh, potongan: null };
-    const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
-    if (!kategori || !kategori.potonganSpp) return { nominal: nominalPenuh, potongan: null };
-    const nominal = Math.max(0, nominalPenuh - kategori.potonganSpp);
-    return { nominal, potongan: kategori };
+    return nominalSppSaatTerbit(nisn, nominalPenuh, tanggalMulaiBulanTagihan, beasiswaSiswa, beasiswaKategori, parseTanggalFleksibel);
   }
 
   async function terbitkan(item) {

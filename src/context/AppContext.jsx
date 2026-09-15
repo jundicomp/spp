@@ -68,6 +68,7 @@ const HAK_AKSES_TABS = {
   pembayaran: [
     { id: 'pembayaran', label: 'Pembayaran' },
     { id: 'invoice', label: 'Invoice' },
+    { id: 'sekaligus', label: 'Bayar SPP Sekaligus' },
   ],
   'pemasukan-pengeluaran': [
     { id: 'pemasukan', label: 'Pemasukan Lain' },

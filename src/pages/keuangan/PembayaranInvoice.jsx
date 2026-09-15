@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import Page from '../../components/layout/Page';
 import PembayaranTab from './PembayaranTab';
 import InvoiceTab from './InvoiceTab';
+import BayarSekaligusTab from './BayarSekaligusTab';
 import { isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { pembayaranAsli } from '../../db/laporanHelpers';
@@ -11,7 +12,7 @@ import { IconReceipt, IconMoney, IconCalendarClock, IconFileText, IconAlertCircl
 import useTabAccess from '../../hooks/useTabAccess';
 
 export default function PembayaranInvoice() {
-  const { tab, setTab, bolehTab } = useTabAccess('pembayaran', ['pembayaran', 'invoice']);
+  const { tab, setTab, bolehTab } = useTabAccess('pembayaran', ['pembayaran', 'invoice', 'sekaligus']);
   const { pembayaran, pembayaranLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded } = useAppData();
 
   const ringkasan = useMemo(() => {
@@ -55,10 +56,12 @@ export default function PembayaranInvoice() {
         <div className="seg-tabs">
           {bolehTab('pembayaran') && <button className={`seg-tab ${tab === 'pembayaran' ? 'active' : ''}`} onClick={() => setTab('pembayaran')}>💳 PEMBAYARAN</button>}
           {bolehTab('invoice') && <button className={`seg-tab ${tab === 'invoice' ? 'active' : ''}`} onClick={() => setTab('invoice')}>📄 INVOICE</button>}
+          {bolehTab('sekaligus') && <button className={`seg-tab ${tab === 'sekaligus' ? 'active' : ''}`} onClick={() => setTab('sekaligus')}>🗓️ BAYAR SEKALIGUS</button>}
         </div>
         <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
           {tab === 'pembayaran' && bolehTab('pembayaran') && <PembayaranTab />}
           {tab === 'invoice' && bolehTab('invoice') && <InvoiceTab />}
+          {tab === 'sekaligus' && bolehTab('sekaligus') && <BayarSekaligusTab />}
         </div>
       </div>
     </Page>

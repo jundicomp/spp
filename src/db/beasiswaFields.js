@@ -60,6 +60,25 @@ export function cekBeasiswaAktif(nisn, beasiswaSiswa, beasiswaKategori, cutoffMs
 // TERSIMPAN di Sheet tetap harga penuh (tidak diubah), tapi utk tampilan/status/piutang,
 // yg dipakai adalah nominal EFEKTIF ini (sudah dipotong kalau beasiswanya berlaku).
 // refType: 'SPP' pakai potonganSpp, 'LAIN' pakai potonganBiayaLain.
+// Nominal SPP FINAL saat sebuah tagihan bulan tertentu DITERBITKAN (bukan nominal
+// tampilan/efektif spt nominalEfektifTagihan di atas -- ini dipakai SEBELUM baris
+// tagihan itu ada, utk menentukan nominal yg akan DITULIS ke Sheet) -- dipakai
+// BERSAMA oleh KEDUA jalur yg bisa menerbitkan tagihan SPP baru: Penerbitan SPP
+// bulanan (PenerbitanSppTab) dan Bayar SPP Sekaligus (BayarSekaligusTab, saat harus
+// menerbitkan dulu bulan yg blm py tagihan sebelum bisa dibayar) -- supaya potongan
+// beasiswa yg tersimpan APA ADANYA di kolom Nominal selalu dihitung dgn cara yg
+// SAMA PERSIS, di mana pun tagihan itu "lahir".
+export function nominalSppSaatTerbit(nisn, nominalPenuh, tanggalAwalBulanTagihanMs, beasiswaSiswa, beasiswaKategori, parseTanggal) {
+  const b = beasiswaSiswa.find(x => x.nisn === nisn);
+  if (!b) return { nominal: nominalPenuh, potongan: null };
+  const mulai = parseTanggal(b.tanggalMulai);
+  if (mulai && tanggalAwalBulanTagihanMs < mulai.getTime()) return { nominal: nominalPenuh, potongan: null };
+  const kategori = beasiswaKategori.find(k => k.nama === b.kategoriBeasiswa);
+  if (!kategori || !kategori.potonganSpp) return { nominal: nominalPenuh, potongan: null };
+  const nominal = Math.max(0, nominalPenuh - kategori.potonganSpp);
+  return { nominal, potongan: kategori };
+}
+
 export function nominalEfektifTagihan(tagihan, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar = 0) {
   // PENTING: beasiswa berlaku MAJU saja -- kalau tagihan ini SUDAH PERNAH dibayar
   // (sebagian ATAU lunas) SEBELUM beasiswanya dipasang, jangan disunat jadi nol.

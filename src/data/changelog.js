@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.30.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Fitur baru: menu Pembayaran &amp; Invoice sekarang punya tab "🗓️ Bayar Sekaligus" — untuk siswa yang membayar SPP di muka/rapel beberapa bulan langsung, walau tagihan bulan-bulan berikutnya belum diterbitkan admin',
+      'Bayar Sekaligus: pilih siswa, centang bulan-bulan yang mau dibayar (atau pakai "Bayar sampai bulan ..." untuk pilih cepat) — bulan yang belum ada tagihannya otomatis diterbitkan KHUSUS untuk siswa itu saja (siswa lain tidak ikut ditagih), lalu langsung dicatat lunas dalam satu kali simpan',
+    ],
+  },
+  {
     versi: '1.29.0',
     tanggal: '2026-09-15',
     poin: [
