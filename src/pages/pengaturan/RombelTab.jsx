@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import { hitungUsia } from '../../db/helpers';
-import { exportToExcel } from '../../utils/exportTable';
+import { exportToExcel, printElementById } from '../../utils/exportTable';
 import { useAppData } from '../../context/AppContext';
 import { fetchSiswaFromSheet, updateSiswaInSheet } from '../../services/googleSheets';
 import SaveProgressModal from '../../components/common/SaveProgressModal';
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 'Semua'];
 
 function PindahRombelMassal() {
   const { siswa, kelas, refreshSiswa, toast } = useAppData();
@@ -171,8 +173,19 @@ function PindahRombelMassal() {
 }
 
 export default function RombelTab() {
-  const { siswa, siswaLoading, siswaLoaded, kelas } = useAppData();
-  const [filterKelas, setFilterKelas] = useState('Semua');
+  const { siswa, siswaLoading, siswaLoaded, kelas, profilSekolah } = useAppData();
+
+  // Dropdown "sedang dipilih" (blm tentu sdh ditampilkan) vs "laporanAktif" (snapshot
+  // yg BENAR-BENAR ditampilkan setelah tombol Tampilkan diklik) -- sengaja dipisah,
+  // supaya alurnya persis: pilih Kelas -> pilih Rombel -> klik Tampilkan -> baru
+  // laporan (+ tombol Excel/PDF) muncul. Ganti pilihan dropdown TIDAK langsung
+  // mengubah laporan yg sedang tampil sampai tombol Tampilkan diklik lagi.
+  const [kelasDipilih, setKelasDipilih] = useState('');
+  const [rombelDipilih, setRombelDipilih] = useState('');
+  const [laporanAktif, setLaporanAktif] = useState(null); // { kelas, rombel } | null
+  const [printingAll, setPrintingAll] = useState(false);
+  const printId = 'print-' + useId().replace(/:/g, '');
+  const namaSekolah = profilSekolah?.nama || 'MI Ikhlasiyah';
 
   // Rombel hanya utk siswa Aktif -- yg Lulus/Pindah/Berhenti ada di tab Riwayat Siswa.
   const siswaAktif = useMemo(() => siswa.filter(s => (s.status || 'Aktif') === 'Aktif'), [siswa]);
@@ -185,20 +198,42 @@ export default function RombelTab() {
     return map;
   }, [kelas]);
 
-  const daftarKelas = useMemo(() => {
-    const set = new Set(siswaAktif.map(s => s.kelasTingkat).filter(Boolean));
+  // Pilihan Kelas & Rombel diambil dari data KONFIGURASI Kelas (menu Data Kelas &
+  // Rombel), BUKAN dari siswa yg sudah ditempatkan -- supaya rombel yg baru dibuat
+  // dan belum py siswa pun tetap muncul di dropdown.
+  const daftarKelasOptions = useMemo(() => {
+    const set = new Set(kelas.map(k => k.tingkat).filter(Boolean));
     return Array.from(set).sort();
-  }, [siswaAktif]);
+  }, [kelas]);
 
-  const filtered = useMemo(() => {
-    const list = filterKelas === 'Semua' ? siswaAktif : siswaAktif.filter(s => s.kelasTingkat === filterKelas);
-    return list.map(s => {
-      const usia = hitungUsia(s.tanggalLahir);
-      const lp = s.jenisKelamin === 'Laki-laki' ? 'L' : s.jenisKelamin === 'Perempuan' ? 'P' : '-';
-      const wali = waliKelasByRombel[`${s.kelasTingkat}|${s.rombel}`] || 'Belum ditentukan';
-      return { ...s, usiaLabel: usia !== null ? `${usia} tahun` : '-', lp, wali };
-    });
-  }, [siswaAktif, filterKelas, waliKelasByRombel]);
+  const daftarRombelOptions = useMemo(() => {
+    if (!kelasDipilih) return [];
+    const set = new Set(kelas.filter(k => k.tingkat === kelasDipilih).map(k => k.namaKelas).filter(Boolean));
+    return Array.from(set).sort();
+  }, [kelas, kelasDipilih]);
+
+  function gantiKelasDipilih(v) {
+    setKelasDipilih(v);
+    setRombelDipilih(''); // daftar rombel berubah total kalau kelas ganti -- reset biar tdk kepilih rombel yg tdk relevan
+  }
+
+  function tampilkanLaporan() {
+    setLaporanAktif({ kelas: kelasDipilih, rombel: rombelDipilih });
+  }
+
+  const dataLaporan = useMemo(() => {
+    if (!laporanAktif) return [];
+    return siswaAktif
+      .filter(s => s.kelasTingkat === laporanAktif.kelas && s.rombel === laporanAktif.rombel)
+      .map(s => {
+        const usia = hitungUsia(s.tanggalLahir);
+        const lp = s.jenisKelamin === 'Laki-laki' ? 'L' : s.jenisKelamin === 'Perempuan' ? 'P' : '-';
+        const wali = waliKelasByRombel[`${s.kelasTingkat}|${s.rombel}`] || 'Belum ditentukan';
+        return { ...s, usiaLabel: usia !== null ? `${usia} tahun` : '-', lp, wali };
+      });
+  }, [siswaAktif, laporanAktif, waliKelasByRombel]);
+
+  const judulLaporan = laporanAktif ? `Kelas ${laporanAktif.kelas} — Rombel ${laporanAktif.rombel}` : '';
 
   const columns = [
     { key: 'nisn', label: 'NISN', accessor: r => r.nisn || '-' },
@@ -210,11 +245,26 @@ export default function RombelTab() {
     { key: 'wali', label: 'Wali Kelas', render: r => <span style={waliKelasByRombel[`${r.kelasTingkat}|${r.rombel}`] ? undefined : { color: 'var(--muted)', fontStyle: 'italic' }}>{r.wali}</span> },
   ];
 
+  function handlePrint() {
+    // Pola sama spt Riwayat Pembayaran/LaporanRekapAset -- nyalakan forceShowAll dulu,
+    // tunggu React render ulang dgn SEMUA baris, baru panggil print.
+    setPrintingAll(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        printElementById(printId);
+        setPrintingAll(false);
+      });
+    });
+  }
+
   function exportExcelRombel() {
     const headers = ['NISN', 'Nama Lengkap', 'NIK', 'Usia', 'L/P', 'Rombel', 'Wali Kelas'];
-    const rows = filtered.map(s => ({ NISN: s.nisn || '-', 'Nama Lengkap': s.nama, NIK: s.nik || '-', Usia: s.usiaLabel, 'L/P': s.lp, Rombel: s.rombel || '-', 'Wali Kelas': s.wali }));
-    const judul = filterKelas === 'Semua' ? 'Rombel - Semua Kelas' : `Rombel - Kelas ${filterKelas}`;
-    exportToExcel(headers, rows, judul, judul);
+    const rows = dataLaporan.map(s => ({ NISN: s.nisn || '-', 'Nama Lengkap': s.nama, NIK: s.nik || '-', Usia: s.usiaLabel, 'L/P': s.lp, Rombel: s.rombel || '-', 'Wali Kelas': s.wali }));
+    exportToExcel(
+      headers, rows, `Laporan Rombel - ${judulLaporan}`,
+      [namaSekolah, 'Laporan Rombel', judulLaporan],
+      { 'Nama Lengkap': `Total: ${rows.length} siswa` }
+    );
   }
 
   return (
@@ -223,26 +273,56 @@ export default function RombelTab() {
 
       <div className="card">
         <div className="card-head">
-          <div><h3>Rombel (Rombongan Belajar)</h3><p>Daftar siswa dikelompokkan per kelas/tingkat.</p></div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <select value={filterKelas} onChange={e => setFilterKelas(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}>
-              <option value="Semua">Semua Kelas</option>
-              {daftarKelas.map(k => <option key={k} value={k}>Kelas {k}</option>)}
-            </select>
-            <button className="btn btn-sm" onClick={exportExcelRombel} disabled={filtered.length === 0}>📊 Excel</button>
+          <div>
+            <h3>📋 Laporan Rombel</h3>
+            <p>{laporanAktif ? `${dataLaporan.length} siswa — ${judulLaporan}` : 'Pilih kelas dan rombel, lalu klik Tampilkan untuk melihat daftar siswanya.'}</p>
           </div>
+          {laporanAktif && (
+            <div className="no-print" style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-sm" onClick={exportExcelRombel} disabled={dataLaporan.length === 0}>📊 Excel</button>
+              <button className="btn btn-sm" onClick={handlePrint} disabled={dataLaporan.length === 0}>🖨️ PDF</button>
+            </div>
+          )}
         </div>
         <div className="card-body">
+          <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginBottom: 16, padding: '12px 14px', background: '#F6F8F5', borderRadius: 8 }}>
+            <div className="field">
+              <label>Pilih Kelas</label>
+              <select value={kelasDipilih} onChange={e => gantiKelasDipilih(e.target.value)}>
+                <option value="">— pilih kelas —</option>
+                {daftarKelasOptions.map(k => <option key={k} value={k}>Kelas {k}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Pilih Rombel</label>
+              <select value={rombelDipilih} onChange={e => setRombelDipilih(e.target.value)} disabled={!kelasDipilih}>
+                <option value="">— pilih rombel —</option>
+                {daftarRombelOptions.map(r => <option key={r} value={r}>Rombel {r}</option>)}
+              </select>
+            </div>
+            <button type="button" className="btn btn-primary btn-sm" onClick={tampilkanLaporan} disabled={!kelasDipilih || !rombelDipilih}>🔍 Tampilkan</button>
+          </div>
+
           {siswaLoading && !siswaLoaded && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Memuat data...</p>}
-          {siswaLoaded && filtered.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Tidak ada siswa untuk filter ini.</p>}
-          {siswaLoaded && filtered.length > 0 && (
-            <DataTable
-              columns={columns}
-              data={filtered}
-              searchFn={(r, t) => (r.nama || '').toLowerCase().includes(t) || (r.nisn || '').includes(t) || (r.nik || '').includes(t)}
-              emptyMessage="Tidak ada siswa yang cocok dengan pencarian ini."
-              rowKey={r => r.id}
-            />
+          {siswaLoaded && !laporanAktif && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Pilih kelas dan rombel di atas, lalu klik <strong>Tampilkan</strong>.</p>}
+          {siswaLoaded && laporanAktif && dataLaporan.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>Belum ada siswa aktif di rombel ini.</p>}
+          {siswaLoaded && laporanAktif && dataLaporan.length > 0 && (
+            <div id={printId}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: '0 0 4px', fontSize: 19 }}>{namaSekolah}</h2>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Laporan Rombel</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{judulLaporan} — {dataLaporan.length} siswa</div>
+              </div>
+              <DataTable
+                columns={columns}
+                data={dataLaporan}
+                searchFn={(r, t) => (r.nama || '').toLowerCase().includes(t) || (r.nisn || '').includes(t) || (r.nik || '').includes(t)}
+                emptyMessage="Tidak ada siswa yang cocok dengan pencarian ini."
+                rowKey={r => r.id}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                forceShowAll={printingAll}
+              />
+            </div>
           )}
         </div>
       </div>
