@@ -142,12 +142,10 @@ function buildDefaultPermissionsUntukRole(role) {
 export function AppProvider({ children }) {
   const [permissions, setPermissions] = useState({});
   const [rolesTambahan, setRolesTambahan] = useState([]); // dari Sheet, di LUAR 4 role bawaan
-  const [hakAksesRows, setHakAksesRows] = useState([]); // dipakai cari "No" baris role saat update
   const permissionRoles = useMemo(() => [...ROLE_BAWAAN, ...rolesTambahan], [rolesTambahan]);
 
   const isiRolesHakAksesDariRows = useCallback((roleRows, hakRows) => {
     setRolesTambahan(roleRows.map(r => String(r['Nama Role'] ?? '').trim()).filter(Boolean));
-    setHakAksesRows(hakRows);
     const permMap = {};
     hakRows.forEach(row => {
       const role = String(row['Role'] ?? '').trim();
@@ -179,16 +177,30 @@ export function AppProvider({ children }) {
 
   // Ubah 1 izin (halaman ATAU "halaman.tab") utk 1 role -- update state LANGSUNG
   // (biar UI responsif), lalu simpan JSON lengkap role itu ke Sheet di belakang layar.
-  const setPermission = useCallback(async (role, itemId, checked) => {
-    setPermissions(prev => {
-      const updated = { ...(prev[role] || {}), [itemId]: checked };
-      const next = { ...prev, [role]: updated };
-      const existingRow = hakAksesRows.find(r => String(r['Role'] ?? '').trim() === role);
-      saveHakAksesRole(role, updated, existingRow?.['No']).then(() => muatRolesDanHakAkses()).catch(() => {});
-      return next;
-    });
+  // Terapkan SEKALIGUS beberapa perubahan izin (dipanggil oleh tombol "Terapkan" di
+  // Manajemen Hak Akses) -- BUKAN lagi simpan langsung tiap klik checkbox. daftarPerubahan
+  // = [{role, itemId, checked}, ...]. Semua dikirim, baru SEKALI refresh dari server &
+  // SATU toast ringkasan di akhir -- lebih cepat dirasakan (centang tidak nunggu network
+  // tiap klik) dan otomatis menghindari race condition antar klik cepat sama sekali.
+  const terapkanPerubahanHakAkses = useCallback(async (daftarPerubahan) => {
+    if (daftarPerubahan.length === 0) return;
+    const gagal = [];
+    for (const { role, itemId, checked } of daftarPerubahan) {
+      try {
+        await saveHakAksesRole(role, itemId, checked);
+      } catch (err) {
+        gagal.push({ role, itemId, error: err.message });
+      }
+    }
+    await muatRolesDanHakAkses();
+    if (gagal.length === 0) {
+      toast(`${daftarPerubahan.length} perubahan hak akses berhasil diterapkan.`);
+    } else {
+      toast(`${daftarPerubahan.length - gagal.length} perubahan tersimpan, ${gagal.length} gagal: ${gagal[0].error}`, 'error');
+    }
+    return gagal;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hakAksesRows]);
+  }, []);
 
   const permissionsUntukTampil = useMemo(() => {
     const hasil = {};
@@ -339,7 +351,7 @@ export function AppProvider({ children }) {
     beasiswaSiswa: beasiswaSiswaRes.data, beasiswaSiswaLoading: beasiswaSiswaRes.loading, beasiswaSiswaLoaded: beasiswaSiswaRes.loaded, refreshBeasiswaSiswa: beasiswaSiswaRes.refresh,
     allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
-    permissions: permissionsUntukTampil, setPermission, addRole, muatRolesDanHakAkses,
+    permissions: permissionsUntukTampil, terapkanPerubahanHakAkses, addRole, muatRolesDanHakAkses,
     toast, toasts,
     HAK_AKSES_PAGES, HAK_AKSES_TABS, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES,
   };

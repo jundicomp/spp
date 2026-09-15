@@ -184,6 +184,18 @@ function doPost(e) {
       setActiveTahunAjaran_(sheet, cfg.headers, body.no);
       return jsonResponse_({ ok: true });
     }
+    if (body.action === 'upsertHakAkses') {
+      // Server yg MENGGABUNGKAN 1 perubahan (itemId+checked) ke JSON izin role itu --
+      // BUKAN menerima JSON lengkap dari client lalu menimpa mentah2. Kenapa: client
+      // mengirim berdasarkan state React yg mungkin BELUM sempat ter-update kalau user
+      // klik beberapa kotak cepat berturut-turut (event React & network async saling
+      // susul) -- kalau server cuma menimpa mentah, perubahan yg "menang" cuma yg
+      // requestnya selesai PALING AKHIR, sisanya keteter hilang. Dgn baca-gabung-tulis
+      // di SINI (server SELALU baca kondisi sheet paling baru saat request itu jalan),
+      // urutan/kecepatan request dari client tidak lagi jadi soal.
+      upsertHakAksesRole_(sheet, cfg.headers, body.role, body.itemId, body.checked);
+      return jsonResponse_({ ok: true });
+    }
     return jsonResponse_({ ok: false, error: 'Aksi "' + body.action + '" tidak dikenal.' });
   } catch (err) {
     return jsonResponse_({ ok: false, error: String(err) });
@@ -230,6 +242,30 @@ function updateRow_(sheet, headers, rowObj) {
     }
   }
   return false;
+}
+
+// Cari baris utk Role tsb (kolom "Role"), GABUNGKAN 1 perubahan (itemId: checked) ke
+// JSON izin yg SUDAH ADA di baris itu (baca dulu, ubah 1 key, tulis balik) -- atau buat
+// baris baru kalau Role itu belum py baris sama sekali. Dibaca ULANG dari sheet setiap
+// panggilan (bukan dari salinan lama) supaya aman dipanggil berkali-kali cepat
+// berturut-turut tanpa kehilangan perubahan yg satu ketiban perubahan yg lain.
+function upsertHakAksesRole_(sheet, headers, role, itemId, checked) {
+  const roleCol = headers.indexOf('Role') + 1;
+  const jsonCol = headers.indexOf('PermissionsJson') + 1;
+  const lastRow = sheet.getLastRow();
+  for (let r = 2; r <= lastRow; r++) {
+    const cellVal = String(sheet.getRange(r, roleCol).getValue());
+    if (cellVal === role) {
+      let perm = {};
+      try { perm = JSON.parse(sheet.getRange(r, jsonCol).getValue() || '{}'); } catch (e) { perm = {}; }
+      perm[itemId] = checked;
+      sheet.getRange(r, jsonCol).setValue(JSON.stringify(perm));
+      return;
+    }
+  }
+  const perm = {};
+  perm[itemId] = checked;
+  appendRow_(sheet, headers, { Role: role, PermissionsJson: JSON.stringify(perm) });
 }
 
 // Cari baris via kolom "No", hapus barisnya. Nomor baris lain SENGAJA tidak digeser ulang

@@ -4,6 +4,20 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.18.0',
+    tanggal: '2026-09-14',
+    poin: [
+      'Manajemen Hak Akses: tambah tombol "Terapkan" — centang kotak sekarang instan (tidak menunggu tersimpan satu-satu), baru benar-benar tersimpan setelah tombol diklik. Perubahan yang belum diterapkan disorot kuning',
+    ],
+  },
+  {
+    versi: '1.17.1',
+    tanggal: '2026-09-14',
+    poin: [
+      'Perbaikan bug: mengatur beberapa hak akses berturut-turut untuk role yang baru dibuat kadang gagal tersimpan — sekarang setiap perubahan disimpan lebih andal satu per satu',
+    ],
+  },
+  {
     versi: '1.17.0',
     tanggal: '2026-09-14',
     poin: [

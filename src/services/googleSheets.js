@@ -146,13 +146,15 @@ export const addRoleToSheet = (namaRole) => addToSheet('roles', { 'Nama Role': n
 export const deleteRoleFromSheet = (no) => deleteFromSheet('roles', no);
 
 export const fetchHakAksesFromSheet = () => fetchFromSheet('hakAkses');
-// Upsert 1 baris per role: kalau role itu sudah py baris (existingNo diisi), UPDATE;
-// kalau belum (existingNo null/undefined), ADD baris baru. Dipakai stlh menggabung
-// perubahan izin ke JSON lengkap milik role itu.
-export function saveHakAksesRole(role, permissionsObj, existingNo) {
-  const row = { Role: role, PermissionsJson: JSON.stringify(permissionsObj) };
-  if (existingNo) return updateInSheet('hakAkses', { No: existingNo, ...row });
-  return addToSheet('hakAkses', row);
+// Kirim SATU perubahan saja (itemId + checked) -- server yg menggabungkan ke JSON
+// izin role itu (baca-gabung-tulis di Code.gs), BUKAN client yg kirim JSON lengkap.
+// Ini sengaja supaya aman dipanggil berkali-kali cepat berturut-turut (mis. centang
+// beberapa kotak beruntun) tanpa risiko 1 perubahan menimpa/menghapus perubahan lain
+// yg baru saja dikirim tapi belum selesai diproses server.
+export async function saveHakAksesRole(role, itemId, checked) {
+  const json = await postToSheet({ action: 'upsertHakAkses', sheet: 'hakAkses', role, itemId, checked });
+  if (!json.ok) throw new Error(json.error || 'Gagal menyimpan hak akses.');
+  return json;
 }
 export async function addLogEntry({ username, namaUser, aksi, modul, detail }) {
   const row = {
