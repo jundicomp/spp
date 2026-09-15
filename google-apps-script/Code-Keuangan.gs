@@ -156,6 +156,21 @@ function doPost(e) {
       if (!found) return jsonResponse_({ ok: false, error: 'Baris dengan No=' + body.no + ' tidak ditemukan.' });
       return jsonResponse_({ ok: true });
     }
+    if (body.action === 'bulkDelete') {
+      // Hapus BANYAK baris (by "No") dalam SATU eksekusi -- dipakai "Bersihkan Duplikat"
+      // yg sebelumnya mengirim SATU request terpisah PER baris (bisa 100+ request
+      // berurutan utk 1x bersihkan), dan tiap request lama itu men-scan ulang SELURUH
+      // kolom "No" SEL PER SEL (deleteRow_ lama) -- utk sheet yg sudah ribuan baris,
+      // kombinasi keduanya bikin proses total bisa makan waktu SANGAT lama / gagal
+      // kena timeout Apps Script di tengah jalan, PADAHAL user cuma lihat "berhasil
+      // X dari Y" yg salah/kekecilan tanpa pesan error yg jelas (baris lain diam2 gagal,
+      // ketangkep try/catch per-baris di React lalu dilewati). Fungsi ini membaca kolom
+      // "No" SEKALI SAJA (bulk getValues), cari SEMUA baris yg cocok, baru hapus semua
+      // sekaligus dari BAWAH ke ATAS (index besar dulu) supaya hapus baris atas tidak
+      // menggeser index baris bawah yg belum sempat dihapus.
+      const hasil = bulkDeleteRows_(sheet, cfg.headers, body.nos || []);
+      return jsonResponse_({ ok: true, jumlahDihapus: hasil.jumlahDihapus, noTidakDitemukan: hasil.noTidakDitemukan });
+    }
     if (body.action === 'perbaikiNomorGanda') {
       // Baris FISIK PALING ATAS yg pegang suatu "No" dibiarkan (menjaga link pembayaran
       // yg mungkin sudah menunjuk ke situ), baris FISIK BERIKUTNYA yg kebetulan pegang
@@ -239,20 +254,29 @@ function perbaikiNomorGanda_(sheet, headers) {
   }
 }
 
-function updateRow_(sheet, headers, rowObj, textColumns) {
+// Cari nomor baris FISIK (index sheet, 1-based) yg kolom "No"-nya cocok dgn targetNo --
+// baca kolom "No" SEKALI (1 panggilan getValues), bukan sel-per-sel dlm loop (SANGAT
+// lambat utk sheet berbaris banyak -- tiap getRange().getValue() adalah 1 panggilan API
+// tersendiri; makin banyak baris di atas, makin lama utk sampai ke baris yg dicari).
+function cariBarisByNo_(sheet, headers, targetNoRaw) {
   const noCol = headers.indexOf('No') + 1;
-  const targetNo = String(rowObj['No']);
   const lastRow = sheet.getLastRow();
-  for (let r = 2; r <= lastRow; r++) {
-    const cellVal = String(sheet.getRange(r, noCol).getValue());
-    if (cellVal === targetNo) {
-      forceTextColumns_(sheet, headers, r, textColumns);
-      const newRow = headers.map(h => (h === 'No' ? rowObj['No'] : (rowObj[h] !== undefined ? rowObj[h] : '')));
-      sheet.getRange(r, 1, 1, headers.length).setValues([newRow]);
-      return true;
-    }
+  if (lastRow < 2) return -1;
+  const targetNo = String(targetNoRaw);
+  const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+  for (let i = 0; i < nilaiNo.length; i++) {
+    if (String(nilaiNo[i][0]) === targetNo) return i + 2; // +2: index 0 = baris sheet ke-2
   }
-  return false;
+  return -1;
+}
+
+function updateRow_(sheet, headers, rowObj, textColumns) {
+  const r = cariBarisByNo_(sheet, headers, rowObj['No']);
+  if (r === -1) return false;
+  forceTextColumns_(sheet, headers, r, textColumns);
+  const newRow = headers.map(h => (h === 'No' ? rowObj['No'] : (rowObj[h] !== undefined ? rowObj[h] : '')));
+  sheet.getRange(r, 1, 1, headers.length).setValues([newRow]);
+  return true;
 }
 
 function forceTextColumns_(sheet, headers, rowIndex, textColumns) {
@@ -264,17 +288,51 @@ function forceTextColumns_(sheet, headers, rowIndex, textColumns) {
 }
 
 function deleteRow_(sheet, headers, targetNoRaw) {
-  const noCol = headers.indexOf('No') + 1;
-  const targetNo = String(targetNoRaw);
-  const lastRow = sheet.getLastRow();
-  for (let r = 2; r <= lastRow; r++) {
-    const cellVal = String(sheet.getRange(r, noCol).getValue());
-    if (cellVal === targetNo) {
-      sheet.deleteRow(r);
-      return true;
+  const r = cariBarisByNo_(sheet, headers, targetNoRaw);
+  if (r === -1) return false;
+  sheet.deleteRow(r);
+  return true;
+}
+
+// Hapus BANYAK baris (by "No") sekaligus dlm 1 eksekusi -- lihat catatan panjang di
+// pemanggilnya (doPost, action 'bulkDelete') soal kenapa ini dibuat. LockService WAJIB
+// (spt appendRow_) krn ini menghapus banyak baris scr fisik -- kalau proses PENERBITAN
+// tagihan baru (appendRow_) kebetulan jalan BERSAMAAN, "No" baris baru itu dihitung dari
+// getLastRow() -- kalau baris di TENGAH terhapus SAAT itu juga tanpa lock, race condition
+// serupa bisa muncul lagi. Mengunci keduanya (append & bulk delete) di lock yg SAMA
+// (getScriptLock scoped per-script) memastikan tidak tumpang tindih.
+function bulkDeleteRows_(sheet, headers, nosRaw) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const noCol = headers.indexOf('No') + 1;
+    const lastRow = sheet.getLastRow();
+    const jumlahDihapus = { n: 0 };
+    if (lastRow < 2 || !nosRaw || nosRaw.length === 0) {
+      return { jumlahDihapus: 0, noTidakDitemukan: (nosRaw || []).map(String) };
     }
+    const targetSet = new Set(nosRaw.map(String));
+    const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+    const ditemukanSet = new Set();
+    const barisUntukDihapus = []; // index sheet fisik, ASCENDING dulu
+    for (let i = 0; i < nilaiNo.length; i++) {
+      const key = String(nilaiNo[i][0]);
+      if (targetSet.has(key)) {
+        barisUntukDihapus.push(i + 2); // +2: index 0 = baris sheet ke-2
+        ditemukanSet.add(key);
+      }
+    }
+    // Hapus dari BAWAH ke ATAS (index besar dulu) -- kalau dihapus dari ATAS ke BAWAH,
+    // tiap penghapusan menggeser SEMUA baris di bawahnya naik 1, bikin index yg sudah
+    // dikumpulkan di atas jadi salah sasaran (bug klasik "menghapus sambil mengiterasi").
+    barisUntukDihapus.sort((a, b) => b - a);
+    barisUntukDihapus.forEach(r => { sheet.deleteRow(r); jumlahDihapus.n++; });
+    const noTidakDitemukan = [];
+    targetSet.forEach(no => { if (!ditemukanSet.has(no)) noTidakDitemukan.push(no); });
+    return { jumlahDihapus: jumlahDihapus.n, noTidakDitemukan };
+  } finally {
+    lock.releaseLock();
   }
-  return false;
 }
 
 function jsonResponse_(obj) {

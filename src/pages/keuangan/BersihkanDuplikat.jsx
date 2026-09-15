@@ -1,7 +1,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
-import { deleteTagihanSppFromSheet, deleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda, fetchPembayaranFromSheet, updatePembayaranInSheet } from '../../services/googleSheets';
+import { deleteTagihanLainFromSheet, bulkDeleteTagihanSppFromSheet, bulkDeleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda, fetchPembayaranFromSheet, updatePembayaranInSheet } from '../../services/googleSheets';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../db/helpers';
 import ProgressModal from '../../components/common/ProgressModal';
@@ -170,11 +170,11 @@ export default function BersihkanDuplikat() {
           await updatePembayaranInSheet({ ...p, RefNo: simpan.no });
         }
       }
-      // Baris yg SUDAH tidak py pembayaran lagi (sudah dipindah) baru aman dihapus.
-      for (const r of dihapus) {
-        if (k.refType === 'SPP') await deleteTagihanSppFromSheet(r.no);
-        else await deleteTagihanLainFromSheet(r.no);
-      }
+      // Baris yg SUDAH tidak py pembayaran lagi (sudah dipindah) baru aman dihapus --
+      // sekaligus (bulk), bukan 1-per-1, konsisten dgn bersihkanSemua() di atas.
+      const noDihapus = dihapus.map(r => r.no);
+      if (k.refType === 'SPP') await bulkDeleteTagihanSppFromSheet(noDihapus);
+      else await bulkDeleteTagihanLainFromSheet(noDihapus);
 
       await addLogEntry({
         username: currentUser.username,
@@ -200,19 +200,44 @@ export default function BersihkanDuplikat() {
     setMemproses(true);
     const semuaHapus = [];
     kelompokAman.forEach(k => k.hapus.forEach(r => semuaHapus.push(r)));
-    setProgress({ current: 0, total: semuaHapus.length, label: 'Menghapus baris duplikat' });
+    const noSpp = semuaHapus.filter(r => r.refType === 'SPP').map(r => r.no);
+    const noLain = semuaHapus.filter(r => r.refType === 'LAIN').map(r => r.no);
+
+    // PENTING -- dulu dihapus SATU-PER-SATU (1 request per baris, tiap request di
+    // server men-scan ULANG seluruh kolom "No" sel-per-sel dari awal). Utk sheet yg
+    // sudah berisi ratusan/ribuan baris, ini bisa makan waktu SANGAT lama & rawan
+    // timeout di tengah jalan -- baris yg gagal diam2 dilewati (try/catch kosong),
+    // jadi user melihat tombol "berhasil" padahal efeknya nyaris nihil. Sekarang
+    // dikirim BULK (maks 2 request -- 1 utk SPP, 1 utk Biaya Lain), server hapus
+    // semuanya dlm 1 eksekusi. Errornya juga sekarang DITAMPILKAN, tidak didiamkan.
+    setProgress({ current: 0, total: (noSpp.length > 0 ? 1 : 0) + (noLain.length > 0 ? 1 : 0), label: 'Menghapus baris duplikat' });
 
     let sukses = 0;
-    for (let i = 0; i < semuaHapus.length; i++) {
-      const r = semuaHapus[i];
+    const pesanError = [];
+    const noTidakDitemukanSemua = [];
+    let langkah = 0;
+
+    if (noSpp.length > 0) {
       try {
-        if (r.refType === 'SPP') await deleteTagihanSppFromSheet(r.no);
-        else await deleteTagihanLainFromSheet(r.no);
-        sukses++;
+        const hasil = await bulkDeleteTagihanSppFromSheet(noSpp);
+        sukses += hasil.jumlahDihapus;
+        if (hasil.noTidakDitemukan.length > 0) noTidakDitemukanSemua.push(...hasil.noTidakDitemukan.map(no => `SPP No=${no}`));
       } catch (err) {
-        // lanjut ke baris berikutnya walau 1 gagal -- laporkan total di akhir
+        pesanError.push(`SPP: ${err.message}`);
       }
-      setProgress({ current: i + 1, total: semuaHapus.length, label: 'Menghapus baris duplikat' });
+      langkah++;
+      setProgress({ current: langkah, total: (noSpp.length > 0 ? 1 : 0) + (noLain.length > 0 ? 1 : 0), label: 'Menghapus baris duplikat' });
+    }
+    if (noLain.length > 0) {
+      try {
+        const hasil = await bulkDeleteTagihanLainFromSheet(noLain);
+        sukses += hasil.jumlahDihapus;
+        if (hasil.noTidakDitemukan.length > 0) noTidakDitemukanSemua.push(...hasil.noTidakDitemukan.map(no => `Biaya Lain No=${no}`));
+      } catch (err) {
+        pesanError.push(`Biaya Lain: ${err.message}`);
+      }
+      langkah++;
+      setProgress({ current: langkah, total: (noSpp.length > 0 ? 1 : 0) + (noLain.length > 0 ? 1 : 0), label: 'Menghapus baris duplikat' });
     }
 
     await addLogEntry({
@@ -220,13 +245,22 @@ export default function BersihkanDuplikat() {
       namaUser: currentUser.nama,
       aksi: 'Bersihkan Duplikat',
       modul: 'Tagihan & Biaya',
-      detail: `Menghapus ${sukses} baris tagihan duplikat dari ${kelompokAman.length} kelompok (SPP & Biaya Lain)`,
+      detail: `Menghapus ${sukses} baris tagihan duplikat dari ${kelompokAman.length} kelompok (SPP & Biaya Lain)`
+        + (pesanError.length > 0 ? ` -- GAGAL SEBAGIAN: ${pesanError.join('; ')}` : '')
+        + (noTidakDitemukanSemua.length > 0 ? ` -- tidak ditemukan di sheet: ${noTidakDitemukanSemua.join(', ')}` : ''),
     });
 
     await refreshTagihanSpp();
     await refreshTagihanLain();
     setSudahDihapusKali(k => k + sukses);
-    toast(`${sukses} baris duplikat berhasil dihapus.`);
+
+    if (pesanError.length > 0) {
+      toast(`Hanya ${sukses} dari ${totalBarisAkanDihapus} baris berhasil dihapus -- ada yang gagal: ${pesanError.join('; ')}. Coba lagi, atau pastikan URL/skrip Apps Script Keuangan sudah versi terbaru (Deploy > Manage deployments > New version).`, 'error');
+    } else if (noTidakDitemukanSemua.length > 0) {
+      toast(`${sukses} baris berhasil dihapus. ${noTidakDitemukanSemua.length} baris lain sudah tidak ada di sheet (mungkin sudah terhapus sebelumnya).`);
+    } else {
+      toast(`${sukses} baris duplikat berhasil dihapus.`);
+    }
     setMemproses(false);
     setProgress(null);
   }

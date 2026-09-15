@@ -108,6 +108,19 @@ export async function deleteFromSheet(sheetName, no, target = 'master') {
   return json;
 }
 
+// Hapus BANYAK baris (by "No") dalam SATU request -- dipakai utk "Bersihkan Duplikat"
+// yg bisa perlu menghapus ratusan baris sekaligus. Server (bulkDeleteRows_ di Apps
+// Script) membaca kolom "No" 1x lalu menghapus semua yg cocok dlm 1 eksekusi -- jauh
+// lebih cepat & tahan gagal drpd kirim 1 request terpisah PER baris (cara lama: baris
+// yg gagal krn timeout/dsb diam2 dilewati tanpa jejak). Return { jumlahDihapus,
+// noTidakDitemukan } supaya pemanggil bisa tahu PERSIS kalau ada yg tidak ketemu.
+export async function bulkDeleteFromSheet(sheetName, nos, target = 'master') {
+  if (!nos || nos.length === 0) return { jumlahDihapus: 0, noTidakDitemukan: [] };
+  const json = await postToSheet({ action: 'bulkDelete', sheet: sheetName, nos }, target);
+  if (!json.ok) throw new Error(json.error || 'Gagal menghapus data (bulk).');
+  return { jumlahDihapus: json.jumlahDihapus || 0, noTidakDitemukan: json.noTidakDitemukan || [] };
+}
+
 // =====================================================================
 // ---- Alias khusus per modul (semua di file Sheets MASTER) ----
 // =====================================================================
@@ -241,6 +254,7 @@ export const deleteTarifFromSheet = (no) => deleteFromSheet('tarif', no, 'keuang
 export const fetchTagihanSppFromSheet = () => fetchFromSheet('tagihanSpp', 'keuangan');
 export const bulkAddTagihanSppToSheet = (rows) => bulkAddToSheet('tagihanSpp', rows, 'keuangan');
 export const deleteTagihanSppFromSheet = (no) => deleteFromSheet('tagihanSpp', no, 'keuangan');
+export const bulkDeleteTagihanSppFromSheet = (nos) => bulkDeleteFromSheet('tagihanSpp', nos, 'keuangan');
 
 export const fetchTagihanLainFromSheet = () => fetchFromSheet('tagihanLain', 'keuangan');
 export const addTagihanLainToSheet = (row) => addToSheet('tagihanLain', row, 'keuangan');
@@ -248,6 +262,7 @@ export const updateTagihanLainInSheet = (row) => updateInSheet('tagihanLain', ro
 export const updateTagihanSppInSheet = (row) => updateInSheet('tagihanSpp', row, 'keuangan');
 export const updatePembayaranInSheet = (row) => updateInSheet('pembayaran', row, 'keuangan');
 export const deleteTagihanLainFromSheet = (no) => deleteFromSheet('tagihanLain', no, 'keuangan');
+export const bulkDeleteTagihanLainFromSheet = (nos) => bulkDeleteFromSheet('tagihanLain', nos, 'keuangan');
 
 export const fetchPembayaranFromSheet = () => fetchFromSheet('pembayaran', 'keuangan');
 export const addPembayaranToSheet = (row) => addToSheet('pembayaran', row, 'keuangan');
