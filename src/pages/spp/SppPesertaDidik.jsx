@@ -220,7 +220,7 @@ export default function SppPesertaDidik() {
       .filter(s => {
         if (!filterRombel) return true;
         const rombelDipilih = kelas.find(k => k.id === filterRombel);
-        return rombelDipilih && s.kelasTingkat === rombelDipilih.tingkat;
+        return rombelDipilih && s.kelasTingkat === rombelDipilih.tingkat && s.rombel === rombelDipilih.namaKelas;
       });
   }, [siswa, filterKelas, filterRombel]);
 
@@ -241,7 +241,7 @@ export default function SppPesertaDidik() {
       .filter(s => {
         if (!filterRombel) return true;
         const rombelDipilih = kelas.find(k => k.id === filterRombel);
-        return rombelDipilih && s.kelasTingkat === rombelDipilih.tingkat;
+        return rombelDipilih && s.kelasTingkat === rombelDipilih.tingkat && s.rombel === rombelDipilih.namaKelas;
       })
       .slice(0, 6);
   }, [term, siswa, filterKelas, filterRombel, kelas]);

@@ -37,11 +37,14 @@ const SHEETS = {
     // "Status" & "Jenis Pendaftaran" ditaruh di AKHIR (bukan disisip di tengah) --
     // baris lama yg belum punya nilai di 2 kolom ini otomatis dianggap
     // Status="Aktif" & Jenis Pendaftaran="Siswa Baru" oleh React (lihat normalizeSheetSiswa).
+    // "Rombel" jg ditaruh di AKHIR (kompatibel mundur) -- ruang kelas SPESIFIK (mis.
+    // "1A") di dalam tingkat (Kelas/Tingkat). Siswa lama yg blm py Rombel dianggap
+    // "belum ditentukan" oleh React, TIDAK dianggap Rombel kosong = error.
     headers: [
       'No', 'Kabupaten/Kota', 'NPSN', 'NSM', 'Jenjang', 'Kelas/Tingkat',
       'Nama Lengkap', 'NISN', 'NIK', 'Tempat Lahir', 'Tanggal Lahir',
       'Jenis Kelamin', 'Alamat', 'Nama Ayah Kandung', 'Nama Ibu Kandung', 'Pekerjaan',
-      'Status', 'Jenis Pendaftaran',
+      'Status', 'Jenis Pendaftaran', 'Rombel',
     ],
   },
   kelas: {

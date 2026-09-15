@@ -51,6 +51,7 @@ export function normalizeSheetSiswa(row, idx) {
     nisn: String(row['NISN'] ?? '').trim(),
     nik: String(row['NIK'] ?? '').trim(),
     kelasTingkat: String(row['Kelas/Tingkat'] ?? '').trim(),
+    rombel: String(row['Rombel'] ?? '').trim(), // ruang kelas spesifik (mis. "1A") di dalam Kelas/Tingkat
     jenisKelamin: String(row['Jenis Kelamin'] ?? '').trim(),
     tempatLahir: String(row['Tempat Lahir'] ?? '').trim(),
     tanggalLahir: String(row['Tanggal Lahir'] ?? '').trim(),

@@ -4,6 +4,21 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.21.1',
+    tanggal: '2026-09-15',
+    poin: [
+      'Pindah Rombel Massal: tambah Filter Kelas dan 2 tab (Belum/Sudah Ada Rombel) dengan hitungan jumlah, plus kolom Rombel Saat Ini',
+    ],
+  },
+  {
+    versi: '1.21.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Fitur baru: Pindah Rombel Massal di tab Rombel — pilih beberapa siswa sekaligus, pindahkan ke rombel (ruang kelas) tujuan tanpa edit satu-satu',
+      'Data Siswa sekarang menyimpan Rombel spesifik (mis. "1A"), bukan cuma tingkat kelas — Filter Rombel di SPP dan Wali Kelas di tab Rombel jadi lebih akurat',
+    ],
+  },
+  {
     versi: '1.20.0',
     tanggal: '2026-09-15',
     poin: [
