@@ -1,7 +1,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
-import { deleteTagihanLainFromSheet, bulkDeleteTagihanSppFromSheet, bulkDeleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda, fetchPembayaranFromSheet, updatePembayaranInSheet } from '../../services/googleSheets';
+import { deleteTagihanLainFromSheet, bulkDeleteTagihanSppFromSheet, bulkDeleteTagihanLainFromSheet, bulkDeletePembayaranFromSheet, addLogEntry, perbaikiNomorGanda, fetchPembayaranFromSheet, updatePembayaranInSheet } from '../../services/googleSheets';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../db/helpers';
 import ProgressModal from '../../components/common/ProgressModal';
@@ -26,7 +26,7 @@ function analisisKelompok(rows, pembayaranByRefNo) {
 }
 
 export default function BersihkanDuplikat() {
-  const { allTagihan, pembayaran, tarif, siswa, refreshTagihanSpp, refreshTagihanLain, toast } = useAppData();
+  const { allTagihan, pembayaran, tarif, siswa, refreshTagihanSpp, refreshTagihanLain, refreshPembayaran, toast } = useAppData();
   const { currentUser } = useAuth();
   const [memproses, setMemproses] = useState(false);
   const [memperbaikiNomor, setMemperbaikiNomor] = useState(false);
@@ -38,6 +38,8 @@ export default function BersihkanDuplikat() {
   // sebelum analisis duplikat di bawah bisa dipercaya -- kalau tidak, pencocokan
   // "sudah dibayar atau belum" bisa salah (1 pembayaran keliatan cocok ke banyak
   // baris sekaligus krn "No"-nya kembar, bukan krn benar2 dibayar berkali-kali).
+  // Sheet "Pembayaran" ikut dicek juga -- ditulis lewat appendRow_ yg SAMA, jadi
+  // kena bug race condition yg SAMA persis di masa lalu.
   const nomorGandaSpp = useMemo(() => {
     const seen = new Set(); let jumlah = 0;
     allTagihan.filter(t => t.refType === 'SPP').forEach(t => { if (seen.has(t.no)) jumlah++; else seen.add(t.no); });
@@ -48,23 +50,30 @@ export default function BersihkanDuplikat() {
     allTagihan.filter(t => t.refType === 'LAIN').forEach(t => { if (seen.has(t.no)) jumlah++; else seen.add(t.no); });
     return jumlah;
   }, [allTagihan]);
-  const adaNomorGanda = nomorGandaSpp > 0 || nomorGandaLain > 0;
+  const nomorGandaPembayaran = useMemo(() => {
+    const seen = new Set(); let jumlah = 0;
+    pembayaran.forEach(p => { if (seen.has(p.no)) jumlah++; else seen.add(p.no); });
+    return jumlah;
+  }, [pembayaran]);
+  const adaNomorGanda = nomorGandaSpp > 0 || nomorGandaLain > 0 || nomorGandaPembayaran > 0;
 
   async function perbaikiNomorGandaSemua() {
     setMemperbaikiNomor(true);
     try {
       const hasilSpp = nomorGandaSpp > 0 ? await perbaikiNomorGanda('tagihanSpp') : 0;
       const hasilLain = nomorGandaLain > 0 ? await perbaikiNomorGanda('tagihanLain') : 0;
+      const hasilPembayaran = nomorGandaPembayaran > 0 ? await perbaikiNomorGanda('pembayaran') : 0;
       await addLogEntry({
         username: currentUser.username,
         namaUser: currentUser.nama,
         aksi: 'Perbaiki Nomor Ganda',
         modul: 'Tagihan & Biaya',
-        detail: `Memperbaiki ${hasilSpp} nomor ganda di Tagihan SPP dan ${hasilLain} di Tagihan Lain`,
+        detail: `Memperbaiki ${hasilSpp} nomor ganda di Tagihan SPP, ${hasilLain} di Tagihan Lain, ${hasilPembayaran} di Pembayaran`,
       });
       await refreshTagihanSpp();
       await refreshTagihanLain();
-      toast(`${hasilSpp + hasilLain} nomor ganda berhasil diperbaiki. Silakan periksa ulang daftar di bawah.`);
+      await refreshPembayaran();
+      toast(`${hasilSpp + hasilLain + hasilPembayaran} nomor ganda berhasil diperbaiki. Silakan periksa ulang daftar di bawah.`);
     } catch (err) {
       toast(err.message, 'error');
     } finally {
@@ -113,6 +122,87 @@ export default function BersihkanDuplikat() {
   const kelompokAman = kelompokDuplikat.filter(k => k.aman);
   const kelompokAmbigu = kelompokDuplikat.filter(k => !k.aman);
   const totalBarisAkanDihapus = kelompokAman.reduce((s, k) => s + k.hapus.length, 0);
+
+  // Dipakai utk nampilin tagihan terkait di tabel Pembayaran Duplikat di bawah.
+  const tagihanByRefNo = useMemo(() => {
+    const m = new Map();
+    allTagihan.forEach(t => m.set(`${t.refType}-${t.no}`, t));
+    return m;
+  }, [allTagihan]);
+
+  // Deteksi PEMBAYARAN yg tercatat BERKALI-KALI utk transaksi yg SAMA PERSIS --
+  // beda dari duplikat TAGIHAN di atas (baris tagihan yg belum dibayar dobel-dobel),
+  // ini soal 1 PEMBAYARAN yg SAMA nyangkut jadi banyak baris (mis. akibat form
+  // pembayaran ke-klik/ke-submit berkali-kali sebelum LockService dipasang -- lihat
+  // catatan appendRow_ di Code-Keuangan.gs). Akibatnya "Sudah Dibayar" di Kartu SPP,
+  // Invoice, Rekap Tunggakan, dan Laporan Keuangan semua kelihatan lebih besar dari
+  // yg SEBENARNYA diterima (kadang sampai jauh melebihi nominal tagihannya -- itu
+  // tandanya, bukan cicilan/kelebihan bayar sungguhan). Kunci kelompok: SEMUA field
+  // yg merepresentasikan "pembayaran yg sama" (refType+refNo+nominal+tanggal+metode+
+  // keterangan+akun) -- BUKAN cuma refType+refNo, krn cicilan/pembayaran bertahap yg
+  // GENUINELY beda (nominal/tanggal beda-beda) itu SAH & tidak boleh ikut dianggap
+  // duplikat. Yg disimpan: baris dgn "No" PALING KECIL (paling awal dicatat).
+  const kelompokPembayaranDuplikat = useMemo(() => {
+    const map = new Map();
+    pembayaran.forEach(p => {
+      const kunci = `${p.refType}|${p.refNo}|${p.nominal}|${p.tanggalBayar}|${p.metode}|${p.keterangan}|${p.akun}`;
+      if (!map.has(kunci)) map.set(kunci, []);
+      map.get(kunci).push(p);
+    });
+    const hasil = [];
+    map.forEach((rows, kunci) => {
+      if (rows.length <= 1) return; // bukan duplikat
+      const terurut = [...rows].sort((a, b) => Number(a.no) - Number(b.no));
+      const simpan = terurut[0];
+      const hapus = terurut.slice(1);
+      const tagihanTerkait = tagihanByRefNo.get(`${rows[0].refType}-${rows[0].refNo}`);
+      hasil.push({
+        kunci, refType: rows[0].refType, refNo: rows[0].refNo, nisn: rows[0].nisn, namaSiswa: rows[0].namaSiswa,
+        labelTagihan: tagihanTerkait ? tagihanTerkait.label : `${rows[0].jenis} (tagihan No=${rows[0].refNo}, mungkin sudah dihapus)`,
+        nominal: rows[0].nominal, tanggalBayar: rows[0].tanggalBayar, metode: rows[0].metode,
+        jumlahBaris: rows.length, rows, simpan, hapus,
+      });
+    });
+    return hasil.sort((a, b) => b.jumlahBaris - a.jumlahBaris);
+  }, [pembayaran, tagihanByRefNo]);
+  const totalBarisPembayaranAkanDihapus = kelompokPembayaranDuplikat.reduce((s, k) => s + k.hapus.length, 0);
+  const totalKelebihanTercatat = kelompokPembayaranDuplikat.reduce((s, k) => s + k.hapus.reduce((s2, r) => s2 + r.nominal, 0), 0);
+
+  async function bersihkanPembayaranDuplikat() {
+    if (totalBarisPembayaranAkanDihapus === 0) return;
+    if (!confirm(`Akan menghapus ${totalBarisPembayaranAkanDihapus} baris pembayaran duplikat dari ${kelompokPembayaranDuplikat.length} kelompok (total ${formatRupiah(totalKelebihanTercatat)} pencatatan berlebih). Baris "Sudah Dibayar" tiap tagihan akan otomatis terkoreksi setelah ini. Lanjutkan?`)) return;
+
+    setMemproses(true);
+    const noHapus = kelompokPembayaranDuplikat.flatMap(k => k.hapus.map(r => r.no));
+    setProgress({ current: 0, total: 1, label: 'Menghapus baris pembayaran duplikat' });
+    let sukses = 0;
+    let pesanError = null;
+    try {
+      const hasil = await bulkDeletePembayaranFromSheet(noHapus);
+      sukses = hasil.jumlahDihapus;
+    } catch (err) {
+      pesanError = err.message;
+    }
+    setProgress({ current: 1, total: 1, label: 'Menghapus baris pembayaran duplikat' });
+
+    await addLogEntry({
+      username: currentUser.username,
+      namaUser: currentUser.nama,
+      aksi: 'Bersihkan Pembayaran Duplikat',
+      modul: 'Tagihan & Biaya',
+      detail: `Menghapus ${sukses} baris pembayaran duplikat dari ${kelompokPembayaranDuplikat.length} kelompok (total ${formatRupiah(totalKelebihanTercatat)} pencatatan berlebih)`
+        + (pesanError ? ` -- GAGAL: ${pesanError}` : ''),
+    });
+
+    await refreshPembayaran();
+    if (pesanError) {
+      toast(`Gagal menghapus pembayaran duplikat: ${pesanError}. Pastikan skrip Apps Script Keuangan sudah versi terbaru.`, 'error');
+    } else {
+      toast(`${sukses} baris pembayaran duplikat berhasil dihapus. Total tagihan yang terpengaruh akan otomatis terkoreksi.`);
+    }
+    setMemproses(false);
+    setProgress(null);
+  }
 
   // Diagnosa TERPISAH dari duplikat: tagihan Biaya Lain yg NISN-nya SEKARANG di kelas
   // yg TIDAK cocok dgn tarif yg tarifnya spesifik (bukan "Semua Kelas"). Ini BUKAN
@@ -283,7 +373,8 @@ export default function BersihkanDuplikat() {
         <div className="card" style={{ background: 'var(--red-soft)', marginBottom: 18, border: '1px solid #e0a99f' }}>
           <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 12.5, color: '#8a2b1f' }}>
-              🔴 <strong>Ditemukan nomor "No" ganda</strong> ({nomorGandaSpp} di SPP, {nomorGandaLain} di Biaya Lain) --
+              🔴 <strong>Ditemukan nomor "No" ganda</strong> ({nomorGandaSpp} di SPP, {nomorGandaLain} di Biaya Lain,
+              {' '}{nomorGandaPembayaran} di Pembayaran) --
               ini bikin pencocokan "sudah dibayar" di bawah bisa SALAH (1 pembayaran terlihat cocok ke banyak baris
               sekaligus, padahal cuma nomornya yang kebetulan sama). <strong>Perbaiki dulu sebelum lanjut membersihkan
               duplikat.</strong> Aman dijalankan — cuma mengganti nomor, tidak menghapus apa pun.
@@ -396,6 +487,89 @@ export default function BersihkanDuplikat() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      </div>
+
+      <div className="card" style={{ background: 'var(--gold-soft)', marginTop: 18, marginBottom: 18 }}>
+        <div className="card-body" style={{ fontSize: 12.5, color: '#8a5b00' }}>
+          ⚠️ Alat di bawah ini beda dari yang di atas -- ini bukan soal tagihan yang dobel, tapi soal <strong>1
+          pembayaran yang kecatat berkali-kali</strong> untuk tagihan yang sama persis (nominal, tanggal, metode, dsb
+          sama semua) -- biasanya bekas form pembayaran yang ke-submit berulang. Ini bikin "Sudah Dibayar" di Kartu
+          SPP/Biaya Lain, Invoice, Rekap Tunggakan, dan Laporan Keuangan semua kelihatan lebih besar dari yang
+          sebenarnya diterima. Cicilan/pembayaran bertahap yang nominal atau tanggalnya beda-beda <strong>tidak</strong> akan
+          kena (itu sah, bukan duplikat).
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-head">
+          <div><h3>Pembayaran Tercatat Berkali-kali (Duplikat)</h3><p>Urut dari yang paling banyak duplikatnya.</p></div>
+          <button className="btn btn-primary" onClick={bersihkanPembayaranDuplikat} disabled={memproses || totalBarisPembayaranAkanDihapus === 0 || adaNomorGanda} title={adaNomorGanda ? 'Perbaiki nomor ganda dulu di atas' : undefined}>
+            {memproses ? 'Membersihkan...' : `🧹 Hapus ${totalBarisPembayaranAkanDihapus} Baris Pembayaran Duplikat`}
+          </button>
+        </div>
+        <div className="card-body table-scroll">
+          {kelompokPembayaranDuplikat.length === 0 && (
+            <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 20 }}>
+              ✅ Tidak ditemukan pembayaran yang tercatat berkali-kali. Data Anda bersih!
+            </p>
+          )}
+          {kelompokPembayaranDuplikat.length > 0 && (
+            <>
+              <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '0 0 10px' }}>
+                Total pencatatan berlebih: <strong style={{ color: 'var(--red)' }}>{formatRupiah(totalKelebihanTercatat)}</strong> dari
+                {' '}{kelompokPembayaranDuplikat.length} kelompok.
+              </p>
+              <table>
+                <thead>
+                  <tr><th>Siswa</th><th>Tagihan Terkait</th><th>Nominal (per baris)</th><th>Tanggal Bayar</th><th>Metode</th><th>Jumlah Baris</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {kelompokPembayaranDuplikat.map(k => (
+                    <Fragment key={k.kunci}>
+                      <tr>
+                        <td>{k.namaSiswa}</td>
+                        <td>{k.labelTagihan}</td>
+                        <td>{formatRupiah(k.nominal)}</td>
+                        <td>{k.tanggalBayar}</td>
+                        <td>{k.metode}</td>
+                        <td style={{ fontWeight: 700 }}>{k.jumlahBaris} baris</td>
+                        <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className="badge badge-green">Simpan 1, hapus {k.hapus.length}</span>
+                          <button className="btn btn-sm" onClick={() => setTerbukaDetail(t => ({ ...t, [k.kunci]: !t[k.kunci] }))}>
+                            {terbukaDetail[k.kunci] ? 'Tutup Detail' : 'Lihat Detail'}
+                          </button>
+                        </td>
+                      </tr>
+                      {terbukaDetail[k.kunci] && (
+                        <tr>
+                          <td colSpan={7} style={{ background: '#FAFBFA', padding: 0 }}>
+                            <div style={{ padding: '12px 16px' }}>
+                              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 8 }}>
+                                Rincian {k.jumlahBaris} baris pembayaran dalam kelompok ini
+                              </div>
+                              <table style={{ margin: 0 }}>
+                                <thead><tr><th>No (Sheet)</th><th>Nominal</th><th>Status</th></tr></thead>
+                                <tbody>
+                                  {k.rows.slice().sort((a, b) => Number(a.no) - Number(b.no)).map(r => (
+                                    <tr key={r.no}>
+                                      <td>{r.no}</td>
+                                      <td>{formatRupiah(r.nominal)}</td>
+                                      <td>{r.no === k.simpan.no ? <span className="badge badge-green">Disimpan</span> : <span className="badge badge-red">Akan dihapus</span>}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
       </div>

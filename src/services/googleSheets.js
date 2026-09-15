@@ -267,6 +267,7 @@ export const bulkDeleteTagihanLainFromSheet = (nos) => bulkDeleteFromSheet('tagi
 export const fetchPembayaranFromSheet = () => fetchFromSheet('pembayaran', 'keuangan');
 export const addPembayaranToSheet = (row) => addToSheet('pembayaran', row, 'keuangan');
 export const deletePembayaranFromSheet = (no) => deleteFromSheet('pembayaran', no, 'keuangan');
+export const bulkDeletePembayaranFromSheet = (nos) => bulkDeleteFromSheet('pembayaran', nos, 'keuangan');
 
 export const fetchPengeluaranFromSheet = () => fetchFromSheet('pengeluaran', 'keuangan');
 export const addPengeluaranToSheet = (row) => addToSheet('pengeluaran', row, 'keuangan');
