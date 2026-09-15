@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Page from '../../components/layout/Page';
 import { useAppData } from '../../context/AppContext';
-import { deleteTagihanSppFromSheet, deleteTagihanLainFromSheet, addLogEntry } from '../../services/googleSheets';
+import { deleteTagihanSppFromSheet, deleteTagihanLainFromSheet, addLogEntry, perbaikiNomorGanda } from '../../services/googleSheets';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../db/helpers';
 import ProgressModal from '../../components/common/ProgressModal';
@@ -29,6 +29,48 @@ export default function BersihkanDuplikat() {
   const { allTagihan, pembayaran, tarif, siswa, refreshTagihanSpp, refreshTagihanLain, toast } = useAppData();
   const { currentUser } = useAuth();
   const [memproses, setMemproses] = useState(false);
+  const [memperbaikiNomor, setMemperbaikiNomor] = useState(false);
+
+  // Deteksi "No" yg KEBETULAN dobel dlm 1 sheet yg SAMA (akibat bug lama, race
+  // condition saat penerbitan cepat berturut-turut -- sudah diperbaiki di server,
+  // ini cuma soal DATA LAMA yg terlanjur rusak). Kalau ada, WAJIB diperbaiki DULU
+  // sebelum analisis duplikat di bawah bisa dipercaya -- kalau tidak, pencocokan
+  // "sudah dibayar atau belum" bisa salah (1 pembayaran keliatan cocok ke banyak
+  // baris sekaligus krn "No"-nya kembar, bukan krn benar2 dibayar berkali-kali).
+  const nomorGandaSpp = useMemo(() => {
+    const seen = new Set(); let jumlah = 0;
+    allTagihan.filter(t => t.refType === 'SPP').forEach(t => { if (seen.has(t.no)) jumlah++; else seen.add(t.no); });
+    return jumlah;
+  }, [allTagihan]);
+  const nomorGandaLain = useMemo(() => {
+    const seen = new Set(); let jumlah = 0;
+    allTagihan.filter(t => t.refType === 'LAIN').forEach(t => { if (seen.has(t.no)) jumlah++; else seen.add(t.no); });
+    return jumlah;
+  }, [allTagihan]);
+  const adaNomorGanda = nomorGandaSpp > 0 || nomorGandaLain > 0;
+
+  async function perbaikiNomorGandaSemua() {
+    setMemperbaikiNomor(true);
+    try {
+      const hasilSpp = nomorGandaSpp > 0 ? await perbaikiNomorGanda('tagihanSpp') : 0;
+      const hasilLain = nomorGandaLain > 0 ? await perbaikiNomorGanda('tagihanLain') : 0;
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Perbaiki Nomor Ganda',
+        modul: 'Tagihan & Biaya',
+        detail: `Memperbaiki ${hasilSpp} nomor ganda di Tagihan SPP dan ${hasilLain} di Tagihan Lain`,
+      });
+      await refreshTagihanSpp();
+      await refreshTagihanLain();
+      toast(`${hasilSpp + hasilLain} nomor ganda berhasil diperbaiki. Silakan periksa ulang daftar di bawah.`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setMemperbaikiNomor(false);
+    }
+  }
+
   const [progress, setProgress] = useState(null);
   const [sudahDihapusKali, setSudahDihapusKali] = useState(0);
 
@@ -143,6 +185,22 @@ export default function BersihkanDuplikat() {
 
   return (
     <Page pageId="bersihkan-duplikat" title="Bersihkan Data Duplikat" path="Keuangan / Bersihkan Data Duplikat">
+      {adaNomorGanda && (
+        <div className="card" style={{ background: 'var(--red-soft)', marginBottom: 18, border: '1px solid #e0a99f' }}>
+          <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12.5, color: '#8a2b1f' }}>
+              🔴 <strong>Ditemukan nomor "No" ganda</strong> ({nomorGandaSpp} di SPP, {nomorGandaLain} di Biaya Lain) --
+              ini bikin pencocokan "sudah dibayar" di bawah bisa SALAH (1 pembayaran terlihat cocok ke banyak baris
+              sekaligus, padahal cuma nomornya yang kebetulan sama). <strong>Perbaiki dulu sebelum lanjut membersihkan
+              duplikat.</strong> Aman dijalankan — cuma mengganti nomor, tidak menghapus apa pun.
+            </div>
+            <button className="btn btn-primary" onClick={perbaikiNomorGandaSemua} disabled={memperbaikiNomor} style={{ flexShrink: 0 }}>
+              {memperbaikiNomor ? 'Memperbaiki...' : '🔧 Perbaiki Nomor Ganda'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ background: 'var(--gold-soft)', marginBottom: 18 }}>
         <div className="card-body" style={{ fontSize: 12.5, color: '#8a5b00' }}>
           ⚠️ Alat ini memindai tagihan SPP &amp; Biaya Lain yang <strong>persis sama</strong> (siswa + jenis/bulan yang
@@ -170,7 +228,7 @@ export default function BersihkanDuplikat() {
       <div className="card">
         <div className="card-head">
           <div><h3>Daftar Kelompok Duplikat</h3><p>Urut dari yang paling banyak duplikatnya.</p></div>
-          <button className="btn btn-primary" onClick={bersihkanSemua} disabled={memproses || totalBarisAkanDihapus === 0}>
+          <button className="btn btn-primary" onClick={bersihkanSemua} disabled={memproses || totalBarisAkanDihapus === 0 || adaNomorGanda} title={adaNomorGanda ? 'Perbaiki nomor ganda dulu di atas' : undefined}>
             {memproses ? 'Membersihkan...' : `🧹 Hapus ${totalBarisAkanDihapus} Baris Duplikat`}
           </button>
         </div>

@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.25.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Perbaikan akar masalah: nomor tagihan ("No") kadang bisa kembar akibat penerbitan cepat berturut-turut di masa lalu, menyebabkan alat Bersihkan Duplikat salah mendeteksi banyak baris sebagai "sudah dibayar" — sekarang ada tombol "Perbaiki Nomor Ganda" untuk membetulkannya, dan nomor tidak akan kembar lagi ke depannya',
+    ],
+  },
+  {
     versi: '1.24.0',
     tanggal: '2026-09-15',
     poin: [

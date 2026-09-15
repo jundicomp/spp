@@ -156,6 +156,15 @@ function doPost(e) {
       if (!found) return jsonResponse_({ ok: false, error: 'Baris dengan No=' + body.no + ' tidak ditemukan.' });
       return jsonResponse_({ ok: true });
     }
+    if (body.action === 'perbaikiNomorGanda') {
+      // Baris FISIK PALING ATAS yg pegang suatu "No" dibiarkan (menjaga link pembayaran
+      // yg mungkin sudah menunjuk ke situ), baris FISIK BERIKUTNYA yg kebetulan pegang
+      // "No" yg SAMA (akibat bug race condition lama, sekarang sudah diperbaiki dgn
+      // LockService) diberi nomor BARU yg belum terpakai. Lihat catatan lengkap di
+      // appendRow_ soal akar masalahnya.
+      const jumlahDiperbaiki = perbaikiNomorGanda_(sheet, cfg.headers);
+      return jsonResponse_({ ok: true, jumlahDiperbaiki });
+    }
     return jsonResponse_({ ok: false, error: 'Aksi "' + body.action + '" tidak dikenal.' });
   } catch (err) {
     return jsonResponse_({ ok: false, error: String(err) });
@@ -181,13 +190,53 @@ function getSheet_(cfg) {
 }
 
 function appendRow_(sheet, headers, rowObj, textColumns) {
-  const nextNo = sheet.getLastRow();
-  const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
-  // Paksa format teks pada kolom rentan (mis. "Kode Akun") SEBELUM baris ditulis --
-  // supaya Google Sheets tidak menafsirkan ulang isinya jadi Date/Number otomatis
-  // (ditemukan bug nyata: kode "5-1010" berubah jadi datetime aneh tanpa perbaikan ini).
-  forceTextColumns_(sheet, headers, sheet.getLastRow() + 1, textColumns);
-  sheet.appendRow(row);
+  // PENTING -- LockService WAJIB di sini: sebelumnya "nextNo = sheet.getLastRow()"
+  // dibaca TANPA kunci, jadi kalau 2 permintaan (mis. dari klik ganda/rapid-click)
+  // berjalan BERSAMAAN, keduanya bisa membaca getLastRow() yg SAMA SEBELUM salah satu
+  // sempat menulis barisnya -- hasilnya 2 baris BERBEDA dgn "No" yg SAMA (baris dobel
+  // dgn ID kembar). Ini AKAR MASALAH ditemukan sambil investigasi laporan user: alat
+  // "Bersihkan Duplikat" salah kira banyak baris "sudah dibayar" krn No-nya kembar,
+  // padahal cuma 1 pembayaran asli yg kebetulan cocok ke SEMUA baris berNo sama itu.
+  // getScriptLock() memaksa proses LAIN nunggu gantian -- baca+tulis jadi ATOMIK.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const nextNo = sheet.getLastRow();
+    const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
+    forceTextColumns_(sheet, headers, sheet.getLastRow() + 1, textColumns);
+    sheet.appendRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function perbaikiNomorGanda_(sheet, headers) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const noCol = headers.indexOf('No') + 1;
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return 0;
+    const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues().map(r => Number(r[0]));
+    const sudahTerlihat = new Set();
+    let noTertinggi = Math.max(0, ...nilaiNo);
+    let nomorBaruBerikutnya = noTertinggi + 1;
+    let jumlahDiperbaiki = 0;
+    for (let i = 0; i < nilaiNo.length; i++) {
+      const n = nilaiNo[i];
+      if (sudahTerlihat.has(n)) {
+        const baris = i + 2; // +2: index 0 = baris sheet ke-2 (baris 1 = header)
+        sheet.getRange(baris, noCol).setValue(nomorBaruBerikutnya);
+        nomorBaruBerikutnya++;
+        jumlahDiperbaiki++;
+      } else {
+        sudahTerlihat.add(n);
+      }
+    }
+    return jumlahDiperbaiki;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function updateRow_(sheet, headers, rowObj, textColumns) {

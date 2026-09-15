@@ -168,6 +168,15 @@ export async function setActiveTahunAjaranOnSheet(no) {
 // ---- Log aktivitas ----
 export const fetchLogFromSheet = () => fetchFromSheet('log');
 
+// Perbaiki "No" yg kebetulan dobel akibat bug lama (race condition saat penerbitan
+// cepat berturut-turut, sudah diperbaiki dgn LockService -- ini cuma utk data LAMA
+// yg terlanjur rusak). sheetName: 'tagihanSpp' | 'tagihanLain'.
+export async function perbaikiNomorGanda(sheetName) {
+  const json = await postToSheet({ action: 'perbaikiNomorGanda', sheet: sheetName }, 'keuangan');
+  if (!json.ok) throw new Error(json.error || 'Gagal memperbaiki nomor ganda.');
+  return json.jumlahDiperbaiki;
+}
+
 // Cek ringan apakah target (master/keuangan) BENAR-BENAR bisa dihubungi SAAT INI --
 // dipakai indikator status di header (pulse hijau/merah). SENGAJA pakai 1 percobaan
 // LANGSUNG (bukan fetchDenganRetry) supaya statusnya jujur mencerminkan kondisi

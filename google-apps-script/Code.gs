@@ -226,9 +226,18 @@ function getSheet_(cfg) {
 }
 
 function appendRow_(sheet, headers, rowObj) {
-  const nextNo = sheet.getLastRow(); // baris 1 = header, jadi ini otomatis nomor urut berikutnya
-  const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
-  sheet.appendRow(row);
+  // Sama persis dgn perbaikan di Code-Keuangan.gs: LockService WAJIB supaya penentuan
+  // "No" berikutnya tidak tabrakan kalau 2 permintaan berjalan bersamaan (akar masalah
+  // baris dobel berNo kembar -- lihat catatan lengkap di Code-Keuangan.gs).
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const nextNo = sheet.getLastRow(); // baris 1 = header, jadi ini otomatis nomor urut berikutnya
+    const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
+    sheet.appendRow(row);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Cari baris via kolom "No", timpa semua kolom lain dgn nilai baru. "No" sendiri tidak berubah.
