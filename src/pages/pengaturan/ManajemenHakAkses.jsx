@@ -13,6 +13,7 @@ function nilaiEfektif(permMap, itemId) {
 export default function ManajemenHakAkses() {
   const { HAK_AKSES_PAGES, HAK_AKSES_TABS, permissionRoles, halamanSensitif, ADMIN_ONLY_PAGES, permissions, terapkanPerubahanHakAkses, toast } = useAppData();
   const [terbuka, setTerbuka] = useState({}); // { [pageId]: true } -- halaman mana yg tabnya sedang ditampilkan
+  const [terbukaSub, setTerbukaSub] = useState({}); // { [pageId.tabId]: true } -- tab mana yg sub-tabnya ditampilkan
   const [draft, setDraft] = useState(permissions); // salinan lokal -- checkbox ubah INI dulu, blm tersimpan
   const [menerapkan, setMenerapkan] = useState(false);
 
@@ -124,29 +125,73 @@ export default function ManajemenHakAkses() {
                           </tr>
                           {punyaTab && sedangTerbuka && tabsHalamanIni.map(tabInfo => {
                             const itemId = `${p.id}.${tabInfo.id}`;
+                            const punyaSubTab = tabInfo.subTabs && tabInfo.subTabs.length > 0;
+                            const subKey = itemId;
+                            const subSedangTerbuka = !!terbukaSub[subKey];
                             return (
-                              <tr key={itemId} style={{ background: '#FAFBFA' }}>
-                                <td style={{ paddingLeft: 40, fontSize: 12.5, color: 'var(--muted)' }}>↳ {tabInfo.label}</td>
-                                {permissionRoles.map(role => {
-                                  const pageLocked = isLocked(role, p.id);
-                                  const pageChecked = nilaiEfektif(draft[role], p.id);
-                                  const tabChecked = nilaiEfektif(draft[role], itemId);
-                                  const disabled = pageLocked || !pageChecked;
-                                  const berubah = nilaiEfektif(permissions[role], itemId) !== tabChecked;
+                              <Fragment key={itemId}>
+                                <tr style={{ background: '#FAFBFA' }}>
+                                  <td style={{ paddingLeft: 40, fontSize: 12.5, color: 'var(--muted)' }}>
+                                    {punyaSubTab ? (
+                                      <button
+                                        onClick={() => setTerbukaSub(t => ({ ...t, [subKey]: !t[subKey] }))}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: 0, fontSize: 12.5, color: 'var(--muted)' }}
+                                      >
+                                        <span style={{ fontSize: 9, width: 10, display: 'inline-block' }}>{subSedangTerbuka ? '▾' : '▸'}</span>
+                                        ↳ {tabInfo.label}
+                                      </button>
+                                    ) : (
+                                      <>↳ {tabInfo.label}</>
+                                    )}
+                                  </td>
+                                  {permissionRoles.map(role => {
+                                    const pageLocked = isLocked(role, p.id);
+                                    const pageChecked = nilaiEfektif(draft[role], p.id);
+                                    const tabChecked = nilaiEfektif(draft[role], itemId);
+                                    const disabled = pageLocked || !pageChecked;
+                                    const berubah = nilaiEfektif(permissions[role], itemId) !== tabChecked;
+                                    return (
+                                      <td key={role} style={{ textAlign: 'center', background: berubah ? 'var(--gold-soft)' : undefined }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={tabChecked}
+                                          disabled={disabled}
+                                          onChange={e => toggle(role, itemId, e.target.checked)}
+                                          style={{ width: 14, height: 14, accentColor: 'var(--gold)' }}
+                                          title={disabled && !pageLocked ? 'Aktifkan dulu akses halamannya' : undefined}
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                                {punyaSubTab && subSedangTerbuka && tabInfo.subTabs.map(subInfo => {
+                                  const subItemId = `${itemId}.${subInfo.id}`;
                                   return (
-                                    <td key={role} style={{ textAlign: 'center', background: berubah ? 'var(--gold-soft)' : undefined }}>
-                                      <input
-                                        type="checkbox"
-                                        checked={tabChecked}
-                                        disabled={disabled}
-                                        onChange={e => toggle(role, itemId, e.target.checked)}
-                                        style={{ width: 14, height: 14, accentColor: 'var(--gold)' }}
-                                        title={disabled && !pageLocked ? 'Aktifkan dulu akses halamannya' : undefined}
-                                      />
-                                    </td>
+                                    <tr key={subItemId} style={{ background: '#F5F6F4' }}>
+                                      <td style={{ paddingLeft: 64, fontSize: 12, color: 'var(--muted)' }}>↳ {subInfo.label}</td>
+                                      {permissionRoles.map(role => {
+                                        const pageLocked = isLocked(role, p.id);
+                                        const tabChecked2 = nilaiEfektif(draft[role], itemId);
+                                        const subChecked = nilaiEfektif(draft[role], subItemId);
+                                        const disabled = pageLocked || !tabChecked2;
+                                        const berubah = nilaiEfektif(permissions[role], subItemId) !== subChecked;
+                                        return (
+                                          <td key={role} style={{ textAlign: 'center', background: berubah ? 'var(--gold-soft)' : undefined }}>
+                                            <input
+                                              type="checkbox"
+                                              checked={subChecked}
+                                              disabled={disabled}
+                                              onChange={e => toggle(role, subItemId, e.target.checked)}
+                                              style={{ width: 13, height: 13, accentColor: 'var(--gold)' }}
+                                              title={disabled && !pageLocked ? 'Aktifkan dulu tab induknya' : undefined}
+                                            />
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
                                   );
                                 })}
-                              </tr>
+                              </Fragment>
                             );
                           })}
                         </Fragment>

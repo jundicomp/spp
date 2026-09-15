@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.19.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Manajemen Hak Akses: ditemukan 1 halaman dengan tab bersarang (Tahun Ajaran di dalam Profil Sekolah) — sekarang bisa diatur sampai 3 tingkat, memastikan seluruh halaman bertab di aplikasi tercakup',
+    ],
+  },
+  {
     versi: '1.18.0',
     tanggal: '2026-09-14',
     poin: [

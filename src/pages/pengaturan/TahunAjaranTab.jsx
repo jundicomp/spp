@@ -5,6 +5,7 @@ import { TAHUN_AJARAN_FIELDS, TAHUN_AJARAN_HEADERS, emptyTahunAjaranRow } from '
 import { fetchTahunAjaranFromSheet, addTahunAjaranToSheet, updateTahunAjaranInSheet, deleteTahunAjaranFromSheet, setActiveTahunAjaranOnSheet, addLogEntry } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import useTabAccess from '../../hooks/useTabAccess';
 
 const ICON_STAR = (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="none">
@@ -15,7 +16,9 @@ const ICON_STAR = (
 export default function TahunAjaranTab() {
   const { refreshTahunAjaran, toast } = useAppData();
   const { currentUser } = useAuth();
-  const [tab, setTab] = useState('tabel');
+  // itemId "tahun.tabel" / "tahun.manual" -- sub-tab bersarang di DALAM tab "Tahun
+  // Ajaran" milik halaman "profil" -- key gabungannya jadi "profil.tahun.tabel" dst.
+  const { tab, setTab, bolehTab } = useTabAccess('profil', ['tahun.tabel', 'tahun.manual']);
   const [refreshSignal, setRefreshSignal] = useState(0);
 
   async function jadikanAktif(row) {
@@ -39,11 +42,11 @@ export default function TahunAjaranTab() {
   return (
     <div className="card">
       <div className="seg-tabs">
-        <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DAFTAR TAHUN AJARAN</button>
-        <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH TAHUN AJARAN</button>
+        {bolehTab('tahun.tabel') && <button className={`seg-tab ${tab === 'tahun.tabel' ? 'active' : ''}`} onClick={() => setTab('tahun.tabel')}>📋 DAFTAR TAHUN AJARAN</button>}
+        {bolehTab('tahun.manual') && <button className={`seg-tab ${tab === 'tahun.manual' ? 'active' : ''}`} onClick={() => setTab('tahun.manual')}>📝 TAMBAH TAHUN AJARAN</button>}
       </div>
       <div className="card-body" style={{ background: 'transparent', padding: 20 }}>
-        {tab === 'tabel' && (
+        {tab === 'tahun.tabel' && bolehTab('tahun.tabel') && (
           <GenericStoredTable
             title="Daftar Tahun Ajaran"
             subtitle="Klik ★ untuk menjadikan tahun ajaran itu aktif. Hanya satu yang bisa aktif sekaligus."
@@ -72,7 +75,7 @@ export default function TahunAjaranTab() {
             }}
           />
         )}
-        {tab === 'manual' && (
+        {tab === 'tahun.manual' && bolehTab('tahun.manual') && (
           <GenericManualForm
             fields={TAHUN_AJARAN_FIELDS}
             emptyRow={emptyTahunAjaranRow}

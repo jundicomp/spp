@@ -101,7 +101,13 @@ const HAK_AKSES_TABS = {
   ],
   profil: [
     { id: 'profil', label: 'Profil Sekolah' },
-    { id: 'tahun', label: 'Tahun Ajaran' },
+    // "Tahun Ajaran" py 2 sub-tab LAGI di dalamnya -- subTabs = tab bersarang level
+    // ke-3 (Modul > Halaman > Tab > Sub-Tab). ItemId gabungannya jadi 3 bagian
+    // dipisah titik, mis. "profil.tahun.tabel".
+    { id: 'tahun', label: 'Tahun Ajaran', subTabs: [
+      { id: 'tabel', label: 'Daftar Tahun Ajaran' },
+      { id: 'manual', label: 'Tambah Tahun Ajaran' },
+    ] },
   ],
   kelas: [
     { id: 'tabel', label: 'Data Kelas (Tabel)' },
