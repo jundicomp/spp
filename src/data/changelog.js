@@ -4,6 +4,28 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.28.1',
+    tanggal: '2026-09-15',
+    poin: [
+      'Riwayat Pembaruan: setiap versi sekarang dikelompokkan/collapsed — isi poin pembaruannya baru muncul kalau baris versinya diklik, tidak langsung tampil semua sekaligus',
+    ],
+  },
+  {
+    versi: '1.28.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Data Siswa / Rombel: tab "Rombel" sekarang jadi Laporan Rombel lengkap — pilih Kelas, pilih Rombel spesifik (mis. 1A), klik Tampilkan untuk melihat daftar siswanya, dengan jumlah siswa, pengaturan jumlah baris per halaman (10/20/50/100/Semua), pencarian, dan export Excel & PDF (judul MI Ikhlasiyah / Laporan Rombel / Kelas-Rombel)',
+    ],
+  },
+  {
+    versi: '1.27.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Riwayat Pembayaran: tambah filter rentang tanggal (bisa lihat transaksi hari per hari), kolom Tanggal dipindah ke setelah kolom No, total nominal ditampilkan di bawah kolom Nominal, dan pengaturan jumlah baris per halaman (10/20/50/100/Semua)',
+      'Riwayat Pembayaran: export Excel dan PDF sekarang pakai judul 3 baris (MI Ikhlasiyah / Laporan Pembayaran / Tanggal sesuai filter yang aktif)',
+    ],
+  },
+  {
     versi: '1.26.0',
     tanggal: '2026-09-15',
     poin: [
