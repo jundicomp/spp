@@ -9,7 +9,14 @@ const BORDER_SEMUA_SISI = { top: BORDER_TIPIS, bottom: BORDER_TIPIS, left: BORDE
 // otomatis menyesuaikan konten. Pakai library "exceljs" (bukan "xlsx"/SheetJS) --
 // versi gratis SheetJS TERBUKTI tidak menyimpan style sel sama sekali (sudah diuji),
 // exceljs genuinely open-source dan mendukung ini.
-export async function exportToExcel(headers, rows, filename, title) {
+// title: string (1 baris judul, spt sebelumnya) ATAU array string (multi-baris,
+// mis. ['MI Ikhlasiyah', 'Laporan Pembayaran', 'Tanggal: 15-09-2026']) -- baris
+// pertama ditulis besar/tebal (judul utama), baris berikutnya lebih kecil (subjudul).
+// footer: opsional, objek { [namaHeader]: nilai } utk 1 baris ringkasan/total yg
+// ditambahkan PALING BAWAH stlh semua baris data (mis. { Nominal: 'Rp 1.000.000' }
+// -- kolom lain yg tidak disebut dibiarkan kosong), ditulis tebal dgn latar beda
+// supaya jelas ini baris total, bukan data transaksi biasa.
+export async function exportToExcel(headers, rows, filename, title, footer) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Data');
 
@@ -21,13 +28,19 @@ export async function exportToExcel(headers, rows, filename, title) {
   const sudahAdaNomor = headers[0] === 'No';
   const headersFinal = sudahAdaNomor ? headers : ['No', ...headers];
 
-  if (title) {
-    ws.mergeCells(1, 1, 1, headersFinal.length);
-    const titleCell = ws.getCell(1, 1);
-    titleCell.value = title;
-    titleCell.font = { bold: true, size: 14, color: { argb: HIJAU_HEADER } };
+  const titleLines = title ? (Array.isArray(title) ? title : [title]) : [];
+  titleLines.forEach((line, i) => {
+    const baris = i + 1;
+    ws.mergeCells(baris, 1, baris, headersFinal.length);
+    const titleCell = ws.getCell(baris, 1);
+    titleCell.value = line;
+    titleCell.font = i === 0
+      ? { bold: true, size: 14, color: { argb: HIJAU_HEADER } }
+      : { bold: false, size: 11, color: { argb: 'FF5B6B61' } }; // --muted
     titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
-    ws.getRow(1).height = 26;
+    ws.getRow(baris).height = i === 0 ? 26 : 18;
+  });
+  if (titleLines.length > 0) {
     ws.addRow([]); // baris kosong pemisah antara judul & tabel
   }
 
@@ -54,13 +67,24 @@ export async function exportToExcel(headers, rows, filename, title) {
     }
   });
 
+  if (footer) {
+    const footerValues = headersFinal.map(h => (h === 'No' && !sudahAdaNomor ? '' : (footer[h] ?? '')));
+    const footerRowObj = ws.addRow(footerValues);
+    footerRowObj.eachCell(cell => {
+      cell.border = BORDER_SEMUA_SISI;
+      cell.font = { bold: true, color: { argb: HIJAU_HEADER } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF3EC' } }; // --green-soft
+      cell.alignment = { vertical: 'middle' };
+    });
+  }
+
   headersFinal.forEach((h, i) => {
     if (h === 'No' && !sudahAdaNomor) { ws.getColumn(i + 1).width = 8; return; }
     const kontenTerpanjang = rows.reduce((max, r) => Math.max(max, String(r[h] ?? '').length), h.length);
     ws.getColumn(i + 1).width = Math.min(Math.max(kontenTerpanjang + 3, 10), 45);
   });
 
-  ws.views = [{ state: 'frozen', ySplit: title ? 3 : 1 }]; // baris header tetap terlihat saat scroll
+  ws.views = [{ state: 'frozen', ySplit: titleLines.length > 0 ? titleLines.length + 2 : 1 }]; // baris header tetap terlihat saat scroll
 
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

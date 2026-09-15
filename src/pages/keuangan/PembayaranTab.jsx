@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import { addPembayaranToSheet, addLogEntry } from '../../services/googleSheets';
 import { statusTagihan } from '../../db/tagihanHelpers';
@@ -7,19 +7,31 @@ import { METODE_BAYAR_OPTIONS, SARAN_AKUN_PER_METODE } from '../../db/pembayaran
 import { akunAktivaOptions } from '../../db/akunBukuBesarFields';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { initials, avatarColor, todayWIB, formatTanggalTampil } from '../../db/helpers';
-import { exportToExcel } from '../../utils/exportTable';
+import { initials, avatarColor, todayWIB, formatTanggalTampil, normalisasiTanggalUntukInput } from '../../db/helpers';
+import { exportToExcel, printElementById } from '../../utils/exportTable';
 import KwitansiModal from './KwitansiModal';
 import Modal from '../../components/common/Modal';
 import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 import SaveProgressModal from '../../components/common/SaveProgressModal';
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 'Semua'];
+
+// Label "Tanggal: ..." dipakai baik di judul cetak PDF maupun subjudul Excel --
+// 1 fungsi supaya keduanya SELALU konsisten kalau logikanya berubah nanti.
+function labelRentangTanggal(dari, sampai) {
+  if (!dari && !sampai) return 'Semua Tanggal';
+  if (dari && sampai && dari === sampai) return formatTanggalTampil(dari);
+  if (dari && !sampai) return `Sejak ${formatTanggalTampil(dari)}`;
+  if (!dari && sampai) return `Sampai ${formatTanggalTampil(sampai)}`;
+  return `${formatTanggalTampil(dari)} s/d ${formatTanggalTampil(sampai)}`;
+}
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
 }
 
 export default function PembayaranTab() {
-  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun, beasiswaSiswa, beasiswaKategori } = useAppData();
+  const { siswa, allTagihan, pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, tagihanTerbayar, toast, akun, beasiswaSiswa, beasiswaKategori, profilSekolah } = useAppData();
   const { currentUser } = useAuth();
 
   const [term, setTerm] = useState('');
@@ -33,6 +45,26 @@ export default function PembayaranTab() {
   const [saving, setSaving] = useState(false);
   const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
+
+  // Filter tanggal riwayat pembayaran -- default kosong (tampil semua), diisi biar
+  // bisa lihat transaksi hari per hari (dari=sampai=tanggal yg sama) atau rentang.
+  const [dariTanggal, setDariTanggal] = useState('');
+  const [sampaiTanggal, setSampaiTanggal] = useState('');
+  const [printingAll, setPrintingAll] = useState(false);
+  const printId = 'print-' + useId().replace(/:/g, '');
+  const namaSekolah = profilSekolah?.nama || 'MI Ikhlasiyah';
+
+  function handlePrint() {
+    // Sama spt pola GenericStoredTable/LaporanRekapAset -- nyalakan forceShowAll dulu,
+    // tunggu React render ulang dgn SEMUA baris, baru panggil print.
+    setPrintingAll(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        printElementById(printId);
+        setPrintingAll(false);
+      });
+    });
+  }
 
   const suggestions = useMemo(() => {
     if (!term.trim() || selectedSiswaId) return [];
@@ -123,10 +155,40 @@ export default function PembayaranTab() {
     }
   }
 
+  // Dulu dibatasi 20 transaksi terakhir kalau belum pilih siswa -- sekarang tampilkan
+  // SEMUA (terbaru dulu), krn sudah ada filter tanggal + dropdown "Tampilkan" (10/20/
+  // 50/100/Semua) di bawah utk mengatur seberapa banyak yg ditampilkan sekaligus.
   const riwayatSiswaIni = useMemo(() => {
-    if (!selectedSiswa) return pembayaran.slice().reverse().slice(0, 20);
+    if (!selectedSiswa) return pembayaran.slice().reverse();
     return pembayaran.filter(p => p.nisn === selectedSiswa.nisn).slice().reverse();
   }, [pembayaran, selectedSiswa]);
+
+  // Filter tanggal (Dari/Sampai) -- dibandingkan dlm bentuk "yyyy-MM-dd" yg dinormalisasi
+  // (bukan string mentah apa adanya), supaya baris data lama yg formatnya "kotor"
+  // (ISO+jam, atau dd/mm/yyyy) tetap ke-filter dgn benar, bukan cuma dibandingkan
+  // sbg teks apa adanya.
+  const riwayatTerfilter = useMemo(() => {
+    if (!dariTanggal && !sampaiTanggal) return riwayatSiswaIni;
+    return riwayatSiswaIni.filter(p => {
+      const t = normalisasiTanggalUntukInput(p.tanggalBayar);
+      if (!t) return false;
+      if (dariTanggal && t < dariTanggal) return false;
+      if (sampaiTanggal && t > sampaiTanggal) return false;
+      return true;
+    });
+  }, [riwayatSiswaIni, dariTanggal, sampaiTanggal]);
+
+  const totalNominalTerfilter = useMemo(() => riwayatTerfilter.reduce((s, p) => s + p.nominal, 0), [riwayatTerfilter]);
+
+  function resetFilterTanggal() {
+    setDariTanggal('');
+    setSampaiTanggal('');
+  }
+  function filterHariIni() {
+    const t = todayWIB();
+    setDariTanggal(t);
+    setSampaiTanggal(t);
+  }
 
   return (
     <>
@@ -241,33 +303,65 @@ export default function PembayaranTab() {
 
       <div className="card">
         <div className="card-head">
-          <div><h3>Riwayat Pembayaran{selectedSiswa ? ` — ${selectedSiswa.nama}` : ''}</h3><p>{pembayaranLoading ? 'Memuat...' : `${riwayatSiswaIni.length} transaksi`}</p></div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div><h3>Riwayat Pembayaran{selectedSiswa ? ` — ${selectedSiswa.nama}` : ''}</h3><p>{pembayaranLoading ? 'Memuat...' : `${riwayatTerfilter.length} transaksi`}</p></div>
+          <div className="no-print" style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-sm" onClick={() => exportToExcel(
-              ['Nama Siswa', 'Jenis', 'Nominal', 'Tanggal', 'Metode'],
-              riwayatSiswaIni.map(p => ({ 'Nama Siswa': p.namaSiswa, 'Jenis': p.jenis, 'Nominal': p.nominal, 'Tanggal': formatTanggalTampil(p.tanggalBayar), 'Metode': p.metode })),
-              'Riwayat Pembayaran', `Riwayat Pembayaran${selectedSiswa ? ' — ' + selectedSiswa.nama : ''}`
-            )} disabled={riwayatSiswaIni.length === 0}>📊 Excel</button>
+              ['Tanggal', 'Nama Siswa', 'Jenis', 'Nominal', 'Metode'],
+              riwayatTerfilter.map(p => ({ 'Tanggal': formatTanggalTampil(p.tanggalBayar), 'Nama Siswa': p.namaSiswa, 'Jenis': p.jenis, 'Nominal': p.nominal, 'Metode': p.metode })),
+              'Riwayat Pembayaran',
+              [namaSekolah, `Laporan Pembayaran${selectedSiswa ? ' — ' + selectedSiswa.nama : ''}`, `Tanggal: ${labelRentangTanggal(dariTanggal, sampaiTanggal)}`],
+              { Nominal: totalNominalTerfilter }
+            )} disabled={riwayatTerfilter.length === 0}>📊 Excel</button>
+            <button className="btn btn-sm" onClick={handlePrint} disabled={riwayatTerfilter.length === 0}>🖨️ PDF</button>
             <button className="btn btn-sm" onClick={refreshPembayaran} disabled={pembayaranLoading}>↻ Muat Ulang</button>
           </div>
         </div>
         <div className="card-body">
-          {pembayaranLoaded && riwayatSiswaIni.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada pembayaran tercatat.</p>}
-          {riwayatSiswaIni.length > 0 && (
-            <DataTable
-              columns={[
-                { key: 'namaSiswa', label: 'Nama Siswa', accessor: r => r.namaSiswa, sortable: true },
-                { key: 'jenis', label: 'Jenis', accessor: r => r.jenis },
-                { key: 'nominal', label: 'Nominal', accessor: r => formatRupiah(r.nominal), sortable: true },
-                { key: 'tanggalBayar', label: 'Tanggal', render: r => formatTanggalTampil(r.tanggalBayar), sortable: true },
-                { key: 'metode', label: 'Metode', accessor: r => r.metode },
-                { key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => <div className="no-print"><button className="btn btn-sm" onClick={() => setLihatKwitansi(r)}>🧾 Kwitansi</button></div> },
-              ]}
-              data={riwayatSiswaIni}
-              searchFn={(r, t) => (r.namaSiswa || '').toLowerCase().includes(t) || (r.jenis || '').toLowerCase().includes(t) || (r.metode || '').toLowerCase().includes(t)}
-              emptyMessage="Tidak ada transaksi yang cocok dengan pencarian ini."
-              rowKey={r => r.id}
-            />
+          <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginBottom: 16, padding: '12px 14px', background: '#F6F8F5', borderRadius: 8 }}>
+            <div className="field">
+              <label>Dari Tanggal</label>
+              <input type="date" value={dariTanggal} onChange={e => setDariTanggal(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Sampai Tanggal</label>
+              <input type="date" value={sampaiTanggal} onChange={e => setSampaiTanggal(e.target.value)} />
+            </div>
+            <button type="button" className="btn btn-sm" onClick={filterHariIni}>Hari Ini</button>
+            {(dariTanggal || sampaiTanggal) && <button type="button" className="btn btn-sm" onClick={resetFilterTanggal}>✕ Reset Tanggal</button>}
+          </div>
+
+          {pembayaranLoaded && riwayatTerfilter.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>{riwayatSiswaIni.length === 0 ? 'Belum ada pembayaran tercatat.' : 'Tidak ada transaksi pada rentang tanggal ini.'}</p>}
+          {riwayatTerfilter.length > 0 && (
+            <div id={printId}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: '0 0 4px', fontSize: 19 }}>{namaSekolah}</h2>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Laporan Pembayaran{selectedSiswa ? ` — ${selectedSiswa.nama}` : ''}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>Tanggal: {labelRentangTanggal(dariTanggal, sampaiTanggal)}</div>
+              </div>
+              <DataTable
+                columns={[
+                  { key: 'tanggalBayar', label: 'Tanggal', render: r => formatTanggalTampil(r.tanggalBayar), sortable: true },
+                  { key: 'namaSiswa', label: 'Nama Siswa', accessor: r => r.namaSiswa, sortable: true },
+                  { key: 'jenis', label: 'Jenis', accessor: r => r.jenis },
+                  { key: 'nominal', label: 'Nominal', accessor: r => r.nominal, render: r => formatRupiah(r.nominal), sortable: true },
+                  { key: 'metode', label: 'Metode', accessor: r => r.metode },
+                  { key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => <div className="no-print"><button className="btn btn-sm" onClick={() => setLihatKwitansi(r)}>🧾 Kwitansi</button></div> },
+                ]}
+                data={riwayatTerfilter}
+                searchFn={(r, t) => (r.namaSiswa || '').toLowerCase().includes(t) || (r.jenis || '').toLowerCase().includes(t) || (r.metode || '').toLowerCase().includes(t)}
+                emptyMessage="Tidak ada transaksi yang cocok dengan pencarian ini."
+                rowKey={r => r.id}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                forceShowAll={printingAll}
+                footer={(rows) => (
+                  <tr style={{ fontWeight: 700, background: '#F6F8F5' }}>
+                    <td colSpan={4} style={{ textAlign: 'right' }}>Total ({rows.length} transaksi)</td>
+                    <td>{formatRupiah(rows.reduce((s, r) => s + r.nominal, 0))}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                )}
+              />
+            </div>
           )}
         </div>
       </div>
