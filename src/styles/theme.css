@@ -41,6 +41,19 @@ a{text-decoration:none;color:inherit;}
 .topbar-path{font-size:12.5px;color:var(--muted);margin:2px 0 0;}
 .topbar-right{display:flex;align-items:center;}
 .topbar-badge{background:var(--gold-soft);color:#8a5b00;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:700;}
+
+/* Indikator status koneksi Google Sheets (D=Data Induk, K=Keuangan) -- titik warna
+   berdenyut (pulse) di header, hijau=terhubung, merah=tidak, kuning=sedang cek. */
+.status-pulse-wrap{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:#F6F8F5;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);}
+.status-pulse-dot{width:9px;height:9px;border-radius:50%;position:relative;flex-shrink:0;}
+.status-pulse-dot::after{content:'';position:absolute;inset:0;border-radius:50%;animation:status-pulse-ring 1.6s ease-out infinite;}
+.status-pulse-dot.hijau{background:#1C7A3C;}
+.status-pulse-dot.hijau::after{background:#1C7A3C;}
+.status-pulse-dot.merah{background:#c0392b;}
+.status-pulse-dot.merah::after{background:#c0392b;}
+.status-pulse-dot.kuning{background:#F0B429;}
+.status-pulse-dot.kuning::after{animation:none;}
+@keyframes status-pulse-ring{0%{opacity:.55;transform:scale(1);}100%{opacity:0;transform:scale(2.6);}}
 .topbar-user{display:flex;align-items:center;gap:10px;padding-left:16px;margin-left:16px;border-left:1px solid var(--border);}
 .topbar-user-avatar{width:34px;height:34px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
 .topbar-user-name{font-size:13px;font-weight:700;}

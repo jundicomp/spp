@@ -168,6 +168,27 @@ export async function setActiveTahunAjaranOnSheet(no) {
 // ---- Log aktivitas ----
 export const fetchLogFromSheet = () => fetchFromSheet('log');
 
+// Cek ringan apakah target (master/keuangan) BENAR-BENAR bisa dihubungi SAAT INI --
+// dipakai indikator status di header (pulse hijau/merah). SENGAJA pakai 1 percobaan
+// LANGSUNG (bukan fetchDenganRetry) supaya statusnya jujur mencerminkan kondisi
+// SAAT itu juga -- pemulihan otomatis (merah -> hijau) terjadi lewat pengecekan
+// BERKALA berikutnya dari komponen pemanggilnya, bukan retry di sini.
+export async function cekKoneksi(target = 'master') {
+  const { url, secret } = getSheetsConfig(target);
+  if (!url) return false;
+  try {
+    const sep = url.includes('?') ? '&' : '?';
+    // sheet=profil (master) / sheet=tarif (keuangan) -- keduanya ringan, bukan seluruh data.
+    const sheetRingan = target === 'keuangan' ? 'tarif' : 'profil';
+    const res = await fetch(url + sep + 'sheet=' + sheetRingan + '&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
+    if (!res.ok) return false;
+    const json = await res.json();
+    return !!json.ok;
+  } catch {
+    return false;
+  }
+}
+
 export const fetchRolesFromSheet = () => fetchFromSheet('roles');
 export const addRoleToSheet = (namaRole) => addToSheet('roles', { 'Nama Role': namaRole });
 export const deleteRoleFromSheet = (no) => deleteFromSheet('roles', no);

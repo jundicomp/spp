@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.24.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Tambah indikator status koneksi di header — 2 titik berdenyut "D" (Data Induk) dan "K" (Keuangan), hijau saat terhubung, merah saat tidak, otomatis kembali hijau ketika koneksi pulih tanpa perlu reload halaman',
+    ],
+  },
+  {
     versi: '1.23.0',
     tanggal: '2026-09-15',
     poin: [

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAppData } from '../../context/AppContext';
 import { initials, avatarColor } from '../../db/helpers';
+import StatusKoneksiHeader from './StatusKoneksiHeader';
 
 export default function Topbar({ title, path }) {
   const { currentUser, logout } = useAuth();
@@ -14,7 +15,8 @@ export default function Topbar({ title, path }) {
         <h1 className="topbar-title">{title}</h1>
         <p className="topbar-path">{path}</p>
       </div>
-      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center' }}>
+      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <StatusKoneksiHeader />
         <div className="topbar-badge">Tahun Ajaran Aktif: {tahunAjaranAktif ? tahunAjaranAktif.label : '-'}</div>
         {currentUser && (
           <div className="topbar-user">
