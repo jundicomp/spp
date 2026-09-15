@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.23.0',
+    tanggal: '2026-09-15',
+    poin: [
+      'Kurangi "sering kondek/diskonek" — pengambilan data sekarang otomatis dicoba ulang kalau gagal sesaat, sebelum benar-benar ditampilkan sebagai error',
+    ],
+  },
+  {
     versi: '1.22.0',
     tanggal: '2026-09-15',
     poin: [

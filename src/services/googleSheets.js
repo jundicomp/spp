@@ -17,12 +17,33 @@ export function isConfigured(target = 'master') {
 
 const TARGET_LABEL = { master: 'Data Induk', keuangan: 'Keuangan' };
 
+// Google Apps Script (paket gratis) sering gagal SESAAT -- bukan berarti benar2
+// putus, tapi kena batas eksekusi/kuota bersamaan sesaat, atau "cold start" kalau
+// baru dipanggil lagi setelah lama idle. Kebanyakan kasus begini BERHASIL kalau
+// dicoba ULANG sekali lagi setelah jeda singkat -- jadi SEMUA request (GET & POST)
+// lewat sini, coba max 2x (1x asli + 1x ulang) sebelum benar2 dianggap gagal.
+// Ini mengurangi kesan "sering kondek/diskonek" TANPA perlu ganti apa pun di
+// sisi Google -- murni memperbaiki cara React menangani kegagalan sesaat.
+async function fetchDenganRetry(url, options, percobaanMaks = 2) {
+  let errorTerakhir;
+  for (let percobaan = 1; percobaan <= percobaanMaks; percobaan++) {
+    try {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res;
+    } catch (err) {
+      errorTerakhir = err;
+      if (percobaan < percobaanMaks) await new Promise(r => setTimeout(r, 900));
+    }
+  }
+  throw errorTerakhir;
+}
+
 export async function fetchFromSheet(sheetName = 'siswa', target = 'master') {
   const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
   const sep = url.includes('?') ? '&' : '?';
-  const res = await fetch(url + sep + 'sheet=' + encodeURIComponent(sheetName) + '&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
-  if (!res.ok) throw new Error('Gagal menghubungi Apps Script (HTTP ' + res.status + ').');
+  const res = await fetchDenganRetry(url + sep + 'sheet=' + encodeURIComponent(sheetName) + '&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');
   return json.data;
@@ -37,8 +58,7 @@ export async function fetchAllFromSheet(target = 'master') {
   const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
   const sep = url.includes('?') ? '&' : '?';
-  const res = await fetch(url + sep + 'sheet=ALL&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
-  if (!res.ok) throw new Error('Gagal menghubungi Apps Script (HTTP ' + res.status + ').');
+  const res = await fetchDenganRetry(url + sep + 'sheet=ALL&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');
   return json.data; // { sheetName: [...rows], ... }
@@ -47,6 +67,13 @@ export async function fetchAllFromSheet(target = 'master') {
 async function postToSheet(body, target = 'master') {
   const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
+  // PENTING -- SENGAJA TIDAK pakai fetchDenganRetry() di sini (beda dgn fetchFromSheet
+  // GET yg aman diulang). Request GET aman diulang krn cuma BACA (idempotent). Request
+  // POST ini MENULIS (add/update/delete) -- kalau percobaan pertama SEBENARNYA sudah
+  // berhasil di server tapi respons-nya yg gagal balik (network putus di tengah jalan),
+  // mengulang otomatis bisa mengirim tulisan yg SAMA dua kali -- persis bug "tagihan
+  // dobel" yg baru saja diperbaiki (lihat riwayat: refreshTagihanLain yg tdk di-await).
+  // Kalau POST gagal, biarkan gagal & user yg putuskan mau coba lagi manual atau tidak.
   // Content-Type: text/plain sengaja dipakai (bukan application/json) supaya browser
   // tidak mengirim preflight OPTIONS -- Google Apps Script Web App tidak menanganinya dgn baik.
   const res = await fetch(url, {
