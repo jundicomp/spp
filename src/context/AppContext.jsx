@@ -72,6 +72,7 @@ const HAK_AKSES_TABS = {
   'bersihkan-duplikat': [
     { id: 'duplikat', label: 'Cek Data Duplikat' },
     { id: 'nisn', label: 'Cek Data NISN' },
+    { id: 'keuangan', label: 'Cek Data Keuangan' },
   ],
   'pemasukan-pengeluaran': [
     { id: 'pemasukan', label: 'Pemasukan Lain' },

@@ -4,6 +4,17 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.11',
+    tanggal: '2026-09-16',
+    poin: [
+      'Cek Data dan Sistem: tambah tab ke-3, "Cek Data Keuangan" -- alat bantu utk memeriksa kesehatan data laporan keuangan, dari Kas Masuk & Kas Keluar sampai Buku Besar, Cashflow, Rekapitulasi, Laba Rugi, dan Neraca. Tiap bagian punya tombol "Cek Sekarang" sendiri supaya tidak membebani sistem kalau tidak sedang dibutuhkan',
+      'Kas Masuk (Pemasukan Lain) & Kas Keluar (Pengeluaran): cek nomor ganda, transaksi duplikat (tanggal+kategori+keterangan+nominal+akun sama persis, lengkap dgn tombol hapus otomatis sisakan 1), nama akun yang tidak dikenal sistem, & nominal yang tidak valid',
+      'Buku Besar: ringkasan dampak dari akun-akun tak dikenal yang ditemukan di atas, plus daftar akun Kewajiban/Modal custom yang dibuat tapi belum ada mekanisme pengisian datanya',
+      'Cashflow, Rekapitulasi, & Laba Rugi: masing-masing dihitung ULANG secara independen dari data mentah lalu dibandingkan dgn angka yang tampil di laporan aslinya -- kalau ada selisih, kemungkinan besar penyebabnya adalah transaksi ber-akun tak dikenal di atas',
+      'Neraca: piutang & saldo kas dihitung ulang independen, PLUS pengecekan baru yang selama ini belum pernah ada -- apakah Aktiva (Kas+Piutang) benar-benar sama dengan Modal hasil akumulasi Laba Rugi dari awal berdiri, bukan cuma diasumsikan sama seperti sekarang',
+    ],
+  },
+  {
     versi: '1.31.10',
     tanggal: '2026-09-16',
     poin: [

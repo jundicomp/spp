@@ -299,11 +299,13 @@ export const fetchPengeluaranFromSheet = () => fetchFromSheet('pengeluaran', 'ke
 export const addPengeluaranToSheet = (row) => addToSheet('pengeluaran', row, 'keuangan');
 export const updatePengeluaranInSheet = (row) => updateInSheet('pengeluaran', row, 'keuangan');
 export const deletePengeluaranFromSheet = (no) => deleteFromSheet('pengeluaran', no, 'keuangan');
+export const bulkDeletePengeluaranFromSheet = (nos) => bulkDeleteFromSheet('pengeluaran', nos, 'keuangan');
 
 export const fetchPemasukanLainFromSheet = () => fetchFromSheet('pemasukanLain', 'keuangan');
 export const addPemasukanLainToSheet = (row) => addToSheet('pemasukanLain', row, 'keuangan');
 export const updatePemasukanLainInSheet = (row) => updateInSheet('pemasukanLain', row, 'keuangan');
 export const deletePemasukanLainFromSheet = (no) => deleteFromSheet('pemasukanLain', no, 'keuangan');
+export const bulkDeletePemasukanLainFromSheet = (nos) => bulkDeleteFromSheet('pemasukanLain', nos, 'keuangan');
 
 export const fetchAkunFromSheet = () => fetchFromSheet('akunBukuBesar', 'keuangan');
 export const addAkunToSheet = (row) => addToSheet('akunBukuBesar', row, 'keuangan');
