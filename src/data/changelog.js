@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.4',
+    tanggal: '2026-09-16',
+    poin: [
+      'Perbaikan Manajemen Hak Akses: fitur sinkron-otomatis di versi sebelumnya (1.31.3) ternyata punya efek samping — kalau lagi sedang uncheck beberapa kotak tapi belum sempat klik "Terapkan", sinkron-otomatis itu bisa menimpa balik centang yang belum disimpan tadi. Sekarang sinkron-otomatis dijeda selama masih ada perubahan yang belum diterapkan, jadi centang yang sedang diedit tidak akan tertimpa lagi',
+      'Perbaikan lebih dalam: role yang sudah pernah diatur hak aksesnya (walau baru 1 menu) bisa diam-diam kehilangan proteksi bawaan untuk menu-menu LAIN yang belum pernah disentuh — termasuk 2 menu khusus Admin (Pengaturan Koneksi Google Sheets, Pengaturan Sistem) yang seharusnya selalu tertutup untuk role selain Admin. Sekarang proteksi bawaan itu selalu jadi dasar, baru ditimpa oleh menu yang memang benar-benar pernah diatur manual',
+    ],
+  },
+  {
     versi: '1.31.3',
     tanggal: '2026-09-16',
     poin: [

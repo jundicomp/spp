@@ -229,7 +229,17 @@ export function AppProvider({ children }) {
   const permissionsUntukTampil = useMemo(() => {
     const hasil = {};
     permissionRoles.forEach(role => {
-      hasil[role] = permissions[role] || buildDefaultPermissionsUntukRole(role);
+      // PENTING: GABUNG default (baseline aman -- halaman admin-only/sensitif otomatis
+      // tertutup utk role selain Admin/Kepala Sekolah) DENGAN izin yg sudah PERNAH
+      // disimpan eksplisit utk role itu -- bukan pilih salah satu spt sebelumnya
+      // (`permissions[role] || buildDefaultPermissionsUntukRole(role)`). Kenapa: begitu
+      // 1 role py SATU SAJA baris di Sheet Hak Akses (krn baru 1x pernah diubah), cara
+      // LAMA membuang SELURUH baseline default role itu -- akibatnya SEMUA halaman lain
+      // yg belum pernah disentuh (termasuk yg admin-only spt Pengaturan Koneksi Google
+      // Sheets & Pengaturan Sistem) diam2 jadi TERBUKA (default "boleh" krn key-nya
+      // tidak ada), padahal harusnya tetap tertutup utk role selain Admin. Baseline
+      // default dipasang DULU, baru ditimpa oleh apa yg benar2 pernah disimpan eksplisit.
+      hasil[role] = { ...buildDefaultPermissionsUntukRole(role), ...(permissions[role] || {}) };
     });
     return hasil;
   }, [permissionRoles, permissions]);

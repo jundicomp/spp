@@ -1,5 +1,5 @@
 import Page from '../../components/layout/Page';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useAppData } from '../../context/AppContext';
 
 const GRUP_ORDER = ['Umum', 'SPP', 'Keuangan', 'Sarpras', 'Pengaturan'];
@@ -16,13 +16,24 @@ export default function ManajemenHakAkses() {
   const [terbukaSub, setTerbukaSub] = useState({}); // { [pageId.tabId]: true } -- tab mana yg sub-tabnya ditampilkan
   const [draft, setDraft] = useState(permissions); // salinan lokal -- checkbox ubah INI dulu, blm tersimpan
   const [menerapkan, setMenerapkan] = useState(false);
+  // Penanda "draft sudah disentuh user, BELUM di-Terapkan/Batalkan" -- PENTING sejak
+  // ada sinkron-ulang Hak Akses otomatis di latar belakang (berkala + tiap tab aktif
+  // lagi, lihat AppContext). Tanpa penanda ini, background sync itu bisa nimpa balik
+  // centang yg baru diklik tapi BELUM sempat "Terapkan" -- kelihatan spt "kok kecentang
+  // lagi sendiri" padahal user belum pernah klik Terapkan sama sekali.
+  const draftDisentuhRef = useRef(false);
 
-  // Sinkronkan draft dari data server SETIAP KALI permissions dari server berubah
-  // (mis. setelah "Terapkan" selesai, atau role baru ditambahkan) -- supaya draft
-  // selalu mulai dari kondisi TERSIMPAN terbaru, bukan ketinggalan.
-  useEffect(() => { setDraft(permissions); }, [permissions]);
+  // Sinkronkan draft dari data server tiap kali permissions dari server berubah (mis.
+  // setelah "Terapkan" selesai, role baru ditambahkan, ATAU sinkron-ulang otomatis di
+  // latar belakang) -- TAPI cuma kalau user TIDAK sedang punya centang yg digantung
+  // (belum diterapkan/dibatalkan). Kalau ada, biarkan draft apa adanya -- jangan ditimpa.
+  useEffect(() => {
+    if (draftDisentuhRef.current) return;
+    setDraft(permissions);
+  }, [permissions]);
 
   function toggle(role, itemId, checked) {
+    draftDisentuhRef.current = true;
     setDraft(prev => ({ ...prev, [role]: { ...(prev[role] || {}), [itemId]: checked } }));
   }
 
@@ -48,12 +59,14 @@ export default function ManajemenHakAkses() {
     setMenerapkan(true);
     try {
       await terapkanPerubahanHakAkses(daftarPerubahan);
+      draftDisentuhRef.current = false; // sudah tersimpan -- boleh disinkron ulang dari server lagi
     } finally {
       setMenerapkan(false);
     }
   }
 
   function batalkan() {
+    draftDisentuhRef.current = false;
     setDraft(permissions);
     toast('Perubahan yang belum diterapkan dibatalkan.');
   }
