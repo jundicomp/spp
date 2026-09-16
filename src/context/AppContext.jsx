@@ -339,6 +339,29 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sinkron ulang Hak Akses SECARA BERKALA + tiap kali tab ini balik aktif (mis. user
+  // pindah ke tab/aplikasi lain lalu balik lagi) -- PENTING krn tanpa ini, sesi yg
+  // sudah lama terbuka (mis. petugas login pagi, tab-nya dibiarkan terbuka seharian)
+  // akan TERUS pakai salinan izin akses yg diambil SEKALI waktu pertama dia login,
+  // walau Admin sudah ubah & Terapkan hak akses barunya di sesi lain. Efeknya persis
+  // spt yg dilaporkan: kelihatannya "hak akses sudah dicabut tapi kok bisa akses
+  // terus, tidak ada perubahan apa pun" -- padahal datanya di Sheet sudah benar,
+  // cuma sesi yg SEDANG terbuka itu belum tahu ada perubahan (tidak ada mekanisme
+  // push real-time dari Sheet ke browser). Begitu permissions ke-refresh, halaman yg
+  // sedang tampil ikut re-render otomatis (canAccess baca ulang state ini), jadi
+  // TIDAK perlu user logout/refresh manual utk pembatasan barunya berlaku.
+  useEffect(() => {
+    function saatTabAktifLagi() {
+      if (document.visibilityState === 'visible') muatRolesDanHakAkses();
+    }
+    document.addEventListener('visibilitychange', saatTabAktifLagi);
+    const interval = setInterval(muatRolesDanHakAkses, 2 * 60 * 1000); // jaga2 tiap 2 menit walau tab tak pernah di-blur sama sekali
+    return () => {
+      document.removeEventListener('visibilitychange', saatTabAktifLagi);
+      clearInterval(interval);
+    };
+  }, [muatRolesDanHakAkses]);
+
   const toast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
     setToasts(t => [...t, { id, message, type }]);

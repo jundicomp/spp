@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.3',
+    tanggal: '2026-09-16',
+    poin: [
+      'Perbaikan Manajemen Hak Akses: kalau seorang user sudah login dan tab browsernya dibiarkan terbuka lama, perubahan hak akses yang diterapkan Admin setelah itu tidak langsung berlaku untuk sesi yang sudah terbuka tadi (harus logout/refresh manual dulu) — kelihatannya seperti "hak akses tidak berubah sama sekali". Sekarang aplikasi otomatis mengecek ulang hak akses secara berkala dan setiap kali tab dibuka/aktif lagi, jadi pembatasan akses terbaru langsung berlaku tanpa user itu harus logout',
+    ],
+  },
+  {
     versi: '1.31.2',
     tanggal: '2026-09-16',
     poin: [
