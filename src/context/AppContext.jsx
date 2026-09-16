@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { permissionRoles, halamanSensitif } from '../db/seed';
 import { normalizeSheetSiswa } from '../db/siswaFields';
 import { normalizeSheetKelas } from '../db/kelasFields';
@@ -161,16 +161,33 @@ export function AppProvider({ children }) {
     setPermissions(permMap);
   }, []);
 
+  // "Tiket" antrean utk fetch Roles+Hak Akses -- ADA 2 tempat yg bisa memuat data ini
+  // (muatMaster saat app pertama dibuka, DAN muatRolesDanHakAkses saat "Terapkan"/tambah
+  // role) -- keduanya menulis ke state `permissions` yg SAMA. Tanpa penanda tiket ini,
+  // fetch yg dikirim DULUAN tapi kebetulan lambat selesainya (mis. muatMaster kena
+  // "cold start" Apps Script pas app baru dibuka) bisa selesai BELAKANGAN dan menimpa
+  // balik hasil fetch yg lebih BARU (yg sudah mencerminkan perubahan barusan) dengan
+  // data BASI -- persis gejala "abis Terapkan sukses & kotaknya sudah benar, tapi
+  // beberapa detik kemudian balik sendiri ke posisi lama". Aturannya: tiap kali MULAI
+  // fetch, ambil nomor tiket baru; saat fetch itu SELESAI, cuma diterapkan kalau tiketnya
+  // MASIH yg terbaru (blm ada fetch lain yg dimulai sesudahnya) -- fetch basi dibuang.
+  const hakAksesTiketRef = useRef(0);
+  const terapkanHakAksesJikaMasihTerbaru = useCallback((tiket, roleRows, hakRows) => {
+    if (tiket !== hakAksesTiketRef.current) return;
+    isiRolesHakAksesDariRows(roleRows, hakRows);
+  }, [isiRolesHakAksesDariRows]);
+
   const muatRolesDanHakAkses = useCallback(async () => {
     if (!isConfigured()) return;
+    const tiket = ++hakAksesTiketRef.current;
     try {
       const [roleRows, hakRows] = await Promise.all([fetchRolesFromSheet(), fetchHakAksesFromSheet()]);
-      isiRolesHakAksesDariRows(roleRows, hakRows);
+      terapkanHakAksesJikaMasihTerbaru(tiket, roleRows, hakRows);
     } catch (err) {
       // Diam2 gagal -- role/permission tetap pakai default bawaan di bawah (fallback).
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [terapkanHakAksesJikaMasihTerbaru]);
 
   // addRole: cuma role TAMBAHAN (di luar 4 bawaan) yg bisa ditambah lewat sini.
   const addRole = useCallback(async (namaRole) => {
@@ -276,6 +293,7 @@ export function AppProvider({ children }) {
     let batal = false;
     async function muatMaster() {
       if (!isConfigured('master')) { isiProfilDariRows([]); return; }
+      const tiketHakAkses = ++hakAksesTiketRef.current;
       try {
         const semua = await fetchAllFromSheet('master');
         if (batal) return;
@@ -285,7 +303,7 @@ export function AppProvider({ children }) {
         asetRes.setFromBatch(semua.aset || []);
         tahunAjaranRes.setFromBatch(semua.tahunAjaran || []);
         isiProfilDariRows(semua.profil || []);
-        isiRolesHakAksesDariRows(semua.roles || [], semua.hakAkses || []);
+        terapkanHakAksesJikaMasihTerbaru(tiketHakAkses, semua.roles || [], semua.hakAkses || []);
       } catch (err) {
         if (batal) return;
         // Cadangan: kalau batch gagal, tetap coba 1-per-1 spt versi lama.

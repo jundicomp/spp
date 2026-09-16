@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.2',
+    tanggal: '2026-09-16',
+    poin: [
+      'Perbaikan lanjutan Manajemen Hak Akses: ternyata masih ada 1 celah lagi — kalau ada proses ambil data lain yang kebetulan belum selesai (mis. pas aplikasi baru dibuka), hasilnya bisa "menimpa balik" perubahan hak akses yang baru saja disimpan beberapa detik kemudian, walau sudah tampil benar sesaat setelah klik Terapkan. Sekarang aplikasi selalu memastikan cuma data PALING BARU yang dipakai, proses lama yang telat selesai otomatis diabaikan',
+      'Tambah pengaman supaya halaman aplikasi tidak "nyangkut" ke versi lama di browser setelah update di-deploy',
+    ],
+  },
+  {
     versi: '1.31.1',
     tanggal: '2026-09-16',
     poin: [
