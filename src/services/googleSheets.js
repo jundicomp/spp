@@ -43,7 +43,16 @@ export async function fetchFromSheet(sheetName = 'siswa', target = 'master') {
   const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
   const sep = url.includes('?') ? '&' : '?';
-  const res = await fetchDenganRetry(url + sep + 'sheet=' + encodeURIComponent(sheetName) + '&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
+  // "_ts" cache-buster + cache:'no-store' -- PENTING utk kasus refresh() yg dipanggil
+  // LANGSUNG setelah POST simpan (mis. Terapkan Hak Akses, tambah/edit data). Tanpa ini,
+  // request GET dgn query string PERSIS SAMA spt request sebelumnya bisa kena cache
+  // (browser ATAU lapisan proxy/edge di depan Web App Apps Script), jadi refresh
+  // menampilkan data LAMA sesaat setelah simpan sukses -- kelihatannya seperti
+  // "perubahan hilang/balik lagi" padahal sebenarnya sudah tersimpan di Sheet.
+  const res = await fetchDenganRetry(
+    url + sep + 'sheet=' + encodeURIComponent(sheetName) + '&secret=' + encodeURIComponent(secret || '') + '&_ts=' + Date.now(),
+    { method: 'GET', cache: 'no-store' }
+  );
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');
   return json.data;
@@ -58,7 +67,11 @@ export async function fetchAllFromSheet(target = 'master') {
   const { url, secret } = getSheetsConfig(target);
   if (!url) throw new Error(`URL Apps Script (${TARGET_LABEL[target]}) belum diatur. Buka Pengaturan Koneksi dulu.`);
   const sep = url.includes('?') ? '&' : '?';
-  const res = await fetchDenganRetry(url + sep + 'sheet=ALL&secret=' + encodeURIComponent(secret || ''), { method: 'GET' });
+  // Cache-buster sama spt fetchFromSheet() -- lihat catatan di sana.
+  const res = await fetchDenganRetry(
+    url + sep + 'sheet=ALL&secret=' + encodeURIComponent(secret || '') + '&_ts=' + Date.now(),
+    { method: 'GET', cache: 'no-store' }
+  );
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Gagal mengambil data dari Sheet.');
   return json.data; // { sheetName: [...rows], ... }
