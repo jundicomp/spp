@@ -1,8 +1,25 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useAppData } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { bulkUpdateSiswaInSheet, addLogEntry } from '../../services/googleSheets';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+}
+
+// Buat daftar kode NISN SEMENTARA berurutan (mis. IKH0001, IKH0002, ...) sebanyak yg
+// dibutuhkan -- kode yg KEBETULAN sudah dipakai siswa lain (mis. sisa dari batch
+// sebelumnya, atau NISN asli yg formatnya kebetulan sama) dilewati otomatis supaya
+// tidak ada 2 siswa kembar NISN-nya.
+function buatKodeSementara(prefix, jumlahDigit, jumlahDibutuhkan, nisnSudahDipakai) {
+  const hasil = [];
+  let n = 1;
+  while (hasil.length < jumlahDibutuhkan && n <= 999999) {
+    const kode = prefix + String(n).padStart(jumlahDigit, '0');
+    if (!nisnSudahDipakai.has(kode.toUpperCase())) hasil.push(kode);
+    n++;
+  }
+  return hasil;
 }
 
 // Kelompokkan baris jadi { nama, jumlah } unik -- dipakai utk daftar "nama yang
@@ -38,9 +55,53 @@ function analisisSumber({ key, label, rows, getNama, getNisn, getDetail }) {
 }
 
 export default function CekDataNisnTab() {
-  const { siswa, allTagihan, pembayaran } = useAppData();
+  const { siswa, allTagihan, pembayaran, refreshSiswa, toast } = useAppData();
+  const { currentUser } = useAuth();
   const [sudahDicek, setSudahDicek] = useState(false);
   const [terbukaAda, setTerbukaAda] = useState({}); // { [sourceKey]: true } -- toggle daftar "sudah ada NISN" per sumber
+
+  // ---- Isi NISN Massal (Sementara) -- khusus Data Siswa, sumber NISN yg asli ----
+  const [prefixNisn, setPrefixNisn] = useState('IKH');
+  const [digitNisn, setDigitNisn] = useState(4);
+  const [memprosesNisnMassal, setMemprosesNisnMassal] = useState(false);
+  const [hasilPerbaikanNisn, setHasilPerbaikanNisn] = useState(null); // [{nama, nisnBaru}] -- ditampilkan stlh berhasil
+
+  const siswaTanpaNisn = useMemo(() => siswa.filter(s => !String(s.nisn ?? '').trim()), [siswa]);
+  const nisnSudahDipakai = useMemo(() => new Set(siswa.map(s => String(s.nisn ?? '').trim().toUpperCase()).filter(Boolean)), [siswa]);
+  const previewKodeNisn = useMemo(
+    () => buatKodeSementara((prefixNisn || 'IKH').trim().toUpperCase() || 'IKH', Number(digitNisn) || 4, siswaTanpaNisn.length, nisnSudahDipakai),
+    [prefixNisn, digitNisn, siswaTanpaNisn.length, nisnSudahDipakai]
+  );
+
+  async function terapkanNisnMassal() {
+    if (siswaTanpaNisn.length === 0 || previewKodeNisn.length < siswaTanpaNisn.length) return;
+    const konfirmasi = confirm(
+      `Akan memberikan NISN SEMENTARA ke ${siswaTanpaNisn.length} siswa yang NISN-nya masih kosong, ` +
+      `berurutan dari ${previewKodeNisn[0]} sampai ${previewKodeNisn[siswaTanpaNisn.length - 1]}.\n\n` +
+      `Ingat: ini nomor SEMENTARA, bukan NISN resmi Dapodik -- ganti dengan NISN asli begitu sudah tersedia. Lanjutkan?`
+    );
+    if (!konfirmasi) return;
+    setMemprosesNisnMassal(true);
+    try {
+      const updates = siswaTanpaNisn.map((s, i) => ({ no: s.no, patch: { NISN: previewKodeNisn[i] } }));
+      const hasil = await bulkUpdateSiswaInSheet(updates);
+      const daftarBerhasil = siswaTanpaNisn.slice(0, hasil.jumlahDiupdate).map((s, i) => ({ nama: s.nama, nisnBaru: previewKodeNisn[i] }));
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Isi NISN Massal (Sementara)',
+        modul: 'Cek Data dan Sistem',
+        detail: `Memberikan NISN sementara ke ${hasil.jumlahDiupdate} siswa (${previewKodeNisn[0]} - ${previewKodeNisn[Math.max(0, hasil.jumlahDiupdate - 1)]})`,
+      });
+      setHasilPerbaikanNisn(daftarBerhasil);
+      await refreshSiswa();
+      toast(`${hasil.jumlahDiupdate} siswa berhasil diberi NISN sementara.`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setMemprosesNisnMassal(false);
+    }
+  }
 
   const sumberData = useMemo(() => ([
     { key: 'siswa', label: '👦 Data Siswa', rows: siswa, getNama: s => s.nama, getNisn: s => s.nisn, getDetail: s => `Kelas ${s.kelasTingkat || '-'}${s.rombel ? ' ' + s.rombel : ''}` },
@@ -93,6 +154,62 @@ export default function CekDataNisnTab() {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>Total Baris Diperiksa</div>
             </div></div>
           </div>
+
+          {siswaTanpaNisn.length > 0 && (
+            <div className="card" style={{ marginBottom: 18 }}>
+              <div className="card-head">
+                <div>
+                  <h3>🆕 Isi NISN Massal (Sementara)</h3>
+                  <p>Berikan kode NISN sementara berurutan ke {siswaTanpaNisn.length} siswa yang NISN-nya masih kosong di Data Siswa. Ini <strong>bukan</strong> NISN resmi -- cuma pengganti sementara supaya sistem tidak salah cocok, sampai NISN asli didapat dari Dapodik/sekolah.</p>
+                </div>
+              </div>
+              <div className="card-body">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', marginBottom: 14 }}>
+                  <div className="field" style={{ minWidth: 140 }}>
+                    <label>Awalan (Prefix)</label>
+                    <input type="text" value={prefixNisn} onChange={e => setPrefixNisn(e.target.value)} maxLength={8} placeholder="mis. IKH" />
+                  </div>
+                  <div className="field" style={{ minWidth: 120 }}>
+                    <label>Jumlah Digit Angka</label>
+                    <select value={digitNisn} onChange={e => setDigitNisn(Number(e.target.value))}>
+                      {[3, 4, 5, 6].map(d => <option key={d} value={d}>{d} digit</option>)}
+                    </select>
+                  </div>
+                  <button className="btn btn-primary" onClick={terapkanNisnMassal} disabled={memprosesNisnMassal || previewKodeNisn.length < siswaTanpaNisn.length}>
+                    {memprosesNisnMassal ? 'Menyimpan...' : `✅ Terapkan ke ${siswaTanpaNisn.length} Siswa`}
+                  </button>
+                </div>
+                {previewKodeNisn.length >= siswaTanpaNisn.length && (
+                  <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: 0 }}>
+                    Pratinjau: akan diberikan ke <strong>{siswaTanpaNisn.length} siswa</strong>, berurutan dari{' '}
+                    <strong>{previewKodeNisn[0]}</strong> sampai <strong>{previewKodeNisn[siswaTanpaNisn.length - 1]}</strong>.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {hasilPerbaikanNisn && (
+            <div className="card" style={{ marginBottom: 18, background: 'var(--green-soft)' }}>
+              <div className="card-head">
+                <div>
+                  <h3>✅ NISN Sementara Berhasil Diberikan</h3>
+                  <p>{hasilPerbaikanNisn.length} siswa berikut sekarang sudah punya NISN (sementara):</p>
+                </div>
+                <button className="btn btn-sm" onClick={() => setHasilPerbaikanNisn(null)}>✕ Tutup</button>
+              </div>
+              <div className="card-body table-scroll">
+                <table>
+                  <thead><tr><th>Nama Siswa</th><th>NISN Sementara Baru</th></tr></thead>
+                  <tbody>
+                    {hasilPerbaikanNisn.map((r, i) => (
+                      <tr key={i}><td>{r.nama}</td><td style={{ fontWeight: 700 }}>{r.nisnBaru}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {hasil.map(h => (
             <div className="card" key={h.key} style={{ marginBottom: 18 }}>

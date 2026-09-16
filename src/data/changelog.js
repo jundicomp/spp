@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.10',
+    tanggal: '2026-09-16',
+    poin: [
+      'Cek Data dan Sistem > Cek Data NISN: fitur baru "Isi NISN Massal (Sementara)" -- 1 tombol untuk memberi kode NISN sementara berurutan (mis. IKH0001, IKH0002, ...) ke semua siswa yang NISN-nya masih kosong sekaligus. Kode yang kebetulan sudah dipakai dilewati otomatis supaya tidak ada yang kembar',
+      'Setelah diterapkan, muncul daftar nama siswa yang baru saja diberi NISN sementara itu beserta kodenya masing-masing. Ini nomor SEMENTARA saja, tetap wajib diganti dengan NISN asli begitu tersedia dari Dapodik/sekolah',
+    ],
+  },
+  {
     versi: '1.31.9',
     tanggal: '2026-09-16',
     poin: [

@@ -187,6 +187,17 @@ function doPost(e) {
       setActiveTahunAjaran_(sheet, cfg.headers, body.no);
       return jsonResponse_({ ok: true });
     }
+    if (body.action === 'bulkUpdate') {
+      // Update BANYAK baris sekaligus (by "No"), tiap baris cuma field yg disebut di
+      // "patch" yg diubah -- field lain di baris itu TIDAK disentuh/ditimpa (beda dari
+      // action 'update' biasa yg replace 1 baris utuh, jadi WAJIB kirim semua kolom).
+      // Dipakai fitur "Isi NISN Massal (Sementara)" di Cek Data dan Sistem > Cek Data
+      // NISN -- bisa sampai ratusan siswa sekaligus, jadi kolom "No" dibaca 1x (bulk
+      // getValues) lalu semua update dieksekusi dlm 1 request, sama spt pola
+      // bulkDeleteRows_ di Code-Keuangan.gs (baca sekali, bukan scan sel-per-sel per baris).
+      const hasil = bulkUpdateRows_(sheet, cfg.headers, body.updates || []);
+      return jsonResponse_({ ok: true, jumlahDiupdate: hasil.jumlahDiupdate, noTidakDitemukan: hasil.noTidakDitemukan });
+    }
     if (body.action === 'upsertHakAkses') {
       // Server yg MENGGABUNGKAN 1 perubahan (itemId+checked) ke JSON izin role itu --
       // BUKAN menerima JSON lengkap dari client lalu menimpa mentah2. Kenapa: client
@@ -235,6 +246,40 @@ function appendRow_(sheet, headers, rowObj) {
     const nextNo = sheet.getLastRow(); // baris 1 = header, jadi ini otomatis nomor urut berikutnya
     const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
     sheet.appendRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Update BANYAK baris sekaligus (per "No") dlm 1 eksekusi -- tiap update = { no, patch:
+// {field: value, ...} }, cuma field di "patch" yg ditulis, kolom lain di baris itu
+// dibiarkan apa adanya (beda dari updateRow_ yg replace utuh 1 baris). LockService WAJIB
+// (sama spt appendRow_/bulkDeleteRows_ style di Code-Keuangan.gs) supaya aman kalau ada
+// proses lain nulis sheet yg sama bersamaan.
+function bulkUpdateRows_(sheet, headers, updates) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const noCol = headers.indexOf('No') + 1;
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2 || !updates || updates.length === 0) {
+      return { jumlahDiupdate: 0, noTidakDitemukan: (updates || []).map(u => String(u.no)) };
+    }
+    const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+    const barisByNo = {};
+    for (let i = 0; i < nilaiNo.length; i++) barisByNo[String(nilaiNo[i][0])] = i + 2; // +2: index 0 = baris sheet ke-2
+    let jumlahDiupdate = 0;
+    const noTidakDitemukan = [];
+    updates.forEach(u => {
+      const r = barisByNo[String(u.no)];
+      if (r === undefined) { noTidakDitemukan.push(String(u.no)); return; }
+      Object.keys(u.patch || {}).forEach(field => {
+        const col = headers.indexOf(field) + 1;
+        if (col > 0) sheet.getRange(r, col).setValue(u.patch[field]);
+      });
+      jumlahDiupdate++;
+    });
+    return { jumlahDiupdate, noTidakDitemukan };
   } finally {
     lock.releaseLock();
   }

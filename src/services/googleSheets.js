@@ -115,6 +115,17 @@ export async function updateInSheet(sheetName, row, target = 'master') {
   return json;
 }
 
+// Update BANYAK baris sekaligus dalam SATU request -- tiap item: { no, patch: {field:
+// value, ...} }, cuma field di "patch" yg diubah (kolom lain di baris itu tidak
+// disentuh). Dipakai fitur "Isi NISN Massal" -- jauh lebih cepat & tahan gagal drpd
+// kirim 1 request terpisah per baris (lihat bulkDeleteFromSheet utk alasan yg sama).
+export async function bulkUpdateInSheet(sheetName, updates, target = 'master') {
+  if (!updates || updates.length === 0) return { jumlahDiupdate: 0, noTidakDitemukan: [] };
+  const json = await postToSheet({ action: 'bulkUpdate', sheet: sheetName, updates }, target);
+  if (!json.ok) throw new Error(json.error || 'Gagal memperbarui data (bulk).');
+  return { jumlahDiupdate: json.jumlahDiupdate || 0, noTidakDitemukan: json.noTidakDitemukan || [] };
+}
+
 export async function deleteFromSheet(sheetName, no, target = 'master') {
   const json = await postToSheet({ action: 'delete', sheet: sheetName, no }, target);
   if (!json.ok) throw new Error(json.error || 'Gagal menghapus data.');
@@ -141,6 +152,7 @@ export const fetchSiswaFromSheet = () => fetchFromSheet('siswa');
 export const addSiswaToSheet = (row) => addToSheet('siswa', row);
 export const bulkAddSiswaToSheet = (rows) => bulkAddToSheet('siswa', rows);
 export const updateSiswaInSheet = (row) => updateInSheet('siswa', row);
+export const bulkUpdateSiswaInSheet = (updates) => bulkUpdateInSheet('siswa', updates);
 export const deleteSiswaFromSheet = (no) => deleteFromSheet('siswa', no);
 
 export const fetchUsersFromSheet = () => fetchFromSheet('users');
