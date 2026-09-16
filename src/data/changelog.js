@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.1',
+    tanggal: '2026-09-16',
+    poin: [
+      'Perbaikan: Manajemen Hak Akses — kadang setelah klik "Terapkan" dan muncul pesan berhasil, centang hak akses yang baru saja diubah malah balik lagi ke posisi lama. Penyebabnya bukan datanya gagal tersimpan, tapi cara aplikasi mengambil ulang data langsung setelah simpan sempat kena data "basi" (belum yang terbaru). Sekarang sudah dipastikan aplikasi selalu ambil data paling baru setiap kali refresh, bukan cuma di halaman Hak Akses tapi di semua halaman',
+    ],
+  },
+  {
     versi: '1.31.0',
     tanggal: '2026-09-15',
     poin: [
