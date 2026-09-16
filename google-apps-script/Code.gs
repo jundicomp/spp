@@ -265,9 +265,16 @@ function upsertHakAksesRole_(sheet, headers, role, itemId, checked) {
   const roleCol = headers.indexOf('Role') + 1;
   const jsonCol = headers.indexOf('PermissionsJson') + 1;
   const lastRow = sheet.getLastRow();
+  const roleDicari = String(role).trim();
   for (let r = 2; r <= lastRow; r++) {
-    const cellVal = String(sheet.getRange(r, roleCol).getValue());
-    if (cellVal === role) {
+    // PENTING: di-trim() dulu sebelum dibandingkan -- kalau tidak, satu saja spasi
+    // nyasar (mis. dari copy-paste manual di Sheets) bikin baris yg SUDAH ADA utk
+    // role ini tidak pernah ketemu, dan tiap "Terapkan" malah nambah baris BARU
+    // (bukan nimpa baris lama) -- baris lama yg berisi izin2 sebelumnya jadi
+    // "terkubur", padahal datanya sendiri masih ada, cuma tidak terbaca sbg 1
+    // kesatuan lagi. Ini penyebab role bisa py 2-3 baris nyasar utk nama yg sama.
+    const cellVal = String(sheet.getRange(r, roleCol).getValue()).trim();
+    if (cellVal === roleDicari) {
       let perm = {};
       try { perm = JSON.parse(sheet.getRange(r, jsonCol).getValue() || '{}'); } catch (e) { perm = {}; }
       perm[itemId] = checked;
@@ -277,7 +284,7 @@ function upsertHakAksesRole_(sheet, headers, role, itemId, checked) {
   }
   const perm = {};
   perm[itemId] = checked;
-  appendRow_(sheet, headers, { Role: role, PermissionsJson: JSON.stringify(perm) });
+  appendRow_(sheet, headers, { Role: roleDicari, PermissionsJson: JSON.stringify(perm) });
 }
 
 // Cari baris via kolom "No", hapus barisnya. Nomor baris lain SENGAJA tidak digeser ulang

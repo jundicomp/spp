@@ -154,9 +154,24 @@ export function AppProvider({ children }) {
   const isiRolesHakAksesDariRows = useCallback((roleRows, hakRows) => {
     setRolesTambahan(roleRows.map(r => String(r['Nama Role'] ?? '').trim()).filter(Boolean));
     const permMap = {};
+    // PENTING -- ketemu penyebab SEBENARNYA dari "hak akses balik lagi/tidak berubah":
+    // sheet "Hak Akses" ternyata bisa punya LEBIH DARI 1 BARIS utk role yg SAMA (mis.
+    // krn baris lama tidak ketemu saat upsert di Code.gs, jadi nambah baris baru,
+    // bukan nimpa baris yg sudah ada). Kode LAMA di sini pakai `permMap[role] =
+    // JSON.parse(...)` -- GANTI TOTAL tiap ketemu baris utk role itu -- jadi kalau
+    // baris TERAKHIR utk 1 role cuma py 1-2 key (mis. cuma {"changelog":false} dari
+    // baris paling bawah), SEMUA key dari baris SEBELUMNYA (mis. profil/kelas/guru/
+    // siswa/manajemen-user/hakakses dari baris yg lebih atas) HILANG total dari hasil
+    // akhir, walau datanya MASIH ADA persis di Sheet -- ini penyebab kenapa restriksi
+    // yg sudah diterapkan kelihatan "tidak berlaku sama sekali" padahal sudah benar
+    // disimpan. Sekarang di-GABUNG (merge per-key) dari SEMUA baris role itu, urut
+    // dari atas ke bawah, baris yg lebih BAWAH menang cuma utk key yg SAMA -- bukan
+    // membuang key dari baris lain yg tidak disebut ulang.
     hakRows.forEach(row => {
       const role = String(row['Role'] ?? '').trim();
-      try { permMap[role] = JSON.parse(row['PermissionsJson'] || '{}'); } catch { permMap[role] = {}; }
+      let parsed = {};
+      try { parsed = JSON.parse(row['PermissionsJson'] || '{}'); } catch { parsed = {}; }
+      permMap[role] = { ...(permMap[role] || {}), ...parsed };
     });
     setPermissions(permMap);
   }, []);

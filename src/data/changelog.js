@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.5',
+    tanggal: '2026-09-16',
+    poin: [
+      'Ketemu penyebab UTAMA hak akses "tidak berubah/balik lagi": sheet Hak Akses ternyata bisa punya lebih dari 1 baris untuk role yang sama (mis. Petugas SPP, Kepala Sekolah), dan aplikasi selama ini cuma membaca baris PALING TERAKHIR untuk tiap role — jadi pengaturan dari baris-baris sebelumnya (yang sebenarnya masih tersimpan utuh di Sheet) diam-diam terabaikan. Sekarang aplikasi menggabungkan SEMUA baris untuk role yang sama, jadi pengaturan lama tidak lagi "terkubur" oleh baris baru',
+      'Perbaikan pencegahan di Apps Script supaya baris duplikat seperti itu tidak terus bertambah ke depannya',
+    ],
+  },
+  {
     versi: '1.31.4',
     tanggal: '2026-09-16',
     poin: [
