@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.6',
+    tanggal: '2026-09-16',
+    poin: [
+      'Fitur baru: panel "User Aktif" mengambang di pojok kanan atas, khusus terlihat oleh Admin & Kepala Sekolah. Panel ini otomatis menampilkan kotak kecil tiap kali ada petugas lain yang baru saja melakukan sesuatu di aplikasi (mis. "Inkaso — input biaya...", "Petugas SPP — input SPP bulan..."), lengkap dengan nama, role, dan jam kejadian',
+      'Tiap kotak bisa ditutup sendiri-sendiri lewat tombol ✕, dan kotak lama yang tidak ditutup akan otomatis menghilang sendiri setelah 15 menit supaya layar tidak penuh',
+      'Tidak perlu setelan tambahan apa pun — panel ini memanfaatkan data Log Histori yang sudah ada, jadi tidak menambah beban ke Google Sheets',
+    ],
+  },
+  {
     versi: '1.31.5',
     tanggal: '2026-09-16',
     poin: [

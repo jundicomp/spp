@@ -202,6 +202,23 @@ tr:hover td{background:var(--row-hover);}
 .toast.error{background:var(--red);}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
+/* ---------- Panel "User Aktif" (khusus Admin/Kepala Sekolah) ---------- */
+.useraktif-stack{position:fixed;top:76px;right:20px;z-index:250;display:flex;flex-direction:column;gap:10px;max-width:290px;}
+.useraktif-box{position:relative;background:var(--green-soft);border:1px solid #BFE3CB;border-left:4px solid var(--green);border-radius:10px;padding:11px 30px 11px 12px;box-shadow:0 8px 22px rgba(18,61,34,.18);animation:useraktifIn .2s ease;}
+@keyframes useraktifIn{from{opacity:0;transform:translateX(12px);}to{opacity:1;transform:translateX(0);}}
+.useraktif-close{position:absolute;top:6px;right:6px;width:20px;height:20px;border:none;background:transparent;color:var(--green-dark);opacity:.55;cursor:pointer;font-size:12px;line-height:1;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.useraktif-close:hover{opacity:1;background:rgba(18,61,34,.1);}
+.useraktif-head{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+.useraktif-avatar{position:relative;width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;flex-shrink:0;}
+.useraktif-dot{position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:#2ECC71;border:2px solid var(--green-soft);animation:useraktifPulse 1.6s infinite;}
+@keyframes useraktifPulse{0%{box-shadow:0 0 0 0 rgba(46,204,113,.55);}70%{box-shadow:0 0 0 6px rgba(46,204,113,0);}100%{box-shadow:0 0 0 0 rgba(46,204,113,0);}}
+.useraktif-nama-wrap{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.useraktif-nama{font-size:13px;font-weight:700;color:var(--green-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.useraktif-badge{align-self:flex-start;background:rgba(18,61,34,.1);color:var(--green-dark);font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.2px;}
+.useraktif-aksi{font-size:12px;color:var(--green-dark);line-height:1.4;}
+.useraktif-detail{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.useraktif-jam{font-size:10.5px;color:var(--muted);margin-top:5px;text-align:right;}
+
 /* ---------- Mode Cetak Terisolasi ---------- */
 /* Dipakai lewat printElementById() -- saat aktif, HANYA elemen ber-class .print-target
    yang tampil (sidebar/topbar/kartu lain otomatis disembunyikan). Tombol export/aksi

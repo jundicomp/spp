@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import ToastContainer from '../common/ToastContainer';
+import UserAktifPanel from './UserAktifPanel';
 
 export default function AppShell() {
   return (
@@ -10,6 +11,7 @@ export default function AppShell() {
         <Outlet />
       </div>
       <ToastContainer />
+      <UserAktifPanel />
     </div>
   );
 }
