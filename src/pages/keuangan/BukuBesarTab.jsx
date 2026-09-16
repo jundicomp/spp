@@ -41,7 +41,10 @@ function bangunItemMentah(akunAktif, pembayaran, pemasukanLain, pengeluaran, all
     // pembayarannya sendiri, brp pun awalnya orang bayar. Ini genuinely mencegah minus,
     // bukan cuma mengurangi kemungkinannya.
     items = allTagihan.map(t => {
-      const bayarUntukIni = asli.filter(p => p.refType === t.refType && p.refNo === t.no);
+      // NISN sbg lapis pengaman kedua (konsisten dgn hitungTerbayar()/piutangAsOf, lihat
+      // perbaikan v1.31.7 & v1.31.12) -- mencegah pembayaran siswa lain yg RefNo-nya
+      // kebetulan sama salah "ketiban" ke mutasi piutang tagihan ini.
+      const bayarUntukIni = asli.filter(p => p.refType === t.refType && p.refNo === t.no && (!t.nisn || !p.nisn || p.nisn === t.nisn));
       const tglMuncul = parseTanggalFleksibel(tanggalPiutangMuncul(t));
       let tglDipakai = tanggalPiutangMuncul(t);
       bayarUntukIni.forEach(p => {

@@ -1,7 +1,10 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { bulkUpdateSiswaInSheet, addLogEntry } from '../../services/googleSheets';
+import {
+  bulkUpdateSiswaInSheet, bulkUpdateTagihanSppInSheet, bulkUpdateTagihanLainInSheet,
+  bulkUpdatePembayaranInSheet, addLogEntry,
+} from '../../services/googleSheets';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -36,8 +39,10 @@ function kelompokNama(rows, getNama) {
 }
 
 // Analisis 1 sumber data (Data Siswa / Tagihan SPP / Tagihan Lain / Pembayaran) --
-// pisahkan baris yg NISN-nya kosong vs terisi, siapkan daftar utk ditampilkan.
-function analisisSumber({ key, label, rows, getNama, getNisn, getDetail }) {
+// pisahkan baris yg NISN-nya kosong vs terisi, siapkan daftar utk ditampilkan. Utk
+// sumber transaksi (bukan 'siswa'), sekalian dihitung mana yg bisa diperbaiki
+// OTOMATIS lewat pencocokan nama ke Data Siswa (siswaList).
+function analisisSumber({ key, label, rows, getNama, getNisn, getDetail }, siswaList) {
   const adaNisn = [];
   const tidakAdaNisn = [];
   rows.forEach(r => {
@@ -45,20 +50,62 @@ function analisisSumber({ key, label, rows, getNama, getNisn, getDetail }) {
     if (nisn) adaNisn.push(r); else tidakAdaNisn.push(r);
   });
   return {
-    key, label,
+    key, label, getNama,
     total: rows.length,
     jumlahAda: adaNisn.length,
     jumlahTidakAda: tidakAdaNisn.length,
+    rowsTidakAda: tidakAdaNisn,
     daftarTidakAda: tidakAdaNisn.map(r => ({ nama: getNama(r) || '(tanpa nama)', detail: getDetail(r) })),
     namaAdaDikelompok: kelompokNama(adaNisn, getNama),
+    otomatis: key !== 'siswa' ? cariPerbaikanOtomatisNisn(tidakAdaNisn, siswaList, getNama) : null,
+  };
+}
+
+// Untuk baris transaksi (Tagihan SPP/Tagihan Lain/Pembayaran) yg NISN-nya kosong --
+// coba cocokkan NAMA-nya ke Data Siswa. Cuma dianggap "bisa diperbaiki otomatis"
+// kalau nama itu cocok PERSIS ke SATU siswa saja (tidak ambigu) DAN siswa itu SENDIRI
+// sudah punya NISN (kalau siswanya juga belum punya NISN, isi dulu lewat "Isi NISN
+// Massal (Sementara)" di atas, baru fitur ini akan bisa memakainya).
+function cariPerbaikanOtomatisNisn(rowsTanpaNisn, siswaList, getNama) {
+  const bisaOtomatis = [];
+  const tidakBisa = [];
+  rowsTanpaNisn.forEach(row => {
+    const nama = String(getNama(row) || '').trim().toLowerCase();
+    const cocok = nama ? siswaList.filter(s => String(s.nama || '').trim().toLowerCase() === nama) : [];
+    if (cocok.length === 0) {
+      tidakBisa.push({ row, nama: getNama(row), alasan: 'Nama tidak ditemukan di Data Siswa' });
+    } else if (cocok.length > 1) {
+      tidakBisa.push({ row, nama: getNama(row), alasan: `Nama cocok dengan ${cocok.length} siswa berbeda -- ambigu, perlu dicek manual` });
+    } else if (!String(cocok[0].nisn || '').trim()) {
+      tidakBisa.push({ row, nama: getNama(row), alasan: 'Siswanya sendiri belum punya NISN -- isi dulu lewat "Isi NISN Massal" di atas' });
+    } else {
+      bisaOtomatis.push({ row, nama: getNama(row), nisnBaru: String(cocok[0].nisn).trim() });
+    }
+  });
+  return { bisaOtomatis, tidakBisa };
+}
+
+// Konfigurasi aksi perbaikan otomatis per sumber transaksi -- fungsi bulkUpdate mana
+// yg dipanggil & fungsi refresh mana yg dipanggil setelah berhasil.
+function konfigPerbaikanOtomatis({ refreshTagihanSpp, refreshTagihanLain, refreshPembayaran }) {
+  return {
+    tagihanSpp: { bulkUpdateFn: bulkUpdateTagihanSppInSheet, refreshFn: refreshTagihanSpp },
+    tagihanLain: { bulkUpdateFn: bulkUpdateTagihanLainInSheet, refreshFn: refreshTagihanLain },
+    pembayaran: { bulkUpdateFn: bulkUpdatePembayaranInSheet, refreshFn: refreshPembayaran },
   };
 }
 
 export default function CekDataNisnTab() {
-  const { siswa, allTagihan, pembayaran, refreshSiswa, toast } = useAppData();
+  const {
+    siswa, allTagihan, pembayaran, refreshSiswa,
+    refreshTagihanSpp, refreshTagihanLain, refreshPembayaran, toast,
+  } = useAppData();
   const { currentUser } = useAuth();
   const [sudahDicek, setSudahDicek] = useState(false);
   const [terbukaAda, setTerbukaAda] = useState({}); // { [sourceKey]: true } -- toggle daftar "sudah ada NISN" per sumber
+  const [terbukaTidakBisa, setTerbukaTidakBisa] = useState({}); // { [sourceKey]: true } -- toggle daftar "perlu manual"
+  const [memprosesOtomatis, setMemprosesOtomatis] = useState({}); // { [sourceKey]: true }
+  const [hasilOtomatis, setHasilOtomatis] = useState({}); // { [sourceKey]: [{nama, nisnBaru}] } -- stlh berhasil
 
   // ---- Isi NISN Massal (Sementara) -- khusus Data Siswa, sumber NISN yg asli ----
   const [prefixNisn, setPrefixNisn] = useState('IKH');
@@ -110,11 +157,41 @@ export default function CekDataNisnTab() {
     { key: 'pembayaran', label: '💳 Pembayaran', rows: pembayaran, getNama: p => p.namaSiswa, getNisn: p => p.nisn, getDetail: p => `${p.jenis || p.refType} — ${formatRupiah(p.nominal)} — No=${p.no}` },
   ]), [siswa, allTagihan, pembayaran]);
 
-  const hasil = useMemo(() => sumberData.map(analisisSumber), [sumberData]);
+  const hasil = useMemo(() => sumberData.map(s => analisisSumber(s, siswa)), [sumberData, siswa]);
 
   const totalTidakAda = hasil.reduce((s, h) => s + h.jumlahTidakAda, 0);
   const totalAda = hasil.reduce((s, h) => s + h.jumlahAda, 0);
   const totalSemua = hasil.reduce((s, h) => s + h.total, 0);
+
+  const konfigOtomatis = konfigPerbaikanOtomatis({ refreshTagihanSpp, refreshTagihanLain, refreshPembayaran });
+
+  // Terapkan perbaikan NISN otomatis (isi berdasarkan kecocokan nama ke Data Siswa)
+  // utk 1 sumber transaksi (Tagihan SPP / Tagihan Lain / Pembayaran).
+  async function terapkanPerbaikanOtomatis(h) {
+    const { bisaOtomatis } = h.otomatis;
+    if (!bisaOtomatis || bisaOtomatis.length === 0) return;
+    const { bulkUpdateFn, refreshFn } = konfigOtomatis[h.key];
+    if (!confirm(`Isi NISN untuk ${bisaOtomatis.length} baris "${h.label.replace(/^\S+\s/, '')}" berdasarkan kecocokan nama dengan Data Siswa. Lanjutkan?`)) return;
+    setMemprosesOtomatis(m => ({ ...m, [h.key]: true }));
+    try {
+      const updates = bisaOtomatis.map(b => ({ no: b.row.no, patch: { NISN: b.nisnBaru } }));
+      const hasilUpdate = await bulkUpdateFn(updates);
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Perbaiki Otomatis NISN',
+        modul: 'Cek Data dan Sistem',
+        detail: `Mengisi NISN ${hasilUpdate.jumlahDiupdate} baris di ${h.label} berdasarkan kecocokan nama dengan Data Siswa`,
+      });
+      setHasilOtomatis(r => ({ ...r, [h.key]: bisaOtomatis.slice(0, hasilUpdate.jumlahDiupdate).map(b => ({ nama: b.nama, nisnBaru: b.nisnBaru })) }));
+      await refreshFn();
+      toast(`${hasilUpdate.jumlahDiupdate} baris di ${h.label} berhasil diisi NISN-nya.`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setMemprosesOtomatis(m => ({ ...m, [h.key]: false }));
+    }
+  }
 
   return (
     <div>
@@ -241,6 +318,46 @@ export default function CekDataNisnTab() {
                         ))}
                       </tbody>
                     </table>
+
+                    {h.otomatis && (
+                      <div style={{ marginBottom: 14 }}>
+                        {h.otomatis.bisaOtomatis.length > 0 && (
+                          <div className="card-head" style={{ padding: '10px 0', flexWrap: 'wrap', gap: 10 }}>
+                            <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: 0 }}>
+                              🔧 <strong>{h.otomatis.bisaOtomatis.length} baris</strong> di atas bisa diperbaiki OTOMATIS -- namanya cocok persis dengan 1 siswa di Data Siswa yang NISN-nya sudah ada.
+                            </p>
+                            <button className="btn btn-sm btn-primary" onClick={() => terapkanPerbaikanOtomatis(h)} disabled={memprosesOtomatis[h.key]}>
+                              {memprosesOtomatis[h.key] ? 'Memperbaiki...' : `🔧 Perbaiki Otomatis (${h.otomatis.bisaOtomatis.length} Baris)`}
+                            </button>
+                          </div>
+                        )}
+                        {hasilOtomatis[h.key] && (
+                          <div style={{ background: 'var(--green-soft)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 }}>
+                            <p style={{ fontSize: 12.5, margin: '0 0 6px', fontWeight: 700 }}>✅ Berhasil diisi NISN-nya:</p>
+                            {hasilOtomatis[h.key].map((r, i) => (
+                              <div key={i} style={{ fontSize: 12 }}>{r.nama} — <strong>{r.nisnBaru}</strong></div>
+                            ))}
+                          </div>
+                        )}
+                        {h.otomatis.tidakBisa.length > 0 && (
+                          <>
+                            <button className="btn btn-sm" onClick={() => setTerbukaTidakBisa(t => ({ ...t, [h.key]: !t[h.key] }))}>
+                              {terbukaTidakBisa[h.key] ? 'Tutup daftar perlu perbaikan manual' : `⚠️ Lihat ${h.otomatis.tidakBisa.length} baris yang perlu diperbaiki manual`}
+                            </button>
+                            {terbukaTidakBisa[h.key] && (
+                              <table style={{ marginTop: 10 }}>
+                                <thead><tr><th>Nama</th><th>Kenapa Tidak Bisa Otomatis</th></tr></thead>
+                                <tbody>
+                                  {h.otomatis.tidakBisa.map((r, i) => (
+                                    <tr key={i}><td>{r.nama}</td><td style={{ fontSize: 12, color: 'var(--muted)' }}>{r.alasan}</td></tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
                 <button className="btn btn-sm" onClick={() => setTerbukaAda(t => ({ ...t, [h.key]: !t[h.key] }))}>

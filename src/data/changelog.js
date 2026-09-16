@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.12',
+    tanggal: '2026-09-16',
+    poin: [
+      'Perbaikan bug NYATA (ditemukan langsung dari hasil Cek Data Keuangan v1.31.11): Piutang di Neraca & Buku Besar ternyata BELUM ikut memakai lapis pengaman NISN yang sudah dipasang di Kartu SPP sejak v1.31.7 -- akibatnya pembayaran siswa lain yang RefNo-nya kebetulan sama (data lama) bisa salah "ketiban" ke piutang siswa ini, bikin angka Piutang di Neraca/Buku Besar sedikit meleset. Sekarang keduanya sudah konsisten memakai pengaman NISN yang sama',
+      'Cek Data dan Sistem > Cek Data NISN: tiap baris Tagihan SPP/Tagihan Biaya Lain/Pembayaran yang NISN-nya kosong sekarang punya tombol "Perbaiki Otomatis" -- otomatis mengisi NISN dengan mencocokkan nama ke Data Siswa (hanya kalau namanya cocok persis ke 1 siswa saja, dan siswa itu sudah punya NISN). Yang tidak bisa otomatis (nama ganda/tidak ketemu/siswa induknya sendiri belum punya NISN) ditampilkan terpisah supaya bisa diperiksa manual',
+      'Cek Data dan Sistem > Cek Data Keuangan: bagian Kas Masuk & Kas Keluar sekarang punya tombol "Perbaiki Nomor Ganda" yang benar-benar berfungsi untuk sheet Pemasukan Lain & Pengeluaran (sebelumnya cuma catatan teks yang menyuruh pindah ke tab lain yang ternyata belum mendukung kedua sheet ini)',
+    ],
+  },
+  {
     versi: '1.31.11',
     tanggal: '2026-09-16',
     poin: [

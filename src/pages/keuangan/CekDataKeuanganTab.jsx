@@ -10,7 +10,7 @@ import { akunAktivaOptions } from '../../db/akunBukuBesarFields';
 import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { hitungTerbayar } from '../../db/tagihanHelpers';
 import { KATEGORI_PENGELUARAN_OPTIONS } from '../../db/pengeluaranFields';
-import { bulkDeletePengeluaranFromSheet, bulkDeletePemasukanLainFromSheet, addLogEntry } from '../../services/googleSheets';
+import { bulkDeletePengeluaranFromSheet, bulkDeletePemasukanLainFromSheet, perbaikiNomorGanda, addLogEntry } from '../../services/googleSheets';
 
 // ---------------------------------------------------------------------------
 // Helper analisis generik -- dipakai berulang di beberapa bagian di bawah.
@@ -99,7 +99,26 @@ export default function CekDataKeuanganTab() {
 
   const [dicek, setDicek] = useState({}); // { [sectionKey]: true }
   const [memproses, setMemproses] = useState(false);
+  const [memperbaikiNomor, setMemperbaikiNomor] = useState({}); // { [sheetKey]: true }
   const buka = (key) => setDicek(d => ({ ...d, [key]: true }));
+
+  // Perbaiki "No" yg kebetulan dobel di sheet Pemasukan Lain / Pengeluaran -- sama
+  // persis mekanismenya dgn "Perbaiki Nomor Ganda" di tab Cek Data Duplikat (Tagihan
+  // SPP/Lain/Pembayaran), cuma sheet targetnya beda. Aman dijalankan -- cuma mengganti
+  // nomor, tidak menghapus apa pun.
+  async function perbaikiNomorGandaSheet(sheetKey, label, refreshFn) {
+    setMemperbaikiNomor(m => ({ ...m, [sheetKey]: true }));
+    try {
+      const jumlah = await perbaikiNomorGanda(sheetKey);
+      await addLogEntry({ username: currentUser.username, namaUser: currentUser.nama, aksi: 'Perbaiki Nomor Ganda', modul: 'Cek Data Keuangan', detail: `Memperbaiki ${jumlah} nomor ganda di ${label}` });
+      await refreshFn();
+      toast(`${jumlah} nomor ganda di ${label} berhasil diperbaiki.`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setMemperbaikiNomor(m => ({ ...m, [sheetKey]: false }));
+    }
+  }
 
   const taLabel = tahunAjaranAktif?.label || (tahunAjaran[0] && tahunAjaran[0].label) || null;
   const akunDikenalSet = useMemo(() => new Set(akunAktivaOptions(akun)), [akun]);
@@ -260,9 +279,14 @@ export default function CekDataKeuanganTab() {
         </div>
 
         {nomorGandaPemasukanLain > 0 && (
-          <p style={{ fontSize: 12.5, color: 'var(--red)' }}>
-            🔴 Ditemukan {nomorGandaPemasukanLain} nomor "No" ganda di sheet Pemasukan Lain -- ini bikin pencocokan akun/laporan bisa salah. Perbaiki lewat tab "Cek Data Duplikat" dulu (fitur Perbaiki Nomor Ganda cakupannya bisa ditambah kalau perlu), atau perbaiki manual di Google Sheets.
-          </p>
+          <div className="card-head" style={{ padding: '0 0 14px', flexWrap: 'wrap', gap: 10 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--red)', margin: 0 }}>
+              🔴 Ditemukan {nomorGandaPemasukanLain} nomor "No" ganda di sheet Pemasukan Lain -- ini bikin pencocokan akun/laporan bisa salah. Aman diperbaiki -- cuma mengganti nomor, tidak menghapus apa pun.
+            </p>
+            <button className="btn btn-sm btn-primary" onClick={() => perbaikiNomorGandaSheet('pemasukanLain', 'Pemasukan Lain', refreshPemasukanLain)} disabled={memperbaikiNomor.pemasukanLain}>
+              {memperbaikiNomor.pemasukanLain ? 'Memperbaiki...' : '🔧 Perbaiki Nomor Ganda'}
+            </button>
+          </div>
         )}
 
         {duplikatPemasukanLain.length > 0 && (
@@ -333,6 +357,17 @@ export default function CekDataKeuanganTab() {
           <span className={`badge ${kategoriTidakValid.length > 0 ? 'badge-red' : 'badge-green'}`}>Kategori Tidak Valid: {kategoriTidakValid.length}</span>
           <span className={`badge ${nominalTidakValidKeluar.length > 0 ? 'badge-red' : 'badge-green'}`}>Nominal ≤ 0: {nominalTidakValidKeluar.length}</span>
         </div>
+
+        {nomorGandaPengeluaran > 0 && (
+          <div className="card-head" style={{ padding: '0 0 14px', flexWrap: 'wrap', gap: 10 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--red)', margin: 0 }}>
+              🔴 Ditemukan {nomorGandaPengeluaran} nomor "No" ganda di sheet Pengeluaran -- ini bikin pencocokan akun/laporan bisa salah. Aman diperbaiki -- cuma mengganti nomor, tidak menghapus apa pun.
+            </p>
+            <button className="btn btn-sm btn-primary" onClick={() => perbaikiNomorGandaSheet('pengeluaran', 'Pengeluaran', refreshPengeluaran)} disabled={memperbaikiNomor.pengeluaran}>
+              {memperbaikiNomor.pengeluaran ? 'Memperbaiki...' : '🔧 Perbaiki Nomor Ganda'}
+            </button>
+          </div>
+        )}
 
         {duplikatPengeluaran.length > 0 && (
           <div style={{ marginBottom: 16 }}>

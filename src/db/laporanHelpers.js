@@ -71,6 +71,12 @@ export function piutangAsOf(allTagihan, pembayaran, cutoffMs, beasiswaSiswa = []
     if (!muncul || muncul.getTime() > cutoffMs) return s;
     const dibayarSampaiCutoff = pembayaran
       .filter(p => p.refType === t.refType && p.refNo === t.no && p.metode !== 'Pemutihan Piutang')
+      // Lapis pengaman NISN yg sama dgn hitungTerbayar() (lihat perbaikan v1.31.7) --
+      // TANPA ini, pembayaran siswa lain yg kebetulan RefNo-nya sama (data lama sblm
+      // perbaikan penomoran) bisa salah "ketiban" ke tagihan siswa ini, bikin Piutang
+      // Neraca/Buku Besar keliru. Data lama yg NISN-nya kosong tetap dihitung spy
+      // riwayat lama tidak berubah.
+      .filter(p => !t.nisn || !p.nisn || p.nisn === t.nisn)
       .filter(p => { const d = parseTanggalFleksibel(p.tanggalBayar); return d && d.getTime() <= cutoffMs; })
       .reduce((sum, p) => sum + p.nominal, 0);
     // Nominal yg dipakai utk piutang adalah nominal EFEKTIF (mempertimbangkan beasiswa yg

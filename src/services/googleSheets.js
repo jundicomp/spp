@@ -280,6 +280,7 @@ export const fetchTagihanSppFromSheet = () => fetchFromSheet('tagihanSpp', 'keua
 export const bulkAddTagihanSppToSheet = (rows) => bulkAddToSheet('tagihanSpp', rows, 'keuangan');
 export const deleteTagihanSppFromSheet = (no) => deleteFromSheet('tagihanSpp', no, 'keuangan');
 export const bulkDeleteTagihanSppFromSheet = (nos) => bulkDeleteFromSheet('tagihanSpp', nos, 'keuangan');
+export const bulkUpdateTagihanSppInSheet = (updates) => bulkUpdateInSheet('tagihanSpp', updates, 'keuangan');
 
 export const fetchTagihanLainFromSheet = () => fetchFromSheet('tagihanLain', 'keuangan');
 export const addTagihanLainToSheet = (row) => addToSheet('tagihanLain', row, 'keuangan');
@@ -288,12 +289,14 @@ export const updateTagihanSppInSheet = (row) => updateInSheet('tagihanSpp', row,
 export const updatePembayaranInSheet = (row) => updateInSheet('pembayaran', row, 'keuangan');
 export const deleteTagihanLainFromSheet = (no) => deleteFromSheet('tagihanLain', no, 'keuangan');
 export const bulkDeleteTagihanLainFromSheet = (nos) => bulkDeleteFromSheet('tagihanLain', nos, 'keuangan');
+export const bulkUpdateTagihanLainInSheet = (updates) => bulkUpdateInSheet('tagihanLain', updates, 'keuangan');
 
 export const fetchPembayaranFromSheet = () => fetchFromSheet('pembayaran', 'keuangan');
 export const addPembayaranToSheet = (row) => addToSheet('pembayaran', row, 'keuangan');
 export const bulkAddPembayaranToSheet = (rows) => bulkAddToSheet('pembayaran', rows, 'keuangan');
 export const deletePembayaranFromSheet = (no) => deleteFromSheet('pembayaran', no, 'keuangan');
 export const bulkDeletePembayaranFromSheet = (nos) => bulkDeleteFromSheet('pembayaran', nos, 'keuangan');
+export const bulkUpdatePembayaranInSheet = (updates) => bulkUpdateInSheet('pembayaran', updates, 'keuangan');
 
 export const fetchPengeluaranFromSheet = () => fetchFromSheet('pengeluaran', 'keuangan');
 export const addPengeluaranToSheet = (row) => addToSheet('pengeluaran', row, 'keuangan');

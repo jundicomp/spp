@@ -171,6 +171,16 @@ function doPost(e) {
       const hasil = bulkDeleteRows_(sheet, cfg.headers, body.nos || []);
       return jsonResponse_({ ok: true, jumlahDihapus: hasil.jumlahDihapus, noTidakDitemukan: hasil.noTidakDitemukan });
     }
+    if (body.action === 'bulkUpdate') {
+      // Update BANYAK baris sekaligus (by "No"), tiap baris cuma field yg disebut di
+      // "patch" yg diubah -- field lain di baris itu TIDAK disentuh/ditimpa. Dipakai
+      // fitur "Perbaiki Otomatis NISN" di Cek Data dan Sistem > Cek Data NISN, utk
+      // mengisi NISN yg kosong di Tagihan SPP/Tagihan Lain/Pembayaran berdasarkan
+      // kecocokan nama dgn Data Siswa. Sama persis polanya dgn bulkUpdateRows_ di
+      // Code.gs (baca kolom "No" 1x, bukan scan sel-per-sel per baris).
+      const hasil = bulkUpdateRows_(sheet, cfg.headers, body.updates || []);
+      return jsonResponse_({ ok: true, jumlahDiupdate: hasil.jumlahDiupdate, noTidakDitemukan: hasil.noTidakDitemukan });
+    }
     if (body.action === 'perbaikiNomorGanda') {
       // Baris FISIK PALING ATAS yg pegang suatu "No" dibiarkan (menjaga link pembayaran
       // yg mungkin sudah menunjuk ke situ), baris FISIK BERIKUTNYA yg kebetulan pegang
@@ -220,6 +230,35 @@ function appendRow_(sheet, headers, rowObj, textColumns) {
     const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
     forceTextColumns_(sheet, headers, sheet.getLastRow() + 1, textColumns);
     sheet.appendRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function bulkUpdateRows_(sheet, headers, updates) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const noCol = headers.indexOf('No') + 1;
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2 || !updates || updates.length === 0) {
+      return { jumlahDiupdate: 0, noTidakDitemukan: (updates || []).map(u => String(u.no)) };
+    }
+    const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+    const barisByNo = {};
+    for (let i = 0; i < nilaiNo.length; i++) barisByNo[String(nilaiNo[i][0])] = i + 2; // +2: index 0 = baris sheet ke-2
+    let jumlahDiupdate = 0;
+    const noTidakDitemukan = [];
+    updates.forEach(u => {
+      const r = barisByNo[String(u.no)];
+      if (r === undefined) { noTidakDitemukan.push(String(u.no)); return; }
+      Object.keys(u.patch || {}).forEach(field => {
+        const col = headers.indexOf(field) + 1;
+        if (col > 0) sheet.getRange(r, col).setValue(u.patch[field]);
+      });
+      jumlahDiupdate++;
+    });
+    return { jumlahDiupdate, noTidakDitemukan };
   } finally {
     lock.releaseLock();
   }
