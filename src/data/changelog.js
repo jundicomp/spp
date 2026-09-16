@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.9',
+    tanggal: '2026-09-16',
+    poin: [
+      'Catat Pembayaran: setiap baris "Pilih Tagihan Belum Lunas" sekarang punya pemilih tanggal sendiri di sebelah status Belum Lunas/Sebagian. Tombol "Bayar Sekarang" SENGAJA nonaktif dulu sebelum tanggalnya dipilih -- supaya admin yang input pembayaran tanggal mundur (transaksi lama yang baru dicatat sekarang) selalu sadar & sengaja memilih tanggal yang benar, bukan kepencet ikut tanggal hari ini begitu saja',
+      'Tanggal yang dipilih di baris itu otomatis mengisi field "Tanggal Bayar" di jendela Catat Pembayaran -- tetap bisa diubah lagi di sana kalau ternyata salah pilih',
+    ],
+  },
+  {
     versi: '1.31.8',
     tanggal: '2026-09-16',
     poin: [

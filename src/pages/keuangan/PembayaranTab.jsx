@@ -40,6 +40,12 @@ export default function PembayaranTab() {
   const inputRef = useRef(null);
   const [selectedTagihanId, setSelectedTagihanId] = useState(null);
   const [nominal, setNominal] = useState('');
+  // Tanggal pembayaran per BARIS tagihan (bukan 1 tanggal global) -- diisi user DULU
+  // sblm tombol "Bayar Sekarang" aktif. Sengaja KOSONG di awal (bukan otomatis hari
+  // ini) supaya admin selalu SADAR memilih tanggalnya sendiri -- banyak input
+  // pembayaran yg sebenarnya tanggal mundur (transaksi lama yg baru dicatat sekarang),
+  // jadi tidak boleh diam-diam kepencet "hari ini" tanpa disadari.
+  const [tanggalPerBaris, setTanggalPerBaris] = useState({});
   const [tanggalBayar, setTanggalBayar] = useState(() => todayWIB());
   const [metode, setMetode] = useState(METODE_BAYAR_OPTIONS[0]);
   const [akunPenerima, setAkunPenerima] = useState(SARAN_AKUN_PER_METODE[METODE_BAYAR_OPTIONS[0]] || 'Kas');
@@ -124,11 +130,16 @@ export default function PembayaranTab() {
     setTerm(s.nama);
     setSelectedTagihanId(null);
     setNominal('');
+    setTanggalPerBaris({});
   }
 
-  function pilihTagihan(t) {
+  // tanggal WAJIB sudah dipilih di baris tagihannya (tombol "Bayar Sekarang" baru
+  // aktif kalau sudah) -- diteruskan jadi nilai awal field "Tanggal Bayar" di modal,
+  // tetap bisa diubah lagi di sana kalau ternyata salah pilih.
+  function pilihTagihan(t, tanggal) {
     setSelectedTagihanId(t.id);
     setNominal(String(t.sisa));
+    setTanggalBayar(tanggal || todayWIB());
   }
 
   function handleGantiMetode(m) {
@@ -173,6 +184,7 @@ export default function PembayaranTab() {
       });
       setPhase('done');
       await new Promise(r => setTimeout(r, 1100)); // biarkan pesan sukses terlihat sebentar
+      setTanggalPerBaris(prev => { const { [selectedTagihan.id]: _hapus, ...sisanya } = prev; return sisanya; });
       setSelectedTagihanId(null);
       setNominal('');
       refreshPembayaran();
@@ -270,23 +282,41 @@ export default function PembayaranTab() {
                 </div>
                 {tagihanBelumLunasSiswa.length === 0 && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Semua tagihan siswa ini sudah lunas. 🎉</p>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {tagihanBelumLunasSiswa.map(t => (
-                    <div
-                      key={t.id}
-                      onClick={() => pilihTagihan(t)}
-                      style={{
-                        padding: '10px 14px', border: '1.5px solid var(--border)',
-                        borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between',
-                        background: '#fff',
-                      }}
-                    >
-                      <span style={{ fontSize: 13.5 }}>
-                        {t.label} <span className={`badge ${t.status === 'Sebagian' ? 'badge-gold' : 'badge-red'}`} style={{ marginLeft: 8 }}>{t.status}</span>
-                        <span style={{ marginLeft: 8, color: 'var(--green)', fontWeight: 700 }}>Bayar Sekarang</span>
-                      </span>
-                      <span style={{ fontSize: 13.5, fontWeight: 700 }}>Sisa {formatRupiah(t.sisa)}</span>
-                    </div>
-                  ))}
+                  {tagihanBelumLunasSiswa.map(t => {
+                    const tanggalDipilih = tanggalPerBaris[t.id] || '';
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          padding: '10px 14px', border: '1.5px solid var(--border)',
+                          borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          flexWrap: 'wrap', gap: 10, background: '#fff',
+                        }}
+                      >
+                        <span style={{ fontSize: 13.5, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                          {t.label} <span className={`badge ${t.status === 'Sebagian' ? 'badge-gold' : 'badge-red'}`}>{t.status}</span>
+                          <input
+                            type="date"
+                            value={tanggalDipilih}
+                            max={todayWIB()}
+                            onChange={e => setTanggalPerBaris(prev => ({ ...prev, [t.id]: e.target.value }))}
+                            style={{ padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5 }}
+                            title="Pilih tanggal pembayaran (boleh tanggal mundur) dulu sebelum bisa Bayar Sekarang"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            disabled={!tanggalDipilih}
+                            onClick={() => pilihTagihan(t, tanggalDipilih)}
+                            title={!tanggalDipilih ? 'Pilih tanggal pembayaran dulu' : undefined}
+                          >
+                            Bayar Sekarang
+                          </button>
+                        </span>
+                        <span style={{ fontSize: 13.5, fontWeight: 700 }}>Sisa {formatRupiah(t.sisa)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
