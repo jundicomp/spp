@@ -180,7 +180,10 @@ export default function PembayaranTab() {
         namaUser: currentUser.nama,
         aksi: 'Catat Pembayaran',
         modul: 'Pembayaran & Invoice',
-        detail: `Pembayaran ${selectedTagihan.label} sebesar ${formatRupiah(nom)} dari ${selectedSiswa.nama}${selectedTagihan.potonganBeasiswa ? ` (dapat potongan beasiswa ${selectedTagihan.potonganBeasiswa.kategori.nama})` : ''}`,
+        // Format singkat "Jenis - NISN Nama - Rp..." spy notifikasi/log gampang dipindai
+        // sekilas (sebelumnya kalimat panjang "Pembayaran X sebesar Y dari Z" kepotong
+        // di kartu notifikasi yg sempit).
+        detail: `${selectedTagihan.label} - ${selectedSiswa.nisn} ${selectedSiswa.nama} - ${formatRupiah(nom)}${selectedTagihan.potonganBeasiswa ? ` (potongan beasiswa ${selectedTagihan.potonganBeasiswa.kategori.nama})` : ''}`,
       });
       setPhase('done');
       await new Promise(r => setTimeout(r, 1100)); // biarkan pesan sukses terlihat sebentar

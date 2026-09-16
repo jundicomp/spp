@@ -176,7 +176,9 @@ export default function BayarSekaligusModal({ siswa, onClose }) {
         namaUser: currentUser.nama,
         aksi: 'Catat Pembayaran',
         modul: 'Pembayaran & Invoice',
-        detail: `Bayar SPP Sekaligus ${dipilih.length} bulan (${dipilih.map(j => `${j.bulanLabel} ${j.calYear}`).join(', ')}) sebesar ${formatRupiah(totalNominal)} dari ${siswa.nama}${jumlahBaruTerbit > 0 ? ` — ${jumlahBaruTerbit} bulan otomatis diterbitkan lebih dulu` : ''}`,
+        // Format singkat "Jenis - NISN Nama - Rp..." konsisten dgn PembayaranTab.jsx --
+        // daftar bulan tetap disertakan (informasi penting), tapi kalimat panjangnya dipangkas.
+        detail: `SPP Sekaligus ${dipilih.length} Bulan (${dipilih.map(j => `${j.bulanLabel} ${j.calYear}`).join(', ')}) - ${siswa.nisn} ${siswa.nama} - ${formatRupiah(totalNominal)}${jumlahBaruTerbit > 0 ? ` (${jumlahBaruTerbit} bln baru terbit)` : ''}`,
       });
 
       setPhase('done');

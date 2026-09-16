@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.13',
+    tanggal: '2026-09-16',
+    poin: [
+      'Notifikasi/Log "Catat Pembayaran" dipersingkat -- format lama "Pembayaran X sebesar Rp Y dari Z" sering kepotong di kartu notifikasi yang sempit. Sekarang formatnya "Jenis - NISN Nama - Rp..." (mis. "SPP September 2026 - 1234567890 Ashoka Irawan - Rp 350.000"), lebih ringkas & langsung kelihatan intinya sekilas. Berlaku utk pembayaran per-tagihan maupun Bayar SPP Sekaligus',
+    ],
+  },
+  {
     versi: '1.31.12',
     tanggal: '2026-09-16',
     poin: [
