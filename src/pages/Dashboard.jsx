@@ -64,7 +64,7 @@ export default function Dashboard() {
 
   const tunggakan = useMemo(() => {
     return allTagihan.reduce((s, t) => {
-      const sisa = t.nominal - tagihanTerbayar(t.refType, t.no);
+      const sisa = t.nominal - tagihanTerbayar(t.refType, t.no, t.nisn);
       return s + (sisa > 0 ? sisa : 0);
     }, 0);
   }, [allTagihan, tagihanTerbayar]);

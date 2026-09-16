@@ -4,6 +4,22 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.8',
+    tanggal: '2026-09-16',
+    poin: [
+      'Menu "Bersihkan Data Duplikat" diganti nama jadi "Cek Data dan Sistem" dan sekarang punya 2 tab: Cek Data Duplikat (isinya sama seperti sebelumnya) & Cek Data NISN (baru)',
+      'Fitur baru Cek Data NISN: 1 tombol utk memindai Data Siswa, Tagihan SPP, Tagihan Biaya Lain, dan Pembayaran sekaligus — melaporkan berapa baris yang sudah ada NISN & berapa yang belum, lengkap dengan daftar namanya masing-masing. Berguna utk mencari & melengkapi data NISN yang bolong sebelum jadi masalah (lihat perbaikan v1.31.7)',
+    ],
+  },
+  {
+    versi: '1.31.7',
+    tanggal: '2026-09-16',
+    poin: [
+      'Perbaikan keamanan data Kartu SPP / Kartu Biaya Lain: sebelumnya, status "Lunas" & potongan beasiswa dicocokkan ke pembayaran HANYA lewat nomor tagihan (RefNo), tanpa mengecek NISN. Kalau ada nomor tagihan yang kebetulan sama antara 2 siswa berbeda (mis. peninggalan dari sebelum perbaikan penomoran), pembayaran siswa A bisa salah "ketiban" ke tagihan siswa B, bikin tagihan siswa B kelihatan Lunas & tidak dapat potongan beasiswa padahal belum pernah dibayar sama sekali',
+      'Sekarang pencocokan pembayaran ke tagihan WAJIB juga cocok NISN-nya (data pembayaran lama yang belum punya NISN tetap dihitung seperti biasa, supaya riwayat lama tidak berubah)',
+    ],
+  },
+  {
     versi: '1.31.6',
     tanggal: '2026-09-16',
     poin: [

@@ -256,7 +256,7 @@ export default function SppPesertaDidik() {
     return allTagihan
       .filter(t => t.nisn === selected.nisn)
       .map(t => {
-        const terbayar = tagihanTerbayar(t.refType, t.no);
+        const terbayar = tagihanTerbayar(t.refType, t.no, t.nisn);
         const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
         return { ...t, nominalAsli: t.nominal, nominal: nominalEfektif, potonganBeasiswa: potongan, terbayar, status: statusTagihan(nominalEfektif, terbayar) };
       });

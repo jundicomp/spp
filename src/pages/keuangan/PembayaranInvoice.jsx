@@ -21,7 +21,7 @@ export default function PembayaranInvoice() {
       const d = parseTanggalFleksibel(p.tanggalBayar);
       return d && d.getMonth() === bulanIni - 1 && d.getFullYear() === tahunIni;
     });
-    const sisaList = allTagihan.map(t => t.nominal - tagihanTerbayar(t.refType, t.no)).filter(s => s > 0);
+    const sisaList = allTagihan.map(t => t.nominal - tagihanTerbayar(t.refType, t.no, t.nisn)).filter(s => s > 0);
     return {
       totalTransaksi: asli.length,
       totalNominal: asli.reduce((s, p) => s + p.nominal, 0),

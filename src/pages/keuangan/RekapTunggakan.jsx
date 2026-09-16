@@ -36,7 +36,7 @@ export default function RekapTunggakan() {
     const cutoffMs = Date.now();
     return allTagihan
       .map(t => {
-        const terbayar = tagihanTerbayar(t.refType, t.no);
+        const terbayar = tagihanTerbayar(t.refType, t.no, t.nisn);
         const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
         const sisa = nominalEfektif - terbayar;
         const terlambat = hariTerlambat(t.jatuhTempo);

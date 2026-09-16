@@ -32,7 +32,7 @@ const HAK_AKSES_PAGES = [
   { id: 'changelog', label: 'Riwayat Pembaruan (Changelog)', grup: 'Umum' },
   { id: 'spp', label: 'SPP Peserta Didik', grup: 'SPP' },
   { id: 'tagihan', label: 'Tagihan & Biaya', grup: 'Keuangan' },
-  { id: 'bersihkan-duplikat', label: 'Bersihkan Data Duplikat', grup: 'Keuangan' },
+  { id: 'bersihkan-duplikat', label: 'Cek Data dan Sistem', grup: 'Keuangan' },
   { id: 'pembayaran', label: 'Pembayaran & Invoice', grup: 'Keuangan' },
   { id: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain', grup: 'Keuangan' },
   { id: 'tunggakan', label: 'Rekap Tunggakan', grup: 'Keuangan' },
@@ -68,6 +68,10 @@ const HAK_AKSES_TABS = {
   pembayaran: [
     { id: 'pembayaran', label: 'Pembayaran' },
     { id: 'invoice', label: 'Invoice' },
+  ],
+  'bersihkan-duplikat': [
+    { id: 'duplikat', label: 'Cek Data Duplikat' },
+    { id: 'nisn', label: 'Cek Data NISN' },
   ],
   'pemasukan-pengeluaran': [
     { id: 'pemasukan', label: 'Pemasukan Lain' },
@@ -398,7 +402,7 @@ export function AppProvider({ children }) {
   const siswaById = useCallback((id) => siswaRes.data.find(s => s.id === id), [siswaRes.data]);
 
   const allTagihan = useMemo(() => [...tagihanSppRes.data, ...tagihanLainRes.data], [tagihanSppRes.data, tagihanLainRes.data]);
-  const tagihanTerbayar = useCallback((refType, refNo) => hitungTerbayar(pembayaranRes.data, refType, refNo), [pembayaranRes.data]);
+  const tagihanTerbayar = useCallback((refType, refNo, nisn) => hitungTerbayar(pembayaranRes.data, refType, refNo, nisn), [pembayaranRes.data]);
 
   const setTahunAjaranAktif = useCallback(async (no) => {
     await setActiveTahunAjaranOnSheet(no);

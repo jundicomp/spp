@@ -31,9 +31,19 @@ export function normalizeSheetTagihanLain(row, idx) {
   };
 }
 
-export function hitungTerbayar(pembayaran, refType, refNo) {
+// PENJAGA TAMBAHAN (nisn opsional): pencocokan pembayaran ke tagihan SEHARUSNYA
+// cukup lewat RefType+RefNo (nomor baris tagihan) -- TAPI kalau nomor "No" di sheet
+// Tagihan pernah dobel (mis. dari race-condition penerbitan sebelum LockService
+// dipasang), pembayaran milik siswa LAIN yg RefNo-nya kebetulan sama bisa ketiban
+// salah ke tagihan siswa ini, bikin kartunya kelihatan "Lunas" padahal tidak pernah
+// dibayar. Kalau nisn diisi si pemanggil, baris pembayaran yg NISN-nya KETAHUAN beda
+// (bukan kosong -- data lama sebagian belum punya NISN) TIDAK dihitung. Baris dgn
+// NISN kosong tetap dihitung spt biasa supaya data lama tidak tiba2 balik jadi
+// "Belum Lunas".
+export function hitungTerbayar(pembayaran, refType, refNo, nisn) {
   return pembayaran
     .filter(p => p.refType === refType && String(p.refNo) === String(refNo))
+    .filter(p => !nisn || !p.nisn || p.nisn === nisn)
     .reduce((s, p) => s + p.nominal, 0);
 }
 

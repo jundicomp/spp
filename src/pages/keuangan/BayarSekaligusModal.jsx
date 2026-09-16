@@ -67,7 +67,7 @@ export default function BayarSekaligusModal({ siswa, onClose }) {
       const bulanLabel = BULAN_ID[monthIdx];
       const t = tagihanSiswa.find(x => x.bulan === bulanLabel && Number(x.tahunKalender) === calYear);
       if (t) {
-        const terbayar = tagihanTerbayar('SPP', t.no);
+        const terbayar = tagihanTerbayar('SPP', t.no, t.nisn);
         const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
         const sisa = Math.max(0, nominalEfektif - terbayar);
         const status = statusTagihan(nominalEfektif, terbayar);

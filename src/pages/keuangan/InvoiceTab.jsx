@@ -19,7 +19,7 @@ export default function InvoiceTab() {
   const belumLunasSemua = useMemo(() => {
     return allTagihan
       .map(t => {
-        const terbayar = tagihanTerbayar(t.refType, t.no);
+        const terbayar = tagihanTerbayar(t.refType, t.no, t.nisn);
         const sisa = t.nominal - terbayar;
         return { ...t, terbayar, sisa, status: statusTagihan(t.nominal, terbayar) };
       })

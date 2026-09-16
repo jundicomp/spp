@@ -109,7 +109,7 @@ export default function PembayaranTab() {
     return allTagihan
       .filter(t => t.nisn === selectedSiswa.nisn)
       .map(t => {
-        const terbayar = tagihanTerbayar(t.refType, t.no);
+        const terbayar = tagihanTerbayar(t.refType, t.no, t.nisn);
         const { nominalEfektif, potongan } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
         const sisa = nominalEfektif - terbayar;
         return { ...t, nominalAsli: t.nominal, nominalEfektif, potonganBeasiswa: potongan, terbayar, sisa, status: statusTagihan(nominalEfektif, terbayar) };

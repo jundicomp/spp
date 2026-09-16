@@ -47,7 +47,7 @@ export default function PortofolioSiswaTab() {
     const milikSiswa = allTagihan.filter(t => t.nisn === dipilih.nisn);
     let totalTagihan = 0, totalSisa = 0;
     milikSiswa.forEach(t => {
-      const terbayar = tagihanTerbayar(t.refType, t.no);
+      const terbayar = tagihanTerbayar(t.refType, t.no, t.nisn);
       const { nominalEfektif } = nominalEfektifTagihan(t, beasiswaSiswa, beasiswaKategori, cutoffMs, terbayar);
       totalTagihan += nominalEfektif;
       totalSisa += Math.max(0, nominalEfektif - terbayar);
