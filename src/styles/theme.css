@@ -234,3 +234,98 @@ tr:hover td{background:var(--row-hover);}
      tinta) -- baris ini memaksa warna (mis. header tabel hijau) tetap tercetak. */
   body.printing-mode .print-target * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
+
+/* =====================================================================
+   Navigasi Adaptif -- Tablet (icon-rail + hamburger) & Mobile (bottom-nav
+   + bottom-sheet). Sidebar desktop di atas TIDAK diubah; komponen baru
+   (TabletRail, MobileNav) di-mount sekaligus di AppShell dan @media di
+   bawah ini yang memilih mana yang tampil sesuai lebar layar.
+   ===================================================================== */
+
+/* ---------- Rail ikon (tablet) ---------- */
+.tablet-rail{display:none;flex-direction:column;align-items:center;width:64px;flex-shrink:0;background:var(--green-dark);color:#EAF3EC;padding:14px 0;gap:6px;z-index:60;}
+.rail-hamburger{width:40px;height:40px;border-radius:9px;border:none;background:rgba(255,255,255,.08);color:#EAF3EC;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.rail-hamburger:hover{background:rgba(255,255,255,.16);}
+.rail-icons{display:flex;flex-direction:column;gap:4px;width:100%;align-items:center;}
+.rail-icon-btn{width:56px;padding:8px 2px;border:none;background:none;color:#EAF3EC;opacity:.85;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:9px;border-left:3px solid transparent;}
+.rail-icon-btn:hover{background:rgba(255,255,255,.08);opacity:1;}
+.rail-icon-btn.active{background:rgba(240,180,41,.16);border-left-color:var(--gold);opacity:1;}
+.rail-icon-emoji{font-size:19px;line-height:1;}
+.rail-icon-label{font-size:9px;font-weight:700;text-align:center;line-height:1.15;}
+
+/* Flyout: daftar item saat 1 icon grup di-klik (tablet) */
+.rail-flyout{position:fixed;top:0;bottom:0;left:64px;width:236px;background:#123D22;color:#EAF3EC;box-shadow:6px 0 20px rgba(0,0,0,.2);z-index:61;display:flex;flex-direction:column;padding:16px 0;}
+.rail-flyout-head{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.85;padding:0 18px 12px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:6px;flex-shrink:0;}
+.rail-flyout-body{padding:0 8px;}
+
+/* Overlay menu lengkap (tombol hamburger, tablet) */
+.tablet-overlay-bg{position:fixed;inset:0;background:rgba(18,61,34,.5);z-index:70;display:flex;}
+.tablet-overlay{width:290px;height:100%;background:#123D22;color:#EAF3EC;display:flex;flex-direction:column;box-shadow:6px 0 24px rgba(0,0,0,.3);}
+.tablet-overlay-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;font-weight:800;font-size:15px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;}
+.tablet-overlay-close{background:none;border:none;color:#EAF3EC;font-size:16px;opacity:.75;padding:4px 8px;border-radius:6px;}
+.tablet-overlay-close:hover{opacity:1;background:rgba(255,255,255,.1);}
+.tablet-overlay-body{padding:10px 8px 20px;}
+.tablet-overlay-group{margin-bottom:6px;}
+
+/* Link umum di dalam flyout / overlay / subgrup (tablet) */
+.rail-link{display:block;padding:9px 12px;font-size:13px;color:#EAF3EC;opacity:.88;border-radius:7px;border-left:3px solid transparent;}
+.rail-link:hover{background:rgba(255,255,255,.06);opacity:1;}
+.rail-link.active{background:rgba(240,180,41,.14);border-left-color:var(--gold);opacity:1;font-weight:600;}
+.rail-link.toplevel{font-weight:700;padding:10px 14px;}
+.rail-group-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.75;padding:10px 12px 6px;}
+.rail-subgroup{margin-bottom:4px;}
+.rail-subgroup-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.65;padding:8px 12px 4px 20px;}
+.rail-subgroup .rail-link{padding-left:26px;}
+
+/* ---------- Bottom nav (mobile) ---------- */
+.mobile-bottomnav{display:none;position:fixed;left:0;right:0;bottom:0;height:60px;background:var(--green-dark);z-index:60;align-items:stretch;justify-content:space-around;box-shadow:0 -4px 16px rgba(0,0,0,.18);}
+.mobile-navbtn{flex:1;border:none;background:none;color:#EAF3EC;opacity:.75;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-top:2px solid transparent;}
+.mobile-navbtn.active{opacity:1;border-top-color:var(--gold);background:rgba(255,255,255,.06);}
+.mobile-navbtn-icon{font-size:19px;line-height:1;}
+.mobile-navbtn-label{font-size:9.5px;font-weight:700;}
+
+/* Bottom sheet (mobile) -- lebar sengaja 60% (bukan penuh) sesuai permintaan,
+   biar masih enak dijangkau 1 tangan di HP. */
+.mobile-sheet-bg{position:fixed;inset:0;background:rgba(18,61,34,.45);z-index:70;}
+.mobile-sheet{position:fixed;left:20%;width:60%;bottom:60px;max-height:60vh;background:#123D22;color:#EAF3EC;border-radius:16px 16px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.28);z-index:71;display:flex;flex-direction:column;overflow:hidden;}
+.mobile-sheet-handle{width:36px;height:4px;border-radius:3px;background:rgba(255,255,255,.35);margin:9px auto 4px;flex-shrink:0;}
+.mobile-sheet-head{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-align:center;opacity:.85;padding:2px 14px 10px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;}
+.mobile-sheet-body{padding:8px 10px 14px;}
+.mobile-sheet-link{display:block;padding:10px 12px;font-size:13px;color:#EAF3EC;opacity:.9;border-radius:8px;}
+.mobile-sheet-link:hover{background:rgba(255,255,255,.06);}
+.mobile-sheet-link.active{background:rgba(240,180,41,.16);opacity:1;font-weight:600;}
+.mobile-sheet-subgroup{margin-bottom:4px;}
+.mobile-sheet-sublabel{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.65;padding:9px 12px 3px;}
+
+/* ---------- Indikator scroll (panah atas/bawah) ----------
+   Menggantikan scrollbar bawaan browser yang terlihat kasar/tebal di dalam
+   sheet/flyout/overlay -- permintaan user: "jika ada scroll bar dihilangkan
+   saja... lebih baik kasih tanda anak panah atas atau bawah". Panah hanya
+   muncul kalau memang masih ada konten yang tersembunyi di atas/bawah. */
+.scrollfade-wrap{position:relative;min-height:0;display:flex;flex-direction:column;flex:1;}
+.scrollfade-body{overflow-y:auto;flex:1;min-height:0;}
+.hide-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
+.hide-scrollbar::-webkit-scrollbar{display:none;width:0;height:0;}
+.scrollfade-arrow{position:absolute;left:50%;transform:translateX(-50%);width:34px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#EAF3EC;pointer-events:none;z-index:2;}
+.scrollfade-arrow.up{top:0;background:linear-gradient(to bottom, rgba(18,61,34,.95), rgba(18,61,34,0));}
+.scrollfade-arrow.down{bottom:0;background:linear-gradient(to top, rgba(18,61,34,.95), rgba(18,61,34,0));}
+
+/* ---------- Breakpoints ---------- */
+@media (max-width:1024px){
+  .sidebar{display:none;}
+  .tablet-rail{display:flex;}
+}
+@media (min-width:1025px){
+  .tablet-rail{display:none;}
+  .rail-flyout,.tablet-overlay-bg{display:none;}
+}
+@media (max-width:640px){
+  .tablet-rail{display:none;}
+  .rail-flyout,.tablet-overlay-bg{display:none;}
+  .mobile-bottomnav{display:flex;}
+  .content{padding-bottom:78px;}
+}
+@media (min-width:641px){
+  .mobile-bottomnav{display:none;}
+  .mobile-sheet-bg{display:none;}
+}

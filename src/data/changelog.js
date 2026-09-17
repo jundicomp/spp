@@ -4,6 +4,17 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.14',
+    tanggal: '2026-09-17',
+    poin: [
+      'Tampilan sekarang benar-benar responsif di Tablet & HP -- sebelumnya sidebar menu selalu selebar 250px dan tidak bisa mengecil, jadi di layar sempit menu memakan hampir separuh layar',
+      'Di Tablet (layar sedang, mis. iPad): menu berubah jadi rel ikon ramping di kiri + tombol hamburger (☰) untuk buka menu lengkap. Klik ikon Keuangan/Sarpras/Pengaturan membuka daftar sub-menunya di sebelah rel',
+      'Di HP: menu berubah jadi bar ikon di bagian bawah layar (seperti aplikasi pada umumnya) -- Dashboard & SPP langsung pindah halaman, sedangkan Keuangan/Sarpras/Pengaturan membuka kotak menu (lebar 60%, tidak penuh layar) berisi sub-menunya',
+      'Kotak menu di HP/Tablet tidak lagi menampilkan scrollbar bawaan browser yang terlihat kasar saat isinya panjang -- diganti tanda panah ke atas/bawah yang otomatis muncul kalau masih ada menu tersembunyi di atas/bawah',
+      'Tampilan desktop (layar besar) tidak berubah sama sekali -- menu sidebar tetap seperti biasa',
+    ],
+  },
+  {
     versi: '1.31.13',
     tanggal: '2026-09-16',
     poin: [
