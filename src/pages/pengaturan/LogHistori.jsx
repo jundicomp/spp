@@ -47,7 +47,7 @@ export default function LogHistori() {
             <DataTable
               columns={columns}
               data={rows}
-              searchFn={(r, t) => (r['Nama User'] || '').toLowerCase().includes(t) || (r['Modul'] || '').toLowerCase().includes(t) || (r['Aksi'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama User'] ?? '').toLowerCase().includes(t) || String(r['Modul'] ?? '').toLowerCase().includes(t) || String(r['Aksi'] ?? '').toLowerCase().includes(t)}
               emptyMessage="Belum ada aktivitas tercatat."
               rowKey={(r, i) => r['No'] ?? i}
             />

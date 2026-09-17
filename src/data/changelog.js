@@ -4,6 +4,20 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.21',
+    tanggal: '2026-09-17',
+    poin: [
+      'Lanjutan perbaikan v1.31.20: kolom pencarian di SEMUA tabel yang berpotensi kena masalah yang sama (Data Aset, Buku Besar, Data Guru & Staff, Data Kelas, Tahun Ajaran, Manajemen User, Log Histori, Tarif SPP & Biaya, Pemasukan Lain, Jurnal Pengeluaran, Beasiswa Kategori, Data Siswa) sekarang dibuat kebal terhadap tipe data apa pun yang tersimpan di Google Sheets (angka, teks, atau kosong) -- diperiksa satu per satu, sudah tidak ada lagi tabel yang berisiko blank putih saat dicari',
+    ],
+  },
+  {
+    versi: '1.31.20',
+    tanggal: '2026-09-17',
+    poin: [
+      'Perbaikan bug: tabel "Daftar Tagihan Lain (Semua Siswa)" (fitur baru v1.31.19) bisa membuat layar tiba-tiba blank putih saat mengetik di kolom pencarian, khusus kalau NISN siswa tersimpan di Google Sheets sebagai angka murni (bukan teks). Sudah diperbaiki -- pencarian sekarang aman dipakai utk NISN berformat apa pun',
+    ],
+  },
+  {
     versi: '1.31.19',
     tanggal: '2026-09-17',
     poin: [

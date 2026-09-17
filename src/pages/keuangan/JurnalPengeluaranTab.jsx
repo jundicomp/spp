@@ -32,7 +32,7 @@ export default function JurnalPengeluaranTab() {
         deleteFn={deletePengeluaranFromSheet}
         moduleLabel="Jurnal Pengeluaran"
         labelKey="Keterangan"
-        searchFn={(r, t) => (r['Keterangan'] || '').toLowerCase().includes(t) || (r['Kategori'] || '').toLowerCase().includes(t)}
+        searchFn={(r, t) => String(r['Keterangan'] ?? '').toLowerCase().includes(t) || String(r['Kategori'] ?? '').toLowerCase().includes(t)}
         onChanged={refreshPengeluaran}
         refreshSignal={refreshSignal}
         target="keuangan"

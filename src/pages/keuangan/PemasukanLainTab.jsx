@@ -29,7 +29,7 @@ export default function PemasukanLainTab() {
         deleteFn={deletePemasukanLainFromSheet}
         moduleLabel="Pemasukan Lain"
         labelKey="Keterangan"
-        searchFn={(r, t) => (r['Keterangan'] || '').toLowerCase().includes(t) || (r['Kategori'] || '').toLowerCase().includes(t)}
+        searchFn={(r, t) => String(r['Keterangan'] ?? '').toLowerCase().includes(t) || String(r['Kategori'] ?? '').toLowerCase().includes(t)}
         onChanged={refreshPemasukanLain}
         refreshSignal={refreshSignal}
         target="keuangan"

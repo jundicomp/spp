@@ -30,7 +30,7 @@ export default function BeasiswaKategoriTab() {
         deleteFn={deleteBeasiswaKategoriFromSheet}
         moduleLabel="Kategori Beasiswa"
         labelKey="Nama Kategori"
-        searchFn={(r, t) => (r['Nama Kategori'] || '').toLowerCase().includes(t) || (r['Keterangan'] || '').toLowerCase().includes(t)}
+        searchFn={(r, t) => String(r['Nama Kategori'] ?? '').toLowerCase().includes(t) || String(r['Keterangan'] ?? '').toLowerCase().includes(t)}
         onChanged={refreshBeasiswaKategori}
         refreshSignal={refreshSignal}
         target="keuangan"

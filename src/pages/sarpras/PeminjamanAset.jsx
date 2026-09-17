@@ -40,7 +40,7 @@ export default function PeminjamanAset() {
               deleteFn={deletePeminjamanFromSheet}
               moduleLabel="Peminjaman Aset"
               labelKey="Nama Aset"
-              searchFn={(r, t) => (r['Nama Aset'] || '').toLowerCase().includes(t) || (r['Peminjam'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama Aset'] ?? '').toLowerCase().includes(t) || String(r['Peminjam'] ?? '').toLowerCase().includes(t)}
               onChanged={() => setRefreshKey(k => k + 1)}
             />
           )}

@@ -170,7 +170,13 @@ export default function PenerbitanLainTab() {
           deleteFn={deleteTagihanLainFromSheet}
           moduleLabel="Tagihan Lain"
           labelKey="Nama"
-          searchFn={(r, t) => (r['NISN'] || '').toLowerCase().includes(t) || (r['Nama Siswa'] || '').toLowerCase().includes(t) || (r['Nama'] || '').toLowerCase().includes(t) || (r['Tahun Ajaran'] || '').toLowerCase().includes(t)}
+          // PENTING: NISN dari Sheet MENTAH (belum lewat normalizeSheetTagihanLain di sini --
+          // GenericStoredTable pakai raw row) sering balik sbg NUMBER (bukan text), bukan
+          // string -- kalau langsung `(r['NISN'] || '').toLowerCase()`, pas NISN-nya angka,
+          // `.toLowerCase()` dipanggil di atas NUMBER dan CRASH (blank putih, krn app ini
+          // tidak punya error boundary). String(...) dulu SEBELUM `.toLowerCase()` utk semua
+          // field spy aman apa pun tipe aslinya di Sheet.
+          searchFn={(r, t) => String(r['NISN'] ?? '').toLowerCase().includes(t) || String(r['Nama Siswa'] ?? '').toLowerCase().includes(t) || String(r['Nama'] ?? '').toLowerCase().includes(t) || String(r['Tahun Ajaran'] ?? '').toLowerCase().includes(t)}
           onChanged={refreshTagihanLain}
           target="keuangan"
         />

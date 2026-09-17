@@ -57,7 +57,7 @@ export default function TahunAjaranTab() {
             deleteFn={deleteTahunAjaranFromSheet}
             moduleLabel="Tahun Ajaran"
             labelKey="Label"
-            searchFn={(r, t) => (r['Label'] || '').toLowerCase().includes(t)}
+            searchFn={(r, t) => String(r['Label'] ?? '').toLowerCase().includes(t)}
             onChanged={refreshTahunAjaran}
             refreshSignal={refreshSignal}
             extraActions={(r) => {

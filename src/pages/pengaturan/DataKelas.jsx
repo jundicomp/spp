@@ -56,7 +56,7 @@ export default function DataKelas() {
               deleteFn={deleteKelasFromSheet}
               moduleLabel="Data Kelas & Rombel"
               labelKey="Nama Kelas"
-              searchFn={(r, t) => (r['Nama Kelas'] || '').toLowerCase().includes(t) || (r['Wali Kelas'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama Kelas'] ?? '').toLowerCase().includes(t) || String(r['Wali Kelas'] ?? '').toLowerCase().includes(t)}
               onChanged={refreshKelas}
             />
           )}

@@ -54,7 +54,7 @@ export default function StoredUsersTable({ refreshKey }) {
       deleteFn={deleteUserFromSheet}
       moduleLabel="Manajemen User"
       labelKey="Nama"
-      searchFn={(r, t) => (r['Nama'] || '').toLowerCase().includes(t) || (r['Username'] || '').toLowerCase().includes(t)}
+      searchFn={(r, t) => String(r['Nama'] ?? '').toLowerCase().includes(t) || String(r['Username'] ?? '').toLowerCase().includes(t)}
       onChanged={() => {}}
       refreshSignal={`${refreshKey}-${bump}`}
       columnRenderers={{

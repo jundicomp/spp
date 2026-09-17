@@ -33,7 +33,7 @@ export default function TarifTab() {
         deleteFn={deleteTarifFromSheet}
         moduleLabel="Tarif SPP & Biaya"
         labelKey="Jenis"
-        searchFn={(r, t) => (r['Jenis'] || '').toLowerCase().includes(t) || (r['Tahun Ajaran'] || '').toLowerCase().includes(t)}
+        searchFn={(r, t) => String(r['Jenis'] ?? '').toLowerCase().includes(t) || String(r['Tahun Ajaran'] ?? '').toLowerCase().includes(t)}
         onChanged={refreshTarif}
         refreshSignal={refreshSignal}
         target="keuangan"

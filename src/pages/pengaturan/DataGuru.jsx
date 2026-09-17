@@ -65,7 +65,7 @@ export default function DataGuru() {
               deleteFn={deleteGuruFromSheet}
               moduleLabel="Data Guru & Staff"
               labelKey="Nama Lengkap"
-              searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['Tugas Tambahan'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama Lengkap'] ?? '').toLowerCase().includes(t) || String(r['Tugas Tambahan'] ?? '').toLowerCase().includes(t)}
               onChanged={refreshGuru}
               refreshSignal={filterKategori}
               headExtra={

@@ -201,7 +201,7 @@ export default function BukuBesarTab() {
               deleteFn={deleteAkunFromSheet}
               moduleLabel="Akun Buku Besar"
               labelKey="Nama Akun"
-              searchFn={(r, t) => (r['Nama Akun'] || '').toLowerCase().includes(t) || (r['Kode Akun'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama Akun'] ?? '').toLowerCase().includes(t) || String(r['Kode Akun'] ?? '').toLowerCase().includes(t)}
               onChanged={refreshAkun}
               refreshSignal={refreshSignal}
               target="keuangan"

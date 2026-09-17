@@ -1,7 +1,7 @@
 {
   "name": "react-app",
   "private": true,
-  "version": "1.31.19",
+  "version": "1.31.21",
   "type": "module",
   "scripts": {
     "dev": "vite",

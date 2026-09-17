@@ -113,7 +113,7 @@ export default function StoredDataTable({ refreshKey }) {
           <DataTable
             columns={columns}
             data={rows}
-            searchFn={(r, t) => (r['Nama Lengkap'] || '').toLowerCase().includes(t) || (r['NISN'] || '').toString().includes(t)}
+            searchFn={(r, t) => String(r['Nama Lengkap'] ?? '').toLowerCase().includes(t) || String(r['NISN'] ?? '').includes(t)}
             emptyMessage="Belum ada data siswa di Sheet."
             rowKey={(r, i) => r['No'] ?? i}
             forceShowAll={printingAll}

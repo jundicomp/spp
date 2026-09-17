@@ -73,7 +73,7 @@ export default function DataAset() {
               deleteFn={deleteAsetFromSheet}
               moduleLabel="Data Aset & Inventaris"
               labelKey="Nama Aset"
-              searchFn={(r, t) => (r['Nama Aset'] || '').toLowerCase().includes(t) || (r['Lokasi'] || '').toLowerCase().includes(t) || (r['Kategori'] || '').toLowerCase().includes(t) || (r['Kode'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama Aset'] ?? '').toLowerCase().includes(t) || String(r['Lokasi'] ?? '').toLowerCase().includes(t) || String(r['Kategori'] ?? '').toLowerCase().includes(t) || String(r['Kode'] ?? '').toLowerCase().includes(t)}
               onChanged={refreshAset}
               extraActions={(r) => (
                 <button className="btn-icon" title="Lihat" onClick={() => setLihatAset(r)}>👁</button>

@@ -39,7 +39,7 @@ export default function PemeliharaanAset() {
               deleteFn={deletePemeliharaanFromSheet}
               moduleLabel="Pemeliharaan Aset"
               labelKey="Nama Aset"
-              searchFn={(r, t) => (r['Nama Aset'] || '').toLowerCase().includes(t) || (r['Jenis Pemeliharaan'] || '').toLowerCase().includes(t)}
+              searchFn={(r, t) => String(r['Nama Aset'] ?? '').toLowerCase().includes(t) || String(r['Jenis Pemeliharaan'] ?? '').toLowerCase().includes(t)}
               onChanged={() => {}}
             />
           )}
