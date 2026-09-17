@@ -6,9 +6,14 @@ const TIPE_LAIN_WAJIB = ['Sekali Masuk', 'Per Tahun'];
 /**
  * Deteksi siswa AKTIF yang perlu tindak lanjut -- baik siswa baru, pindahan,
  * atau siapa pun yang datanya belum lengkap dibanding kondisi kelas/tagihan saat ini:
- *   1. Belum ada Kelas/Tingkat (rombel) diisi
- *   2. Kurang tagihan SPP utk bulan-bulan yg SUDAH diterbitkan di tahun ajaran aktif
- *   3. Kurang Tagihan Lain (Uang Pangkal, Seragam, dst) yg SUDAH diterbitkan
+ *   1. Belum ada Kelas/Tingkat sama sekali diisi
+ *   2. SUDAH ada Kelas/Tingkat, TAPI belum ditempatkan ke Rombel spesifik (mis. Yaman,
+ *      Epitamala) -- sejak v1.31.27: dulu kasus ini TIDAK KETAHUAN sama sekali di sini
+ *      (cuma dicek `!s.kelasTingkat`, padahal labelnya menyebut "(rombel)"), jadi siswa
+ *      yg py Kelas tapi blm py Rombel lolos dari notifikasi ini -- ketahuannya cuma kalau
+ *      admin sengaja buka menu Pengaturan > Data Kelas & Rombel > Pindah Rombel Massal
+ *   3. Kurang tagihan SPP utk bulan-bulan yg SUDAH diterbitkan di tahun ajaran aktif
+ *   4. Kurang Tagihan Lain (Uang Pangkal, Seragam, dst) yg SUDAH diterbitkan
  *      utk siswa lain -- HANYA utk tarif yg cakupan kelasnya memang relevan buat
  *      siswa itu (kalau tarifnya khusus Kelas 1, siswa Kelas 4 TIDAK ditandai
  *      kurang, karena memang bukan untuknya)
@@ -31,7 +36,8 @@ export default function useSiswaPerluTindakLanjut() {
 
     return aktif.map(s => {
       const masalah = [];
-      if (!s.kelasTingkat) masalah.push('Belum ada Kelas/Tingkat (rombel)');
+      if (!s.kelasTingkat) masalah.push('Belum ada Kelas/Tingkat');
+      else if (!s.rombel) masalah.push('Sudah ada Kelas, tapi belum ditempatkan ke Rombel');
 
       const tagihanSiswa = tagihanTA.filter(t => t.nisn === s.nisn);
       const bulanSiswaSet = new Set(tagihanSiswa.map(t => `${t.bulan}-${t.tahunKalender}`));

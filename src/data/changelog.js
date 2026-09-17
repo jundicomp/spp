@@ -4,6 +4,21 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.27',
+    tanggal: '2026-09-17',
+    poin: [
+      'Dashboard: notifikasi "⚠️ Siswa Perlu Tindak Lanjut" sekarang JUGA menangkap siswa yang Kelas/Tingkat-nya sudah diisi tapi belum ditempatkan ke Rombel spesifiknya (mis. Yaman/Epitamala) -- sebelumnya kasus ini tidak ketahuan di notifikasi ini sama sekali, cuma kelihatan kalau admin sengaja buka menu Pengaturan > Data Kelas & Rombel',
+      'Kartu SPP & Kartu Biaya Lain: kalau Rombel siswa memang belum diisi/ditempatkan, sekarang tampil jujur "Rombel belum ditentukan" -- BUKAN diam-diam meminjam nama Rombel siswa lain yang kebetulan 1 Tingkat (perbaikan lanjutan dari bug Rombel salah cetak di v1.31.26)',
+    ],
+  },
+  {
+    versi: '1.31.26',
+    tanggal: '2026-09-17',
+    poin: [
+      'Perbaikan bug: Kartu SPP & Kartu Biaya Lain (di tab Data Siswa) bisa salah cetak nama Rombel siswa kalau Kelas/Tingkatnya punya LEBIH DARI SATU Rombel (mis. Kelas 6 Yaman & Kelas 6 Epitamala) -- sebelumnya sistem asal ambil Rombel pertama yang ketemu utk tingkat itu, tanpa mencocokkan Rombel siswanya sendiri. Sekarang nama Rombel yang tercetak selalu sesuai data Rombel siswa yang bersangkutan',
+    ],
+  },
+  {
     versi: '1.31.25',
     tanggal: '2026-09-17',
     poin: [

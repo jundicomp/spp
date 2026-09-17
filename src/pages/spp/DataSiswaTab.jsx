@@ -251,7 +251,17 @@ export default function DataSiswaTab() {
   }, [term, siswa, filterKelas, filterRombel, kelas]);
 
   const selected = siswa.find(s => s.id === selectedId);
-  const rombelSelected = selected ? kelas.find(k => k.tingkat === selected.kelasTingkat) : null;
+  // Riwayat singkat: dulu label Rombel di Kartu ditebak dari daftar Kelas (`kelas.find(k =>
+  // k.tingkat === ...)`), yg keliru kalau 1 Tingkat py LEBIH DARI SATU Rombel -- selalu
+  // ambil Rombel PERTAMA yg ketemu, TIDAK PEDULI siswanya beneran di Rombel apa (v1.31.26
+  // memperbaiki ini dgn ikut cocokkan Rombel siswanya). TAPI itu masih py fallback ke
+  // tebakan lama kalau field Rombel siswa KOSONG (blm ditempatkan) -- diam2 "meminjam" nama
+  // Rombel siswa lain, seolah itu Rombel resminya. Sejak v1.31.27: sudah tidak menebak dari
+  // `kelas` sama sekali -- langsung pakai field Rombel siswa itu sendiri (s.rombel) apa
+  // adanya. Kalau memang belum diisi (siswa sudah py Kelas/Tingkat tapi belum ditempatkan
+  // ke Rombel spesifik lewat menu Pengaturan > Data Kelas & Rombel), tampilkan pesan JUJUR
+  // "Rombel belum ditentukan" -- BUKAN nama Rombel siswa lain.
+  const rombelLabel = selected ? (selected.rombel || 'Rombel belum ditentukan') : '-';
   const beasiswaSelected = selected ? beasiswaSiswa.find(b => b.nisn === selected.nisn) : null;
 
   const riwayatSiswa = useMemo(() => {
@@ -386,7 +396,7 @@ export default function DataSiswaTab() {
             <TahunSection
               key={ta} namaSekolah={profilSekolah?.nama || 'MI Ikhlasiyah'} namaSiswa={selected.nama}
               kelasLabel={selected.kelasTingkat ? `Kelas ${selected.kelasTingkat}` : '-'}
-              rombelLabel={rombelSelected?.namaKelas || '-'}
+              rombelLabel={rombelLabel}
               tahunAjaran={ta} items={items} defaultOpen={idx === 0}
             />
           ))}
