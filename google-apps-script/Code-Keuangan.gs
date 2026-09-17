@@ -33,10 +33,11 @@ const SECRET = 'GANTI_DENGAN_KATA_SANDI_RAHASIA_KEUANGAN';
 const SHEETS = {
   tarif: {
     name: 'Tarif',
-    // "Kelas/Tingkat" ditaruh di AKHIR supaya kompatibel mundur dgn sheet lama --
-    // kalau baris lama tidak punya nilai di kolom ini, otomatis kosong (React
-    // menganggapnya "Semua Kelas", perilaku lama tetap jalan sama persis).
-    headers: ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat'],
+    // "Kelas/Tingkat" & "Cicilan" ditaruh di AKHIR supaya kompatibel mundur dgn sheet
+    // lama -- baris lama tanpa nilai di kolom2 ini otomatis dianggap "Semua Kelas" &
+    // cicilan kosong (React menganggapnya "dibayar sekaligus, tanpa nilai cicilan
+    // standar"), perilaku lama tetap jalan sama persis.
+    headers: ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat', 'Cicilan'],
   },
   tagihanSpp: {
     name: 'Tagihan SPP',
@@ -48,7 +49,10 @@ const SHEETS = {
   },
   tagihanLain: {
     name: 'Tagihan Lain',
-    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan'],
+    // "Cicilan" ditaruh di AKHIR (kompatibel mundur) -- diisi otomatis SEKALI saat
+    // penerbitan dari nilai Cicilan di Tarif-nya (kalau ada), dipakai form Catat
+    // Pembayaran sbg nilai nominal DEFAULT (bukan langsung sisa tagihan penuh).
+    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan', 'Cicilan'],
   },
   pembayaran: {
     name: 'Pembayaran',

@@ -27,6 +27,9 @@ function normalizeSheetUser(u, idx) {
     username: String(u['Username'] ?? '').trim(),
     password: String(u['Password'] ?? '').trim(),
     email: String(u['Email'] ?? '').trim(),
+    // Baris lama (sebelum kolom ini ada) otomatis dianggap "Aktif" -- perilaku lama
+    // (semua user yg sudah ada tetap bisa login) tetap jalan persis sama.
+    status: String(u['Status'] ?? '').trim() || 'Aktif',
   };
 }
 
@@ -86,6 +89,10 @@ export function AuthProvider({ children }) {
       setLoginError('Username atau password salah. Coba lagi.');
       return false;
     }
+    if (user.status === 'Nonaktif') {
+      setLoginError('Akun ini sudah dinonaktifkan. Hubungi Admin kalau ini seharusnya masih aktif.');
+      return false;
+    }
     setCurrentUser(user);
     return true;
   }, []);
@@ -108,6 +115,11 @@ export function AuthProvider({ children }) {
       Username: currentUser.username,
       Password: newPassword,
       Email: currentUser.email,
+      // WAJIB disertakan -- updateRow_ di backend menulis ULANG SELURUH baris dari
+      // objek ini; field yg tidak disebut di sini akan tertimpa KOSONG (termasuk
+      // Status, yg kalau kosong dianggap "Aktif" -- bisa diam2 "menghidupkan lagi"
+      // akun yg baru saja dinonaktifkan Admin kalau field ini terlewat).
+      Status: currentUser.status || 'Aktif',
     });
     setCurrentUser(u => ({ ...u, password: newPassword }));
   }, [currentUser]);

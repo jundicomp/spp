@@ -28,6 +28,9 @@ export function normalizeSheetTagihanLain(row, idx) {
     nominal: Number(row['Nominal']) || 0,
     jatuhTempo: row['Jatuh Tempo'],
     keterangan: String(row['Keterangan'] ?? '').trim(),
+    // Disalin dari Tarif sekali saat tagihan ini diterbitkan (lihat PenerbitanLainTab.jsx)
+    // -- 0 = tidak ada nilai cicilan standar, form Catat Pembayaran default ke sisa penuh.
+    cicilan: Number(row['Cicilan']) || 0,
   };
 }
 

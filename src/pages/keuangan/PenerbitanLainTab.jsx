@@ -70,6 +70,7 @@ export default function PenerbitanLainTab() {
             Nominal: nominal,
             'Jatuh Tempo': todayWIB(),
             Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${formatRupiah(potongan.potonganBiayaLain)})` : '',
+            Cicilan: item.tarif.cicilan || '',
           };
         });
         const result = await bulkAddToSheet('tagihanLain', rows, 'keuangan');

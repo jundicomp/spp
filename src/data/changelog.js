@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.17',
+    tanggal: '2026-09-17',
+    poin: [
+      'Manajemen User: setiap akun sekarang punya Status "Aktif"/"Nonaktif" -- klik ikon 🚫 di kolom Aksi utk menonaktifkan akun sementara (tidak bisa dipakai login lagi sampai diaktifkan kembali lewat ikon ✓), tanpa perlu hapus datanya. Tidak bisa menonaktifkan akun yang sedang dipakai login sendiri',
+      'Tarif SPP & Biaya: form "Tambah Tarif" punya field baru "Nilai Cicilan (Rp)" (opsional) -- kalau diisi, saat tagihan dari tarif ini dibayar lewat "Catat Pembayaran", nominal yang otomatis terisi adalah sebesar cicilan tadi (bukan langsung seluruh sisa tagihan), dan kalau nominal ditulis melebihi nilai cicilan akan muncul peringatan (tidak memblokir, cuma pengingat)',
+      'Catat Pembayaran: field Keterangan sekarang WAJIB diisi utk pembayaran di luar SPP (mis. Uang Pangkal, Seragam, Uang Perpisahan) -- utk pembayaran SPP tetap opsional seperti biasa',
+    ],
+  },
+  {
     versi: '1.31.16',
     tanggal: '2026-09-17',
     poin: [

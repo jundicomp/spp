@@ -1,7 +1,7 @@
-// "Kelas/Tingkat" SENGAJA ditaruh di AKHIR (bukan disisip di tengah) supaya kalau Anda
-// sudah punya data Tarif lama di Sheets, cukup tambah 1 kolom baru di paling kanan --
-// tidak perlu menggeser kolom yang sudah ada.
-export const TARIF_HEADERS = ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat'];
+// "Kelas/Tingkat" & "Cicilan" SENGAJA ditaruh di AKHIR (bukan disisip di tengah) supaya
+// kalau Anda sudah punya data Tarif lama di Sheets, cukup tambah kolom baru di paling
+// kanan -- tidak perlu menggeser kolom yang sudah ada.
+export const TARIF_HEADERS = ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat', 'Cicilan'];
 
 export const TIPE_TARIF_OPTIONS = ['Bulanan (SPP)', 'Sekali Masuk', 'Per Tahun', 'Opsional'];
 
@@ -17,11 +17,15 @@ export function buildTarifFields(tahunAjaranOptions) {
     { key: 'Kelas/Tingkat', label: 'Berlaku untuk Kelas/Tingkat', type: 'select', options: KELAS_TINGKAT_TARIF_OPTIONS, required: true },
     { key: 'Nominal', label: 'Nominal (Rp)', type: 'number', required: true },
     { key: 'Wajib', label: 'Wajib?', type: 'select', options: ['Ya', 'Tidak'], required: true },
+    // Opsional -- kosongkan kalau biaya ini memang dibayar sekaligus (bukan dicicil).
+    // Kalau diisi, form Catat Pembayaran akan otomatis mengisi nominal bayar sebesar
+    // nilai ini (bukan langsung sisa tagihan penuh) saat tagihan dari tarif ini dipilih.
+    { key: 'Cicilan', label: 'Nilai Cicilan (Rp)', type: 'number', placeholder: 'Kosongkan jika dibayar sekaligus' },
   ];
 }
 
 export function emptyTarifRow() {
-  return { 'Tahun Ajaran': '', 'Jenis': '', 'Tipe': '', 'Kelas/Tingkat': 'Semua Kelas', 'Nominal': '', 'Wajib': 'Ya' };
+  return { 'Tahun Ajaran': '', 'Jenis': '', 'Tipe': '', 'Kelas/Tingkat': 'Semua Kelas', 'Nominal': '', 'Wajib': 'Ya', 'Cicilan': '' };
 }
 
 export function normalizeSheetTarif(row, idx) {
@@ -35,6 +39,8 @@ export function normalizeSheetTarif(row, idx) {
     wajib: String(row['Wajib'] ?? '').trim(),
     // Baris lama (sebelum kolom ini ada) otomatis dianggap 'Semua Kelas' -- perilaku lama tetap jalan persis sama.
     kelasTingkat: String(row['Kelas/Tingkat'] ?? '').trim() || 'Semua Kelas',
+    // 0 = tidak ada nilai cicilan standar (dibayar sekaligus) -- perilaku lama tetap sama.
+    cicilan: Number(row['Cicilan']) || 0,
   };
 }
 

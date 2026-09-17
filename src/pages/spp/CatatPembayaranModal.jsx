@@ -35,6 +35,8 @@ export default function CatatPembayaranModal({ onClose }) {
   const [tanggalBayar, setTanggalBayar] = useState(() => todayWIB());
   const [metode, setMetode] = useState(METODE_BAYAR_OPTIONS[0]);
   const [akunPenerima, setAkunPenerima] = useState(SARAN_AKUN_PER_METODE[METODE_BAYAR_OPTIONS[0]] || 'Kas');
+  // Wajib diisi utk pembayaran DI LUAR SPP (refType !== 'SPP') -- lihat submitPembayaran.
+  const [keterangan, setKeterangan] = useState('');
   const [saving, setSaving] = useState(false);
   const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
@@ -92,6 +94,7 @@ export default function CatatPembayaranModal({ onClose }) {
     setTerm(s.nama);
     setSelectedTagihanId(null);
     setNominal('');
+    setKeterangan('');
     setTanggalPerBaris({});
   }
 
@@ -100,13 +103,20 @@ export default function CatatPembayaranModal({ onClose }) {
     setTerm('');
     setSelectedTagihanId(null);
     setNominal('');
+    setKeterangan('');
     setTanggalPerBaris({});
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   function pilihTagihan(t, tanggal) {
     setSelectedTagihanId(t.id);
-    setNominal(String(t.sisa));
+    // Default nominal: kalau tagihan ini punya Nilai Cicilan (diatur di Tarif), pakai
+    // itu (dibatasi maksimal sisa tagihan) -- bukan langsung sisa penuh. Kalau tidak
+    // ada cicilan diatur (0), perilaku lama tetap sama: default ke sisa penuh.
+    const cicilan = Number(t.cicilan) || 0;
+    const defaultNominal = cicilan > 0 ? Math.min(cicilan, t.sisa) : t.sisa;
+    setNominal(String(defaultNominal));
+    setKeterangan('');
     setTanggalBayar(tanggal || todayWIB());
   }
 
@@ -122,9 +132,18 @@ export default function CatatPembayaranModal({ onClose }) {
     const bolehNol = selectedTagihan.potonganBeasiswa && selectedTagihan.sisa === 0;
     if ((!nom || nom <= 0) && !bolehNol) { toast('Nominal harus lebih dari 0.', 'error'); return; }
     if (nom < 0 || nom > selectedTagihan.sisa) { toast(`Nominal tidak boleh melebihi sisa tagihan (${formatRupiah(selectedTagihan.sisa)}).`, 'error'); return; }
+    // Keterangan WAJIB diisi utk pembayaran DI LUAR SPP (Uang Pangkal, Seragam, dst) --
+    // SPP tidak diwajibkan krn jenisnya sendiri sudah jelas dari label bulan/tahunnya.
+    if (selectedTagihan.refType !== 'SPP' && !keterangan.trim()) {
+      toast('Keterangan wajib diisi untuk pembayaran di luar SPP.', 'error');
+      return;
+    }
     setSaving(true);
     setPhase('saving');
     try {
+      const catatanBeasiswa = selectedTagihan.potonganBeasiswa
+        ? `Potongan Beasiswa: ${selectedTagihan.potonganBeasiswa.kategori.nama} (${formatRupiah(selectedTagihan.potonganBeasiswa.nominalPotongan)}) -- nominal asli ${formatRupiah(selectedTagihan.nominalAsli)}`
+        : '';
       const row = {
         RefType: selectedTagihan.refType,
         RefNo: selectedTagihan.no,
@@ -135,9 +154,9 @@ export default function CatatPembayaranModal({ onClose }) {
         'Tanggal Bayar': tanggalBayar,
         Metode: metode,
         Akun: akunPenerima,
-        Keterangan: selectedTagihan.potonganBeasiswa
-          ? `Potongan Beasiswa: ${selectedTagihan.potonganBeasiswa.kategori.nama} (${formatRupiah(selectedTagihan.potonganBeasiswa.nominalPotongan)}) -- nominal asli ${formatRupiah(selectedTagihan.nominalAsli)}`
-          : '',
+        // Gabungkan catatan potongan beasiswa (fakta historis otomatis) DENGAN keterangan
+        // manual dari admin -- keduanya independen, tidak saling menimpa.
+        Keterangan: [catatanBeasiswa, keterangan.trim()].filter(Boolean).join(' | '),
       };
       await addPembayaranToSheet(row);
       await addLogEntry({
@@ -152,6 +171,7 @@ export default function CatatPembayaranModal({ onClose }) {
       setTanggalPerBaris(prev => { const { [selectedTagihan.id]: _hapus, ...sisanya } = prev; return sisanya; });
       setSelectedTagihanId(null);
       setNominal('');
+      setKeterangan('');
       refreshPembayaran();
     } catch (err) {
       toast(err.message, 'error');
@@ -289,6 +309,18 @@ export default function CatatPembayaranModal({ onClose }) {
                               <div className="field">
                                 <label>Nominal Dibayar (Rp)</label>
                                 <input type="number" value={nominal} onChange={e => setNominal(e.target.value)} max={t.sisa} />
+                                {(() => {
+                                  const cicilan = Number(t.cicilan) || 0;
+                                  const nomNow = Number(nominal) || 0;
+                                  if (cicilan > 0 && nomNow > cicilan) {
+                                    return (
+                                      <p style={{ fontSize: 11.5, color: '#8a5b00', background: 'var(--gold-soft)', borderRadius: 6, padding: '6px 9px', margin: '6px 0 0' }}>
+                                        ⚠️ Melebihi nilai cicilan standar ({formatRupiah(cicilan)}). Pastikan ini disengaja (mis. bayar beberapa cicilan sekaligus).
+                                      </p>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                               <div className="field">
                                 <label>Tanggal Bayar</label>
@@ -305,6 +337,15 @@ export default function CatatPembayaranModal({ onClose }) {
                                 <select value={akunPenerima} onChange={e => setAkunPenerima(e.target.value)}>
                                   {akunAktivaOptions(akun).map(a => <option key={a} value={a}>{a}</option>)}
                                 </select>
+                              </div>
+                              <div className="field span2">
+                                <label>Keterangan{t.refType !== 'SPP' && <span style={{ color: 'var(--red)' }}> *</span>}</label>
+                                <input
+                                  type="text"
+                                  value={keterangan}
+                                  onChange={e => setKeterangan(e.target.value)}
+                                  placeholder={t.refType !== 'SPP' ? 'Wajib diisi, mis. cicilan ke-2 dari 3' : 'Opsional'}
+                                />
                               </div>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>

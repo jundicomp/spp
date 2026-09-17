@@ -86,7 +86,10 @@ const SHEETS = {
   },
   users: {
     name: 'Users',
-    headers: ['No', 'Nama', 'Role', 'Username', 'Password', 'Email'],
+    // "Status" ditaruh di AKHIR (kompatibel mundur) -- baris lama yg belum punya nilai
+    // di kolom ini otomatis dianggap "Aktif" oleh React (lihat normalizeSheetUser),
+    // jadi user yg sudah ada TIDAK tiba-tiba ke-nonaktifkan begitu kolom ini muncul.
+    headers: ['No', 'Nama', 'Role', 'Username', 'Password', 'Email', 'Status'],
   },
   roles: {
     name: 'Roles',
