@@ -4,6 +4,36 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.25',
+    tanggal: '2026-09-17',
+    poin: [
+      'Catat Pembayaran: perbaikan kasus ambigu utk tagihan yang punya Nilai Cicilan TAPI "Nominal Tetap Saat Bayar?" dipilih Tidak (mis. Uang Bangunan yang boleh diangsur bebas, Cicilan cuma dipasang sbg referensi nominal per termin). Sebelumnya dropdown "Jumlah Kali Cicilan" tetap muncul walau nominalnya bebas diedit, jadi bisa kepilih "2x" di dropdown tapi nominal yang dicatat malah diketik manual beda sendiri -- sekarang dropdown itu HANYA muncul kalau nominalnya memang dikunci (Nominal Tetap = Ya). Kalau bebas diedit, nilai cicilan cukup ditampilkan sbg info referensi di bawah kolom Nominal Dibayar, tanpa memaksa kelipatan tertentu',
+    ],
+  },
+  {
+    versi: '1.31.24',
+    tanggal: '2026-09-17',
+    poin: [
+      'Tarif SPP & Biaya: ada field baru "Nominal Tetap Saat Bayar?" (Ya/Tidak, default Ya) -- ini menggantikan aturan baku yang dipasang manual di v1.31.22 & v1.31.23. Sekarang Admin sendiri yang menentukan per Tarif, apakah nominal yang dibayar di Catat Pembayaran dikunci (Ya) atau boleh diedit bebas (Tidak), berlaku sama utk SPP maupun Tagihan Lain',
+      'Artinya: SPP sekarang BISA dibuka lagi supaya bisa dibayar sebagian/dicicil per bulan (tinggal ubah "Nominal Tetap Saat Bayar?" jadi "Tidak" di Tarif SPP-nya) -- sebelumnya di v1.31.23 ini terkunci mutlak tanpa opsi. Begitu juga Tagihan Lain sekarang bisa dikunci meskipun tidak punya Nilai Cicilan',
+      'Nilai "Nominal Tetap" ini ikut disalin ke setiap tagihan pas diterbitkan (sama seperti Wajib/Cicilan) -- jadi tagihan yang SUDAH terbit sebelum Tarif-nya diubah tidak otomatis ikut berubah. Kalau perlu, betulkan satu-satu lewat tabel "Daftar Tagihan Lain (Semua Siswa)", atau terbitkan ulang',
+    ],
+  },
+  {
+    versi: '1.31.23',
+    tanggal: '2026-09-17',
+    poin: [
+      'Catat Pembayaran: field "Nominal Dibayar (Rp)" utk tagihan SPP bulanan sekarang JUGA dikunci -- otomatis sebesar sisa tagihan bulan itu, tidak bisa diedit manual. Ini keputusan sadar: akibatnya SPP tidak lagi bisa dicatat dibayar SEBAGIAN lewat form ini (harus lunas sekaligus per bulan). Kalau butuh bayar cicilan/sebagian per bulan lagi di kemudian hari, beri tahu supaya bisa dibuka kuncinya lagi',
+    ],
+  },
+  {
+    versi: '1.31.22',
+    tanggal: '2026-09-17',
+    poin: [
+      'Catat Pembayaran: utk tagihan yang punya Nilai Cicilan, field "Nominal Dibayar (Rp)" sekarang dikunci (tidak bisa diedit manual) -- nilainya murni mengikuti pilihan "Jumlah Kali Cicilan" di atasnya, jadi tidak ada lagi kemungkinan salah ketik nominal yang tidak sesuai kelipatan cicilan. Ganti jumlah kali cicilan kalau mau bayar jumlah yang berbeda. Utk tagihan yang TIDAK punya Nilai Cicilan, field ini tetap bebas diisi seperti biasa',
+    ],
+  },
+  {
     versi: '1.31.21',
     tanggal: '2026-09-17',
     poin: [

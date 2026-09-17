@@ -33,11 +33,13 @@ const SECRET = 'GANTI_DENGAN_KATA_SANDI_RAHASIA_KEUANGAN';
 const SHEETS = {
   tarif: {
     name: 'Tarif',
-    // "Kelas/Tingkat" & "Cicilan" ditaruh di AKHIR supaya kompatibel mundur dgn sheet
-    // lama -- baris lama tanpa nilai di kolom2 ini otomatis dianggap "Semua Kelas" &
-    // cicilan kosong (React menganggapnya "dibayar sekaligus, tanpa nilai cicilan
-    // standar"), perilaku lama tetap jalan sama persis.
-    headers: ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat', 'Cicilan'],
+    // "Kelas/Tingkat", "Cicilan" & "Nominal Tetap" ditaruh di AKHIR supaya kompatibel
+    // mundur dgn sheet lama -- baris lama tanpa nilai di kolom2 ini otomatis dianggap
+    // "Semua Kelas", cicilan kosong (React menganggapnya "dibayar sekaligus, tanpa
+    // nilai cicilan standar"), & Nominal Tetap kosong (React infer dari Cicilan/refType
+    // -- lihat normalizeSheetTarif/TagihanSpp/TagihanLain di tagihanHelpers.js &
+    // tarifFields.js), perilaku lama tetap jalan sama persis.
+    headers: ['No', 'Tahun Ajaran', 'Jenis', 'Tipe', 'Nominal', 'Wajib', 'Kelas/Tingkat', 'Cicilan', 'Nominal Tetap'],
   },
   tagihanSpp: {
     name: 'Tagihan SPP',
@@ -45,14 +47,18 @@ const SHEETS = {
     // penerbitan kalau ada potongan beasiswa yg berlaku (mis. "Potongan Beasiswa: Anak
     // Yatim (100%)"), supaya tercatat permanen -- tidak berubah lagi walau beasiswanya
     // belakangan dicabut (konsisten dgn prinsip "fakta historis pada momen transaksi").
-    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Bulan', 'Tahun Kalender', 'Nominal', 'Jatuh Tempo', 'Keterangan'],
+    // "Nominal Tetap" ditaruh PALING AKHIR (v1.31.24) -- disalin dari Tarif SPP saat
+    // penerbitan, dipakai Catat Pembayaran utk kunci/buka field Nominal Dibayar.
+    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Bulan', 'Tahun Kalender', 'Nominal', 'Jatuh Tempo', 'Keterangan', 'Nominal Tetap'],
   },
   tagihanLain: {
     name: 'Tagihan Lain',
     // "Cicilan" ditaruh di AKHIR (kompatibel mundur) -- diisi otomatis SEKALI saat
     // penerbitan dari nilai Cicilan di Tarif-nya (kalau ada), dipakai form Catat
     // Pembayaran sbg nilai nominal DEFAULT (bukan langsung sisa tagihan penuh).
-    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan', 'Cicilan'],
+    // "Nominal Tetap" ditaruh PALING AKHIR (v1.31.24) -- disalin dari Tarif-nya saat
+    // penerbitan, dipakai Catat Pembayaran utk kunci/buka field Nominal Dibayar.
+    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan', 'Cicilan', 'Nominal Tetap'],
   },
   pembayaran: {
     name: 'Pembayaran',

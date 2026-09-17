@@ -124,6 +124,10 @@ export default function PenerbitanSppTab() {
             Nominal: nominal,
             'Jatuh Tempo': `10/${item.monthIdx + 1}/${item.calYear}`,
             Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${formatRupiah(potongan.potonganSpp)})` : '',
+            // Disalin dari Tarif SPP -- lihat catatan lengkap di tarifFields.js/tagihanHelpers.js.
+            // Default 'Ya' (terkunci) kalau tarifSiswa entah kenapa tidak ketemu (harusnya
+            // tidak pernah terjadi krn penerbitan diblok kalau ada kelas tanpa tarif).
+            'Nominal Tetap': tarifSiswa && tarifSiswa.nominalTetap === false ? 'Tidak' : 'Ya',
           };
         });
         const result = await bulkAddTagihanSppToSheet(rows);

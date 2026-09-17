@@ -1,7 +1,7 @@
 // Dipakai GenericStoredTable di PenerbitanLainTab.jsx utk menampilkan & mengedit
 // tagihan INDIVIDUAL yang sudah terbit per siswa (beda dgn TARIF_HEADERS yg cuma
 // mengatur templatenya) -- lihat sheet 'Tagihan Lain' di Code-Keuangan.gs.
-export const TAGIHAN_LAIN_HEADERS = ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan', 'Cicilan'];
+export const TAGIHAN_LAIN_HEADERS = ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Nama', 'Wajib', 'Nominal', 'Jatuh Tempo', 'Keterangan', 'Cicilan', 'Nominal Tetap'];
 
 // Field yg BOLEH diedit -- SENGAJA tidak termasuk NISN/Nama Siswa/Tahun Ajaran/Nama
 // (identitas siswa & jenis biaya yg ditagih). Kolom yg tidak disebut di sini tetap
@@ -15,6 +15,9 @@ export const TAGIHAN_LAIN_EDIT_FIELDS = [
   // yg sama di tarifFields.js (Nilai Cicilan). Mengubahnya di sini HANYA berlaku
   // utk tagihan yg SUDAH terbit ini -- tidak mengubah Tarif templatenya.
   { key: 'Cicilan', label: 'Nilai Cicilan (Rp)', type: 'number', placeholder: 'Kosongkan jika dibayar sekaligus' },
+  // Sejak v1.31.24 -- lihat catatan lengkap di tarifFields.js (field yg sama di Tarif).
+  // Di sini HANYA berlaku utk tagihan yg SUDAH terbit ini, tidak mengubah templatenya.
+  { key: 'Nominal Tetap', label: 'Nominal Tetap Saat Bayar?', type: 'select', options: ['Ya', 'Tidak'] },
 ];
 
 export function normalizeSheetTagihanSpp(row, idx) {
@@ -31,6 +34,11 @@ export function normalizeSheetTagihanSpp(row, idx) {
     nominal: Number(row['Nominal']) || 0,
     jatuhTempo: row['Jatuh Tempo'],
     keterangan: String(row['Keterangan'] ?? '').trim(),
+    // Disalin dari Tarif SPP sekali saat tagihan ini diterbitkan (lihat PenerbitanSppTab.jsx).
+    // Kosong (tagihan lama sblm kolom ini ada, sblm v1.31.24) DIANGGAP 'Ya' (terkunci) --
+    // match perilaku SPP yg SUDAH terlanjur jalan sejak v1.31.23 (SPP SELALU dikunci
+    // sblm field checkbox ini ada), supaya tagihan lama tidak tiba2 jadi bisa diedit.
+    nominalTetap: String(row['Nominal Tetap'] ?? '').trim() !== 'Tidak',
   };
 }
 
@@ -50,6 +58,19 @@ export function normalizeSheetTagihanLain(row, idx) {
     // Disalin dari Tarif sekali saat tagihan ini diterbitkan (lihat PenerbitanLainTab.jsx)
     // -- 0 = tidak ada nilai cicilan standar, form Catat Pembayaran default ke sisa penuh.
     cicilan: Number(row['Cicilan']) || 0,
+    // Disalin dari Tarif sekali saat tagihan ini diterbitkan, spt Cicilan di atas.
+    // Kosong (tagihan lama sblm kolom ini ada, sblm v1.31.24) -- INFER dari Cicilan,
+    // supaya PERSIS sama dgn perilaku v1.31.22 (dikunci CUMA kalau py Nilai Cicilan).
+    // Kalau sudah eksplisit 'Ya'/'Tidak' (tagihan baru, atau tagihan lama yg sudah
+    // dibetulkan lewat tabel Daftar Tagihan Lain) -- pakai itu apa adanya, TIDAK
+    // peduli lagi nilai Cicilan-nya (mis. bisa jadi 'Tidak' walau py Cicilan, kalau
+    // Admin sengaja mau tetap bisa bayar sebagian).
+    nominalTetap: (() => {
+      const raw = String(row['Nominal Tetap'] ?? '').trim();
+      if (raw === 'Ya') return true;
+      if (raw === 'Tidak') return false;
+      return (Number(row['Cicilan']) || 0) > 0;
+    })(),
   };
 }
 

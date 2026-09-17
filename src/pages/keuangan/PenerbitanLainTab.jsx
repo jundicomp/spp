@@ -73,6 +73,8 @@ export default function PenerbitanLainTab() {
             'Jatuh Tempo': todayWIB(),
             Keterangan: potongan ? `Potongan Beasiswa: ${potongan.nama} (${formatRupiah(potongan.potonganBiayaLain)})` : '',
             Cicilan: item.tarif.cicilan || '',
+            // Disalin dari Tarif -- lihat catatan lengkap di tarifFields.js/tagihanHelpers.js.
+            'Nominal Tetap': item.tarif.nominalTetap ? 'Ya' : 'Tidak',
           };
         });
         const result = await bulkAddToSheet('tagihanLain', rows, 'keuangan');

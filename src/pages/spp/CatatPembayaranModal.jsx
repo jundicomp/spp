@@ -122,7 +122,12 @@ export default function CatatPembayaranModal({ onClose }) {
     const cicilan = Number(t.cicilan) || 0;
     const defaultNominal = cicilan > 0 ? Math.min(cicilan, t.sisa) : t.sisa;
     setNominal(String(defaultNominal));
-    setKeterangan(cicilan > 0 ? '1 kali cicilan' : '');
+    // Preset "1 kali cicilan" di Keterangan cuma relevan kalau nominalnya memang
+    // TERKUNCI ikut kelipatan Cicilan (t.nominalTetap = Ya) -- kalau nominalnya bebas
+    // diedit, jangan preset teks yg bisa jadi salah/menyesatkan begitu admin ganti
+    // nominalnya manual (mis. Uang Bangunan yg py Cicilan cuma sbg referensi, tapi
+    // Nominal Tetap = Tidak supaya bebas dibayar berapa aja per termin).
+    setKeterangan(cicilan > 0 && t.nominalTetap ? '1 kali cicilan' : '');
     setJumlahCicilan(1);
     setTanggalBayar(tanggal || todayWIB());
   }
@@ -324,7 +329,15 @@ export default function CatatPembayaranModal({ onClose }) {
                               </div>
                             )}
                             <div className="form-grid">
-                              {Number(t.cicilan) > 0 && (
+                              {/* Sejak v1.31.25: dropdown ini cuma muncul kalau nominalnya memang
+                                  TERKUNCI (t.nominalTetap = Ya) -- soalnya dulu dropdown ini tetap
+                                  tampil walau Nominal Tetap = Tidak, jadi bisa "1 dipilih 2x cicilan"
+                                  di dropdown TAPI nominal yg dicatat malah diketik manual beda sendiri
+                                  (kasus ambigu Uang Bangunan: Cicilan diisi cuma sbg referensi, tapi
+                                  Nominal Tetap = Tidak supaya bebas dibayar berapa aja per termin).
+                                  Kalau nominal bebas diedit, referensi Nilai Cicilan cukup ditampilkan
+                                  sbg teks bantuan di bawah field Nominal Dibayar (lihat di bawah). */}
+                              {Number(t.cicilan) > 0 && t.nominalTetap && (
                                 <div className="field">
                                   <label>Jumlah Kali Cicilan</label>
                                   <select value={jumlahCicilan} onChange={e => handleGantiJumlahCicilan(t, Number(e.target.value))}>
@@ -336,20 +349,40 @@ export default function CatatPembayaranModal({ onClose }) {
                               )}
                               <div className="field">
                                 <label>Nominal Dibayar (Rp)</label>
-                                <input type="number" value={nominal} onChange={e => setNominal(e.target.value)} max={t.sisa} />
-                                {(() => {
-                                  const cicilan = Number(t.cicilan) || 0;
-                                  const nomNow = Number(nominal) || 0;
-                                  const batasWajar = cicilan * (jumlahCicilan || 1);
-                                  if (cicilan > 0 && nomNow > batasWajar) {
-                                    return (
-                                      <p style={{ fontSize: 11.5, color: '#8a5b00', background: 'var(--gold-soft)', borderRadius: 6, padding: '6px 9px', margin: '6px 0 0' }}>
-                                        ⚠️ Melebihi nilai {jumlahCicilan}x cicilan standar ({formatRupiah(batasWajar)}). Pastikan ini disengaja (mis. bayar beberapa cicilan sekaligus), atau sesuaikan pilihan "Jumlah Kali Cicilan" di atas.
+                                {/* Sejak v1.31.24: kunci/buka field ini SEPENUHNYA ditentukan oleh
+                                    `t.nominalTetap` -- field "Nominal Tetap Saat Bayar?" yg diatur di
+                                    Tarif (lihat tarifFields.js), disalin ke tiap tagihan SAAT diterbitkan
+                                    (spt Cicilan), dibaca di sini lewat normalizeSheetTagihanSpp/Lain
+                                    (tagihanHelpers.js). Ini MENGGANTIKAN 2 aturan hardcode sebelumnya:
+                                    v1.31.22 (Tagihan Lain dikunci OTOMATIS kalau py Cicilan, tanpa cara
+                                    diatur) & v1.31.23 (SPP dikunci PERMANEN, tanpa cara diatur) -- sekarang
+                                    Admin yg pegang kendali penuh per Tarif, termasuk bisa membuka kunci
+                                    SPP lagi (utk bayar sebagian) atau mengunci Tagihan Lain walau TIDAK py
+                                    Cicilan, tinggal ganti "Nominal Tetap Saat Bayar?" di Tarif-nya.
+                                    Pesannya beda tergantung KENAPA terkunci, murni supaya jelas dibaca:
+                                    SPP -> tidak py opsi cicilan sama sekali; py Cicilan -> ikuti kelipatan
+                                    Jumlah Kali Cicilan; selain itu -> generic "sudah ditentukan Tetap". */}
+                                {t.nominalTetap ? (
+                                  <>
+                                    <input type="number" value={nominal} disabled style={{ background: 'var(--green-soft)', color: 'var(--muted)', cursor: 'not-allowed' }} />
+                                    <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: '6px 0 0' }}>
+                                      {t.refType === 'SPP'
+                                        ? '🔒 Nominal SPP dikunci sebesar sisa tagihan bulan ini -- tidak bisa diedit manual maupun dibayar sebagian lewat sini.'
+                                        : Number(t.cicilan) > 0
+                                          ? '🔒 Nominal mengikuti Nilai Cicilan yang sudah ditentukan saat tagihan ini dibuat -- tidak bisa diedit manual. Ganti pilihan "Jumlah Kali Cicilan" di atas kalau mau bayar jumlah kali yang berbeda.'
+                                          : '🔒 Nominal tagihan ini sudah ditentukan Tetap saat dibuat -- tidak bisa diedit manual. Kalau perlu diubah, atur "Nominal Tetap Saat Bayar?" jadi "Tidak" di Tarif-nya (berlaku utk tagihan berikutnya) atau langsung di tabel Daftar Tagihan Lain (khusus tagihan ini).'}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <input type="number" value={nominal} onChange={e => setNominal(e.target.value)} max={t.sisa} />
+                                    {Number(t.cicilan) > 0 && (
+                                      <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: '6px 0 0' }}>
+                                        💡 Nilai cicilan standar (referensi saja, boleh dibayar dengan jumlah berbeda): {formatRupiah(Number(t.cicilan))} per kali.
                                       </p>
-                                    );
-                                  }
-                                  return null;
-                                })()}
+                                    )}
+                                  </>
+                                )}
                               </div>
                               <div className="field">
                                 <label>Tanggal Bayar</label>
