@@ -7,6 +7,7 @@ import { rekapPemasukanBulanan } from '../../db/laporanHelpers';
 import { BULAN_SHORT, formatRupiah } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconGraduationCap, IconMoney, IconCheckCircle, IconAlertTriangle, IconPercent } from '../../components/common/icons';
+import RombelPembayaranTable from './RombelPembayaranTable';
 
 // Dashboard SPP -- infografis ringkasan SPP & Biaya Lain utk TAHUN AJARAN AKTIF,
 // dihitung REAL-TIME dari data siswa/tagihan/pembayaran yg sudah ada (bukan input
@@ -152,6 +153,13 @@ export default function DashboardSpp() {
               </div>
             </div>
           </div>
+
+          <div className="card" style={{ marginTop: 16, marginBottom: 0 }}>
+            <div className="card-head"><div><h3 style={{ fontSize: 13.5 }}>Rekap Pembayaran SPP per Rombel</h3><p>Ceklist hijau = sudah lunas bulan itu, silang merah = belum/baru sebagian</p></div></div>
+            <div className="card-body">
+              <RombelPembayaranTable />
+            </div>
+          </div>
         </>
       )}
     </Page>
@@ -240,9 +248,22 @@ function DonutStatusChart({ counts, total }) {
   );
 }
 
+// Label singkat ala Indonesia (350rb / 2,3jt / 1,2M) -- dipakai utk label
+// LANGSUNG di atas titik grafik Tren Bulanan (bukan cuma di tooltip hover),
+// supaya nominal per bulan kelihatan sekilas tanpa perlu arahkan mouse.
+// Sengaja TIDAK memakai formatRupiah() penuh ("Rp 386.225.000") di sini krn
+// kepanjangan & bisa saling tumpuk kalau makin banyak bulan yg terisi data.
+function formatRupiahSingkat(n) {
+  const v = Math.round(n || 0);
+  if (v >= 1_000_000_000) return 'Rp ' + (v / 1_000_000_000).toFixed(1).replace(/\.0$/, '').replace('.', ',') + 'M';
+  if (v >= 1_000_000) return 'Rp ' + (v / 1_000_000).toFixed(1).replace(/\.0$/, '').replace('.', ',') + 'jt';
+  if (v >= 1_000) return 'Rp ' + Math.round(v / 1000) + 'rb';
+  return formatRupiah(v);
+}
+
 function TrenBulananChart({ data }) {
   if (data.length === 0) return <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada data.</p>;
-  const W = 560, H = 190, padL = 42, padR = 16, padB = 24, padT = 14;
+  const W = 560, H = 210, padL = 42, padR = 16, padB = 24, padT = 26;
   const innerW = W - padL - padR, innerH = H - padB - padT;
   const maxVal = Math.max(...data.map(d => d.nilai), 1) * 1.15;
   const stepX = innerW / (data.length - 1 || 1);
@@ -263,10 +284,17 @@ function TrenBulananChart({ data }) {
       {dashIdx.length > 1 && <path d={pathFor(dashIdx)} fill="none" stroke="var(--muted)" strokeWidth="2" strokeDasharray="5 4" />}
       {data.map((d, i) => {
         const [x, y] = xy(i);
+        // Label langsung (nominal) HANYA utk bulan yg sudah lewat & ada nilainya --
+        // "selective direct label", bukan angka di tiap titik (bulan yg belum sampai
+        // sudah cukup ditandai pudar/putus-putus, tidak perlu label "Rp 0").
+        const tampilkanLabel = !d.akanDatang && d.nilai > 0;
+        const labelDiAtas = (y - 12) >= (padT - 12);
+        const ly = labelDiAtas ? y - 12 : y + 18;
         return (
           <g key={d.label + i}>
             <title>{`${d.label} — ${formatRupiah(d.nilai)}${d.akanDatang ? ' (belum sampai)' : ''}`}</title>
             <circle cx={x} cy={y} r={d.akanDatang ? 3 : 4} fill={d.akanDatang ? 'var(--surface, #fff)' : 'var(--green)'} stroke={d.akanDatang ? 'var(--muted)' : 'var(--green)'} strokeWidth="1.5" />
+            {tampilkanLabel && <text x={x} y={ly} textAnchor="middle" className="dspp-point-label">{formatRupiahSingkat(d.nilai)}</text>}
             <text x={x} y={H - 6} textAnchor="middle" className="dspp-label">{d.label}</text>
           </g>
         );

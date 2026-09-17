@@ -4,6 +4,16 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.16',
+    tanggal: '2026-09-17',
+    poin: [
+      'Tab Pembayaran: form "Catat Pembayaran" yang dulu selalu tampil penuh di atas halaman sekarang jadi 1 tombol -- diklik akan membuka jendela lebar 2 kolom: kolom kiri utk cari siswa & catat pembayaran (persis seperti sebelumnya), kolom kanan langsung menampilkan Riwayat Pembayaran siswa yang sedang dipilih, jadi bisa dicek dulu/sesudah tanpa tutup jendela',
+      'Widget "Pembayaran Hari Ini": opsi lihat "Kemarin" dihapus dari sini krn isinya nyaris sama dgn tabel Riwayat Pembayaran di bawahnya. Tabel Riwayat Pembayaran sekarang selalu menampilkan SEMUA transaksi (tidak lagi bergantung siswa yg sedang dicari) & sudah punya tombol cepat "Hari Ini" maupun "Kemarin" sendiri',
+      'Dashboard SPP: grafik "Tren Nominal Masuk per Bulan" sekarang menampilkan langsung nominalnya di atas tiap titik bulan yang sudah lewat (mis. "Rp 32,2jt"), tidak perlu arahkan mouse dulu utk lihat angkanya',
+      'Dashboard SPP: tambah tabel baru "Rekap Pembayaran SPP per Rombel" -- pilih rombel (atau geser Sebelumnya/Berikutnya), lalu lihat status lunas per siswa utk tiap bulan dalam 1 tahun ajaran sekaligus (ceklist hijau = sudah lunas bulan itu, silang merah = belum/baru sebagian, garis "-" = belum ada tagihan bulan itu)',
+    ],
+  },
+  {
     versi: '1.31.15',
     tanggal: '2026-09-17',
     poin: [

@@ -1,19 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useAppData } from '../../context/AppContext';
 import { pembayaranAsli } from '../../db/laporanHelpers';
 import { BULAN_ID, formatRupiah, normalisasiTanggalUntukInput, parseTanggalFleksibel, todayWIB } from '../../db/helpers';
 
 const HARI_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-
-// Mundur 1 hari kalender dari "yyyy-MM-dd" -- sengaja pakai Date.UTC + getUTC* (bukan
-// new Date(y,m,d) lokal + toISOString) supaya HANYA aritmetika tanggal murni, sama
-// sekali tidak tersentuh konversi zona waktu (lihat catatan di todayWIB()/isoDate()
-// soal risiko "mundur 1 hari" kalau dicampur zona waktu).
-function mundur1Hari(yyyyMmDd) {
-  const [y, m, d] = yyyyMmDd.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d - 1));
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
-}
 
 function formatTanggalPanjang(yyyyMmDd) {
   const d = parseTanggalFleksibel(yyyyMmDd);
@@ -24,13 +14,15 @@ function formatTanggalPanjang(yyyyMmDd) {
 // Widget "Pembayaran Hari Ini" -- ditaruh di tab Pembayaran (bukan Dashboard SPP)
 // krn dipakai kasir/petugas utk langsung mengecek transaksi yg baru saja diinput
 // (cocokkan jumlah setoran, ketahuan kalau ada yg dobel/salah) sebelum tutup kas.
+// Sejak v1.31.16: opsi toggle "Kemarin" DIHAPUS dari sini -- isinya nyaris sama
+// dgn tabel Riwayat Pembayaran di bawahnya (yg sudah punya filter tanggal +
+// tombol cepat "Hari Ini"/"Kemarin" sendiri), jadi tidak perlu 2 tabel yg mirip.
 // CATATAN: Sheet Pembayaran tidak menyimpan JAM transaksi, cuma tanggal -- jadi
 // diurutkan dari yg PALING BARU DIINPUT (nomor baris terbesar), bukan jam sungguhan.
 export default function PembayaranHariIni() {
   const { pembayaran, pembayaranLoaded } = useAppData();
-  const [hari, setHari] = useState('hari-ini');
 
-  const tanggalTarget = useMemo(() => (hari === 'hari-ini' ? todayWIB() : mundur1Hari(todayWIB())), [hari]);
+  const tanggalTarget = useMemo(() => todayWIB(), []);
 
   const baris = useMemo(() => {
     return pembayaranAsli(pembayaran)
@@ -45,18 +37,14 @@ export default function PembayaranHariIni() {
     <div className="card" style={{ marginTop: 4 }}>
       <div className="card-head">
         <div>
-          <h3>📋 Pembayaran {hari === 'hari-ini' ? 'Hari Ini' : 'Kemarin'}</h3>
+          <h3>📋 Pembayaran Hari Ini</h3>
           <p>{formatTanggalPanjang(tanggalTarget)}</p>
-        </div>
-        <div className="no-print" style={{ display: 'flex', gap: 6 }}>
-          <button type="button" className={`btn btn-sm ${hari === 'kemarin' ? 'btn-primary' : ''}`} onClick={() => setHari('kemarin')}>Kemarin</button>
-          <button type="button" className={`btn btn-sm ${hari === 'hari-ini' ? 'btn-primary' : ''}`} onClick={() => setHari('hari-ini')}>Hari Ini</button>
         </div>
       </div>
       <div className="card-body table-scroll">
         {!pembayaranLoaded && <p style={{ fontSize: 13, color: 'var(--muted)' }}>Memuat...</p>}
         {pembayaranLoaded && baris.length === 0 && (
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada transaksi pembayaran pada tanggal ini.</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada transaksi pembayaran hari ini.</p>
         )}
         {baris.length > 0 && (
           <table>

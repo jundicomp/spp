@@ -4,6 +4,7 @@ import DataSiswaTab from './DataSiswaTab';
 import PembayaranTab from '../keuangan/PembayaranTab';
 import InvoiceTab from '../keuangan/InvoiceTab';
 import PembayaranHariIni from './PembayaranHariIni';
+import RiwayatPembayaranCard from './RiwayatPembayaranCard';
 import { isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { pembayaranAsli } from '../../db/laporanHelpers';
@@ -70,6 +71,7 @@ export default function Pembayaran() {
             <>
               <PembayaranTab />
               <PembayaranHariIni />
+              <RiwayatPembayaranCard />
             </>
           )}
           {tab === 'invoice' && bolehTab('invoice') && <InvoiceTab />}
