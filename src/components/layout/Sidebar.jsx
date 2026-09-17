@@ -71,13 +71,13 @@ export default function Sidebar() {
         <Item to="/dashboard" canAccess={canAccess('dashboard')}>Dashboard</Item>
 
         <NavGroup id="spp" label="🎓 SPP" open={openGroups.spp} onToggle={toggle}>
-          <Item to="/spp" canAccess={canAccess('spp')}>SPP Peserta Didik</Item>
+          <Item to="/dashboard-spp" canAccess={canAccess('dashboard-spp')}>Dashboard SPP</Item>
+          <Item to="/pembayaran" canAccess={canAccess('pembayaran')}>Pembayaran</Item>
         </NavGroup>
 
         <NavGroup id="keuangan" label="💰 KEUANGAN" open={openGroups.keuangan} onToggle={toggle}>
           <Item to="/tagihan" canAccess={canAccess('tagihan')}>Tagihan &amp; Biaya</Item>
           <Item to="/bersihkan-duplikat" canAccess={canAccess('bersihkan-duplikat')}>Cek Data dan Sistem</Item>
-          <Item to="/pembayaran" canAccess={canAccess('pembayaran')}>Pembayaran &amp; Invoice</Item>
           <Item to="/pemasukan-pengeluaran" canAccess={canAccess('pemasukan-pengeluaran')}>Pemasukan &amp; Pengeluaran Lain</Item>
           <Item to="/tunggakan" canAccess={canAccess('tunggakan')}>Rekap Tunggakan</Item>
           <Item to="/beasiswa" canAccess={canAccess('beasiswa')}>Beasiswa</Item>

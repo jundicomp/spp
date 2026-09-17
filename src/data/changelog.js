@@ -4,6 +4,16 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.15',
+    tanggal: '2026-09-17',
+    poin: [
+      'Modul SPP dirombak: sekarang punya 2 sub-menu -- "Dashboard SPP" (baru) dan "Pembayaran". Halaman "SPP Peserta Didik" dan "Pembayaran & Invoice" yang dulu terpisah sekarang digabung jadi satu halaman "Pembayaran" dengan 3 tab: Data Siswa, Pembayaran, Invoice -- supaya tidak perlu bolak-balik menu untuk urusan yang berhubungan',
+      'Dashboard SPP (baru): infografis ringkasan SPP tahun ajaran aktif -- kartu Total Siswa (per 6 tingkatan), Total Tagihan, Sudah Terbayar, Total Tunggakan, & persentase Tingkat Kepatuhan Bayar. Dilengkapi grafik batang Tagihan vs Terbayar per Tingkatan Kelas, grafik donat Status Pembayaran Siswa (Lunas/Sebagian/Belum Bayar), grafik tren nominal masuk per bulan, dan daftar ranking Kelas dengan Tunggakan Tertinggi',
+      'Tab Pembayaran sekarang menampilkan daftar "Pembayaran Hari Ini" otomatis di bawah form catat pembayaran -- daftar transaksi pembayaran yang masuk hari ini (nama siswa, jenis, metode, nominal, plus total), dengan tombol untuk lihat transaksi kemarin juga',
+      'Menu lama "/spp" tetap bisa diakses (otomatis diarahkan ke halaman Pembayaran) supaya bookmark/pintasan lama tidak rusak',
+    ],
+  },
+  {
     versi: '1.31.14',
     tanggal: '2026-09-17',
     poin: [

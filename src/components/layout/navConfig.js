@@ -6,13 +6,18 @@
 
 export const NAV_STRUCTURE = [
   { id: 'dashboard', type: 'link', to: '/dashboard', pageId: 'dashboard', label: 'Dashboard', icon: '🏠' },
-  { id: 'spp', type: 'link', to: '/spp', pageId: 'spp', label: 'SPP', icon: '🎓' },
+  {
+    id: 'spp', type: 'group', label: 'SPP', groupLabel: '🎓 SPP', icon: '🎓',
+    items: [
+      { to: '/dashboard-spp', pageId: 'dashboard-spp', label: 'Dashboard SPP' },
+      { to: '/pembayaran', pageId: 'pembayaran', label: 'Pembayaran' },
+    ],
+  },
   {
     id: 'keuangan', type: 'group', label: 'Keuangan', groupLabel: '💰 KEUANGAN', icon: '💰',
     items: [
       { to: '/tagihan', pageId: 'tagihan', label: 'Tagihan & Biaya' },
       { to: '/bersihkan-duplikat', pageId: 'bersihkan-duplikat', label: 'Cek Data dan Sistem' },
-      { to: '/pembayaran', pageId: 'pembayaran', label: 'Pembayaran & Invoice' },
       { to: '/pemasukan-pengeluaran', pageId: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain' },
       { to: '/tunggakan', pageId: 'tunggakan', label: 'Rekap Tunggakan' },
       { to: '/beasiswa', pageId: 'beasiswa', label: 'Beasiswa' },
