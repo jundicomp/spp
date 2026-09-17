@@ -315,58 +315,87 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- Load AWAL: 1 request gabungan per target (Master & Keuangan), BUKAN 14+1
-  // request terpisah -- lihat catatan di useSheetResource.js & fetchAllFromSheet().
-  // Kalau batch GAGAL utk 1 target (mis. sedang ada gangguan sesaat), jatuhkan ke
-  // cara lama (refresh() 1-per-1 utk target itu saja) sbg cadangan, supaya user
-  // tidak sepenuhnya macet cuma krn 1 request gabungan gagal.
+  // muatMaster/muatKeuangan: 1 request gabungan per target (Master & Keuangan), BUKAN
+  // 14+1 request terpisah -- lihat catatan di useSheetResource.js & fetchAllFromSheet().
+  // Dipakai baik utk LOAD AWAL (withFallback=true -- kalau batch gagal, jatuhkan ke cara
+  // lama refresh() 1-per-1 sbg cadangan supaya user tidak macet) MAUPUN utk AUTO-REFRESH
+  // berkala (withFallback=false -- lihat efek di bawah -- kalau 1 siklus polling gagal,
+  // cukup diam & coba lagi siklus berikutnya, TIDAK usah membombardir 9 request 1-per-1
+  // tiap kali 1 polling gagal sesaat).
+  const muatMaster = useCallback(async (withFallback) => {
+    if (!isConfigured('master')) { isiProfilDariRows([]); return; }
+    const tiketHakAkses = ++hakAksesTiketRef.current;
+    try {
+      const semua = await fetchAllFromSheet('master');
+      siswaRes.setFromBatch(semua.siswa || []);
+      kelasRes.setFromBatch(semua.kelas || []);
+      guruRes.setFromBatch(semua.guru || []);
+      asetRes.setFromBatch(semua.aset || []);
+      tahunAjaranRes.setFromBatch(semua.tahunAjaran || []);
+      isiProfilDariRows(semua.profil || []);
+      terapkanHakAksesJikaMasihTerbaru(tiketHakAkses, semua.roles || [], semua.hakAkses || []);
+    } catch (err) {
+      if (!withFallback) return; // polling berkala: diam saja, coba lagi siklus berikutnya
+      siswaRes.refresh(); kelasRes.refresh(); guruRes.refresh(); asetRes.refresh(); tahunAjaranRes.refresh();
+      refreshProfil();
+      muatRolesDanHakAkses();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const muatKeuangan = useCallback(async (withFallback) => {
+    if (!isConfigured('keuangan')) return;
+    try {
+      const semua = await fetchAllFromSheet('keuangan');
+      tarifRes.setFromBatch(semua.tarif || []);
+      tagihanSppRes.setFromBatch(semua.tagihanSpp || []);
+      tagihanLainRes.setFromBatch(semua.tagihanLain || []);
+      pembayaranRes.setFromBatch(semua.pembayaran || []);
+      pengeluaranRes.setFromBatch(semua.pengeluaran || []);
+      pemasukanLainRes.setFromBatch(semua.pemasukanLain || []);
+      akunRes.setFromBatch(semua.akunBukuBesar || []);
+      beasiswaKategoriRes.setFromBatch(semua.beasiswaKategori || []);
+      beasiswaSiswaRes.setFromBatch(semua.beasiswaSiswa || []);
+    } catch (err) {
+      if (!withFallback) return;
+      tarifRes.refresh(); tagihanSppRes.refresh(); tagihanLainRes.refresh(); pembayaranRes.refresh();
+      pengeluaranRes.refresh(); pemasukanLainRes.refresh(); akunRes.refresh();
+      beasiswaKategoriRes.refresh(); beasiswaSiswaRes.refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Load AWAL (sekali saat app dibuka) ----
   useEffect(() => {
-    let batal = false;
-    async function muatMaster() {
-      if (!isConfigured('master')) { isiProfilDariRows([]); return; }
-      const tiketHakAkses = ++hakAksesTiketRef.current;
-      try {
-        const semua = await fetchAllFromSheet('master');
-        if (batal) return;
-        siswaRes.setFromBatch(semua.siswa || []);
-        kelasRes.setFromBatch(semua.kelas || []);
-        guruRes.setFromBatch(semua.guru || []);
-        asetRes.setFromBatch(semua.aset || []);
-        tahunAjaranRes.setFromBatch(semua.tahunAjaran || []);
-        isiProfilDariRows(semua.profil || []);
-        terapkanHakAksesJikaMasihTerbaru(tiketHakAkses, semua.roles || [], semua.hakAkses || []);
-      } catch (err) {
-        if (batal) return;
-        // Cadangan: kalau batch gagal, tetap coba 1-per-1 spt versi lama.
-        siswaRes.refresh(); kelasRes.refresh(); guruRes.refresh(); asetRes.refresh(); tahunAjaranRes.refresh();
-        refreshProfil();
-        muatRolesDanHakAkses();
-      }
+    muatMaster(true);
+    muatKeuangan(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Auto-refresh berkala dari Google Sheets ----
+  // Supaya user TIDAK perlu klik "Muat Ulang" manual lagi -- penting krn kadang ada
+  // BEBERAPA staf yg login bersamaan (mis. Bendahara catat pembayaran, sementara Admin
+  // buka Rekap Tunggakan) -- tanpa ini, layar yg sudah lama terbuka bisa menampilkan
+  // data BASI (mis. tagihan yg baru saja dibayar orang lain masih kelihatan "Belum
+  // Lunas"). Interval SENGAJA 30 detik -- cukup terasa "real-time" utk operasional
+  // sekolah sehari-hari, tapi tidak terlalu sering sampai berisiko kena limit kuota
+  // Google Apps Script (akun gratis) kalau banyak staf login bersamaan. Tinggal ubah
+  // angka di bawah ini kalau mau lebih cepat/lambat.
+  const AUTO_REFRESH_INTERVAL_MS = 30 * 1000;
+  useEffect(() => {
+    function refreshDiamDiam() {
+      muatMaster(false);
+      muatKeuangan(false);
     }
-    async function muatKeuangan() {
-      if (!isConfigured('keuangan')) return;
-      try {
-        const semua = await fetchAllFromSheet('keuangan');
-        if (batal) return;
-        tarifRes.setFromBatch(semua.tarif || []);
-        tagihanSppRes.setFromBatch(semua.tagihanSpp || []);
-        tagihanLainRes.setFromBatch(semua.tagihanLain || []);
-        pembayaranRes.setFromBatch(semua.pembayaran || []);
-        pengeluaranRes.setFromBatch(semua.pengeluaran || []);
-        pemasukanLainRes.setFromBatch(semua.pemasukanLain || []);
-        akunRes.setFromBatch(semua.akunBukuBesar || []);
-        beasiswaKategoriRes.setFromBatch(semua.beasiswaKategori || []);
-        beasiswaSiswaRes.setFromBatch(semua.beasiswaSiswa || []);
-      } catch (err) {
-        if (batal) return;
-        tarifRes.refresh(); tagihanSppRes.refresh(); tagihanLainRes.refresh(); pembayaranRes.refresh();
-        pengeluaranRes.refresh(); pemasukanLainRes.refresh(); akunRes.refresh();
-        beasiswaKategoriRes.refresh(); beasiswaSiswaRes.refresh();
-      }
+    function saatTabAktifLagi() {
+      if (document.visibilityState === 'visible') refreshDiamDiam();
     }
-    muatMaster();
-    muatKeuangan();
-    return () => { batal = true; };
+    document.addEventListener('visibilitychange', saatTabAktifLagi);
+    const interval = setInterval(refreshDiamDiam, AUTO_REFRESH_INTERVAL_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', saatTabAktifLagi);
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -381,6 +410,9 @@ export function AppProvider({ children }) {
   // push real-time dari Sheet ke browser). Begitu permissions ke-refresh, halaman yg
   // sedang tampil ikut re-render otomatis (canAccess baca ulang state ini), jadi
   // TIDAK perlu user logout/refresh manual utk pembatasan barunya berlaku.
+  // (Ini TERPISAH dari auto-refresh data di atas krn sudah ada duluan & polling-nya
+  // 2 menit -- lebih jarang krn hak akses jarang berubah -- sengaja tidak digabung
+  // supaya tidak perlu ubah perilaku yg sudah teruji.)
   useEffect(() => {
     function saatTabAktifLagi() {
       if (document.visibilityState === 'visible') muatRolesDanHakAkses();

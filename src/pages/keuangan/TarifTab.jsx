@@ -1,14 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import GenericManualForm from '../../components/sheetCrud/GenericManualForm';
 import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
+import Modal from '../../components/common/Modal';
 import { buildTarifFields, TARIF_HEADERS, emptyTarifRow } from '../../db/tarifFields';
 import { fetchTarifFromSheet, addTarifToSheet, updateTarifInSheet, deleteTarifFromSheet } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 
+// Sejak v1.31.18: form "Tambah Tarif" yang dulu SELALU tampil penuh di bawah
+// tabel sekarang jadi modal yang dibuka lewat tombol "+ Tambah Tarif" --
+// pola yang sama persis dipakai di BeasiswaKategoriTab/BukuBesarTab/dst.
 export default function TarifTab() {
   const { tahunAjaran, refreshTarif } = useAppData();
   const tahunAjaranOptions = useMemo(() => tahunAjaran.map(t => t.label), [tahunAjaran]);
   const fields = useMemo(() => buildTarifFields(tahunAjaranOptions), [tahunAjaranOptions]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   return (
     <>
@@ -29,17 +35,22 @@ export default function TarifTab() {
         labelKey="Jenis"
         searchFn={(r, t) => (r['Jenis'] || '').toLowerCase().includes(t) || (r['Tahun Ajaran'] || '').toLowerCase().includes(t)}
         onChanged={refreshTarif}
+        refreshSignal={refreshSignal}
         target="keuangan"
+        headExtra={<button className="btn btn-primary btn-sm" onClick={() => setModalOpen(true)}>+ Tambah Tarif</button>}
       />
-      <GenericManualForm
-        fields={fields}
-        emptyRow={emptyTarifRow}
-        addFn={addTarifToSheet}
-        onSaved={refreshTarif}
-        title="Tambah Tarif"
-        subtitle="Data langsung tersimpan ke Google Sheets Keuangan."
-        target="keuangan"
-      />
+      {modalOpen && (
+        <Modal title="Tambah Tarif" subtitle="Data langsung tersimpan ke Google Sheets Keuangan." onClose={() => setModalOpen(false)}>
+          <GenericManualForm
+            fields={fields}
+            emptyRow={emptyTarifRow}
+            addFn={addTarifToSheet}
+            onSaved={() => { refreshTarif(); setRefreshSignal(s => s + 1); setModalOpen(false); }}
+            target="keuangan"
+            bare
+          />
+        </Modal>
+      )}
     </>
   );
 }

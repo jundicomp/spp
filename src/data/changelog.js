@@ -4,6 +4,24 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.19',
+    tanggal: '2026-09-17',
+    poin: [
+      'Tagihan Lain: sekarang ada tabel baru "Daftar Tagihan Lain (Semua Siswa)" di bawah form penerbitan -- setiap tagihan yang sudah terbit ke siswa bisa dibetulkan langsung (Nominal, Wajib/Tidak, Jatuh Tempo, Keterangan, Nilai Cicilan) atau dihapus lewat ikon ✏️/🗑️, tanpa perlu menerbitkan ulang. Cocok utk membetulkan salah input tanpa mengubah tagihan siswa lain',
+      'Data sekarang otomatis diperbarui sendiri setiap 30 detik dari Google Sheets (dan juga langsung saat kembali membuka tab browser ini) -- berguna kalau ada staf lain yang sedang mencatat bersamaan, jadi tidak perlu klik "Muat Ulang" manual lagi utk lihat data terbaru. Berjalan diam-diam di belakang layar, tidak mengganggu yang sedang diketik',
+      'Perbaikan kecil: pesan konfirmasi saat Edit data (mis. di Riwayat Pembayaran atau Tagihan Lain) yang sebelumnya kadang menampilkan tulisan "undefined" pada nama datanya, sekarang menampilkan nama yang benar',
+    ],
+  },
+  {
+    versi: '1.31.18',
+    tanggal: '2026-09-17',
+    poin: [
+      'Catat Pembayaran: tagihan yang punya Nilai Cicilan sekarang punya field baru "Jumlah Kali Cicilan" (mis. 1x/2x/3x) -- pilih mau bayar berapa kali cicilan sekaligus, Nominal Dibayar & Keterangan otomatis terisi mengikuti pilihan itu (mis. "2 kali cicilan"), keduanya tetap bisa diedit manual sesudahnya. Peringatan nominal berlebih juga ikut menyesuaikan jumlah kali yang dipilih',
+      'Tarif SPP & Biaya: form "Tambah Tarif" yang dulu selalu tampil penuh di bawah tabel sekarang jadi jendela (modal) yang dibuka lewat tombol "+ Tambah Tarif"',
+      'Riwayat Pembayaran: khusus akun Admin, sekarang ada tombol Edit (✏️) dan Hapus (🗑️) di kolom Aksi untuk membetulkan atau membatalkan catatan pembayaran yang salah input -- keduanya perlu konfirmasi password dulu, dan sisa tagihan siswa otomatis terhitung ulang begitu tersimpan/terhapus. Akun selain Admin hanya bisa lihat & cetak Kwitansi seperti biasa',
+    ],
+  },
+  {
     versi: '1.31.17',
     tanggal: '2026-09-17',
     poin: [

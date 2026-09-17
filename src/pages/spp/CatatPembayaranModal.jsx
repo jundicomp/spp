@@ -37,6 +37,10 @@ export default function CatatPembayaranModal({ onClose }) {
   const [akunPenerima, setAkunPenerima] = useState(SARAN_AKUN_PER_METODE[METODE_BAYAR_OPTIONS[0]] || 'Kas');
   // Wajib diisi utk pembayaran DI LUAR SPP (refType !== 'SPP') -- lihat submitPembayaran.
   const [keterangan, setKeterangan] = useState('');
+  // Cuma dipakai kalau tagihan yg dipilih punya Nilai Cicilan (dari Tarif, lihat
+  // pilihTagihan) -- pilih mau bayar berapa KALI cicilan sekaligus (1x, 2x, dst).
+  // Nominal & Keterangan otomatis mengikuti pilihan ini (lihat handleGantiJumlahCicilan).
+  const [jumlahCicilan, setJumlahCicilan] = useState(1);
   const [saving, setSaving] = useState(false);
   const [phase, setPhase] = useState(null); // null | 'saving' | 'done'
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
@@ -95,6 +99,7 @@ export default function CatatPembayaranModal({ onClose }) {
     setSelectedTagihanId(null);
     setNominal('');
     setKeterangan('');
+    setJumlahCicilan(1);
     setTanggalPerBaris({});
   }
 
@@ -104,6 +109,7 @@ export default function CatatPembayaranModal({ onClose }) {
     setSelectedTagihanId(null);
     setNominal('');
     setKeterangan('');
+    setJumlahCicilan(1);
     setTanggalPerBaris({});
     setTimeout(() => inputRef.current?.focus(), 0);
   }
@@ -111,13 +117,24 @@ export default function CatatPembayaranModal({ onClose }) {
   function pilihTagihan(t, tanggal) {
     setSelectedTagihanId(t.id);
     // Default nominal: kalau tagihan ini punya Nilai Cicilan (diatur di Tarif), pakai
-    // itu (dibatasi maksimal sisa tagihan) -- bukan langsung sisa penuh. Kalau tidak
-    // ada cicilan diatur (0), perilaku lama tetap sama: default ke sisa penuh.
+    // itu utk 1x cicilan (dibatasi maksimal sisa tagihan) -- bukan langsung sisa penuh.
+    // Kalau tidak ada cicilan diatur (0), perilaku lama tetap sama: default ke sisa penuh.
     const cicilan = Number(t.cicilan) || 0;
     const defaultNominal = cicilan > 0 ? Math.min(cicilan, t.sisa) : t.sisa;
     setNominal(String(defaultNominal));
-    setKeterangan('');
+    setKeterangan(cicilan > 0 ? '1 kali cicilan' : '');
+    setJumlahCicilan(1);
     setTanggalBayar(tanggal || todayWIB());
+  }
+
+  // Dipanggil saat admin ganti pilihan "Jumlah Kali Cicilan" -- Nominal & Keterangan
+  // langsung mengikuti pilihan ini (ditulis ulang otomatis), tapi keduanya tetap
+  // field biasa yg bisa diedit manual lagi sesudahnya kalau perlu.
+  function handleGantiJumlahCicilan(t, n) {
+    const cicilan = Number(t.cicilan) || 0;
+    setJumlahCicilan(n);
+    setNominal(String(Math.min(cicilan * n, t.sisa)));
+    setKeterangan(`${n} kali cicilan`);
   }
 
   function handleGantiMetode(m) {
@@ -172,6 +189,7 @@ export default function CatatPembayaranModal({ onClose }) {
       setSelectedTagihanId(null);
       setNominal('');
       setKeterangan('');
+      setJumlahCicilan(1);
       refreshPembayaran();
     } catch (err) {
       toast(err.message, 'error');
@@ -306,16 +324,27 @@ export default function CatatPembayaranModal({ onClose }) {
                               </div>
                             )}
                             <div className="form-grid">
+                              {Number(t.cicilan) > 0 && (
+                                <div className="field">
+                                  <label>Jumlah Kali Cicilan</label>
+                                  <select value={jumlahCicilan} onChange={e => handleGantiJumlahCicilan(t, Number(e.target.value))}>
+                                    {Array.from({ length: Math.max(1, Math.ceil(t.sisa / Number(t.cicilan))) }, (_, i) => i + 1).map(n => (
+                                      <option key={n} value={n}>{n}x — {formatRupiah(Math.min(Number(t.cicilan) * n, t.sisa))}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
                               <div className="field">
                                 <label>Nominal Dibayar (Rp)</label>
                                 <input type="number" value={nominal} onChange={e => setNominal(e.target.value)} max={t.sisa} />
                                 {(() => {
                                   const cicilan = Number(t.cicilan) || 0;
                                   const nomNow = Number(nominal) || 0;
-                                  if (cicilan > 0 && nomNow > cicilan) {
+                                  const batasWajar = cicilan * (jumlahCicilan || 1);
+                                  if (cicilan > 0 && nomNow > batasWajar) {
                                     return (
                                       <p style={{ fontSize: 11.5, color: '#8a5b00', background: 'var(--gold-soft)', borderRadius: 6, padding: '6px 9px', margin: '6px 0 0' }}>
-                                        ⚠️ Melebihi nilai cicilan standar ({formatRupiah(cicilan)}). Pastikan ini disengaja (mis. bayar beberapa cicilan sekaligus).
+                                        ⚠️ Melebihi nilai {jumlahCicilan}x cicilan standar ({formatRupiah(batasWajar)}). Pastikan ini disengaja (mis. bayar beberapa cicilan sekaligus), atau sesuaikan pilihan "Jumlah Kali Cicilan" di atas.
                                       </p>
                                     );
                                   }

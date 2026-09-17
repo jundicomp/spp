@@ -1,7 +1,13 @@
 import { useId, useMemo, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import KwitansiModal from '../keuangan/KwitansiModal';
+import GenericEditModal from '../../components/sheetCrud/GenericEditModal';
+import PasswordConfirmModal from '../../components/common/PasswordConfirmModal';
 import { useAppData } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { buildPembayaranEditFields } from '../../db/pembayaranFields';
+import { akunAktivaOptions } from '../../db/akunBukuBesarFields';
+import { updatePembayaranInSheet, deletePembayaranFromSheet, addLogEntry } from '../../services/googleSheets';
 import { formatRupiah, formatTanggalTampil, normalisasiTanggalUntukInput, todayWIB } from '../../db/helpers';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
 
@@ -23,14 +29,52 @@ function labelRentangTanggal(dari, sampai) {
 // lagi terikat 1 siswa -- selalu tampilkan SEMUA transaksi (bisa difilter
 // tanggal), supaya juga sekaligus menggantikan tabel "Kemarin" yang dulu ada
 // di widget Pembayaran Hari Ini (isinya hampir sama, tidak perlu 2 tabel).
+// Diedit/dihapus HANYA lewat objek "raw row" bergaya kolom Sheet asli (No, Nominal,
+// 'Tanggal Bayar', dst) -- `pembayaran` di context sudah dinormalisasi camelCase
+// (lihat normalizeSheetPembayaran), jadi harus dibentuk ulang dulu supaya cocok dgn
+// GenericEditModal (yg genuinely bekerja di atas format Sheet mentah).
+function keRawRow(p) {
+  return {
+    No: p.no, RefType: p.refType, RefNo: p.refNo, NISN: p.nisn, 'Nama Siswa': p.namaSiswa,
+    Jenis: p.jenis, Nominal: p.nominal, 'Tanggal Bayar': p.tanggalBayar, Metode: p.metode,
+    Keterangan: p.keterangan, Akun: p.akun,
+  };
+}
+
 export default function RiwayatPembayaranCard() {
-  const { pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, profilSekolah } = useAppData();
+  const { pembayaran, pembayaranLoading, pembayaranLoaded, refreshPembayaran, profilSekolah, akun, toast } = useAppData();
+  const { currentUser } = useAuth();
+  // MASTER_ADMIN ikut ke-cover krn role-nya juga literal 'Admin' (lihat masterAdmin.js).
+  const isAdmin = currentUser?.role === 'Admin';
   const [lihatKwitansi, setLihatKwitansi] = useState(null);
+  const [editRow, setEditRow] = useState(null);
+  const [deleteRow, setDeleteRow] = useState(null);
   const [dariTanggal, setDariTanggal] = useState('');
   const [sampaiTanggal, setSampaiTanggal] = useState('');
   const [printingAll, setPrintingAll] = useState(false);
   const printId = 'print-' + useId().replace(/:/g, '');
   const namaSekolah = profilSekolah?.nama || 'MI Ikhlasiyah';
+  const akunOptions = useMemo(() => akunAktivaOptions(akun), [akun]);
+  const pembayaranEditFields = useMemo(() => buildPembayaranEditFields(akunOptions), [akunOptions]);
+
+  async function doDeletePembayaran() {
+    try {
+      await deletePembayaranFromSheet(deleteRow.no);
+      await addLogEntry({
+        username: currentUser.username,
+        namaUser: currentUser.nama,
+        aksi: 'Hapus Data',
+        modul: 'Pembayaran & Invoice',
+        detail: `Menghapus pembayaran "${deleteRow.jenis}" - ${deleteRow.nisn} ${deleteRow.namaSiswa} - ${formatRupiah(deleteRow.nominal)}`,
+      });
+      toast('Data pembayaran berhasil dihapus.');
+      setDeleteRow(null);
+      refreshPembayaran();
+    } catch (err) {
+      toast(err.message, 'error');
+      throw err;
+    }
+  }
 
   const semuaRiwayat = useMemo(() => pembayaran.slice().reverse(), [pembayaran]);
 
@@ -124,7 +168,15 @@ export default function RiwayatPembayaranCard() {
                 { key: 'jenis', label: 'Jenis', accessor: r => r.jenis },
                 { key: 'nominal', label: 'Nominal', accessor: r => r.nominal, render: r => formatRupiah(r.nominal), sortable: true },
                 { key: 'metode', label: 'Metode', accessor: r => r.metode },
-                { key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => <div className="no-print"><button className="btn btn-sm" onClick={() => setLihatKwitansi(r)}>🧾 Kwitansi</button></div> },
+                {
+                  key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => (
+                    <div className="no-print" style={{ display: 'flex', gap: 4 }}>
+                      <button className="btn btn-sm" onClick={() => setLihatKwitansi(r)}>🧾 Kwitansi</button>
+                      {isAdmin && <button className="btn-icon" title="Edit Pembayaran" onClick={() => setEditRow(r)}>✏️</button>}
+                      {isAdmin && <button className="btn-icon danger" title="Hapus Pembayaran" onClick={() => setDeleteRow(r)}>🗑️</button>}
+                    </div>
+                  ),
+                },
               ]}
               data={riwayatTerfilter}
               searchFn={(r, t) => (r.namaSiswa || '').toLowerCase().includes(t) || (r.jenis || '').toLowerCase().includes(t) || (r.metode || '').toLowerCase().includes(t)}
@@ -145,6 +197,28 @@ export default function RiwayatPembayaranCard() {
       </div>
 
       {lihatKwitansi && <KwitansiModal pembayaran={lihatKwitansi} onClose={() => setLihatKwitansi(null)} />}
+
+      {editRow && (
+        <GenericEditModal
+          row={keRawRow(editRow)}
+          fields={pembayaranEditFields}
+          updateFn={updatePembayaranInSheet}
+          moduleLabel="Pembayaran & Invoice"
+          labelKey="Jenis"
+          onClose={() => setEditRow(null)}
+          onSaved={refreshPembayaran}
+        />
+      )}
+
+      {deleteRow && (
+        <PasswordConfirmModal
+          title="Konfirmasi Hapus Pembayaran"
+          message={`Anda akan menghapus catatan pembayaran "${deleteRow.jenis}" (${formatRupiah(deleteRow.nominal)}) milik ${deleteRow.namaSiswa}. Tindakan ini tidak bisa dibatalkan -- sisa tagihan siswa ini akan otomatis kembali bertambah.`}
+          danger
+          onConfirm={doDeletePembayaran}
+          onClose={() => setDeleteRow(null)}
+        />
+      )}
     </div>
   );
 }

@@ -12,7 +12,12 @@ export default function GenericEditModal({ row, fields, updateFn, moduleLabel, l
   const { toast } = useAppData();
   const { currentUser } = useAuth();
   const [form, setForm] = useState(() => {
-    const initial = {};
+    // Baseline: SEMUA kolom asli `row`, termasuk yg TIDAK ikut di `fields` (sengaja
+    // tidak bisa diedit, mis. NISN/Nama Siswa di Tagihan Lain & Pembayaran) -- supaya
+    // `labelKey` tetap bisa dipakai utk pesan konfirmasi/log walau field itu sendiri
+    // bukan salah satu yg bisa diedit. Field yg genuinely ada di `fields` lalu
+    // menimpanya di bawah (dgn normalisasi tanggal kalau perlu) spt sebelumnya.
+    const initial = { ...row };
     fields.forEach(f => {
       const raw = row[f.key] ?? '';
       initial[f.key] = f.type === 'date' ? normalisasiTanggalUntukInput(raw) : raw;

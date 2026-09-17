@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { bulkAddToSheet, addLogEntry } from '../../services/googleSheets';
+import { bulkAddToSheet, addLogEntry, fetchTagihanLainFromSheet, updateTagihanLainInSheet, deleteTagihanLainFromSheet } from '../../services/googleSheets';
 import { formatRupiah, todayWIB, parseTanggalFleksibel } from '../../db/helpers';
+import { TAGIHAN_LAIN_HEADERS, TAGIHAN_LAIN_EDIT_FIELDS } from '../../db/tagihanHelpers';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import ProgressModal from '../../components/common/ProgressModal';
+import GenericStoredTable from '../../components/sheetCrud/GenericStoredTable';
 
 const UKURAN_KELOMPOK = 15;
 const TIPE_BISA_TERBITKAN = ['Sekali Masuk', 'Per Tahun'];
@@ -151,6 +153,28 @@ export default function PenerbitanLainTab() {
       </div>
 
       {progress && <ProgressModal title={progress.label} current={progress.current} total={progress.total} />}
+
+      {/* Sejak v1.31.19: tabel di atas cuma ringkasan per Tarif (sudah/belum tertagih)
+          -- tidak bisa membetulkan tagihan yg SUDAH terbit ke siswa tertentu (mis.
+          salah nominal, atau nilai Cicilan yg diubah di Tarif tidak ikut menyalin ke
+          tagihan yg sudah terlanjur terbit sebelumnya). Tabel ini melengkapi itu --
+          daftar tagihan INDIVIDUAL per siswa, bisa diedit/dihapus satu-satu. */}
+      <div style={{ marginTop: 18 }}>
+        <GenericStoredTable
+          title="Daftar Tagihan Lain (Semua Siswa)"
+          subtitle="Tagihan individual yang sudah terbit -- betulkan di sini kalau ada yang salah (mis. nominal atau nilai cicilan), tanpa perlu menerbitkan ulang."
+          headers={TAGIHAN_LAIN_HEADERS}
+          fields={TAGIHAN_LAIN_EDIT_FIELDS}
+          fetchFn={fetchTagihanLainFromSheet}
+          updateFn={updateTagihanLainInSheet}
+          deleteFn={deleteTagihanLainFromSheet}
+          moduleLabel="Tagihan Lain"
+          labelKey="Nama"
+          searchFn={(r, t) => (r['NISN'] || '').toLowerCase().includes(t) || (r['Nama Siswa'] || '').toLowerCase().includes(t) || (r['Nama'] || '').toLowerCase().includes(t) || (r['Tahun Ajaran'] || '').toLowerCase().includes(t)}
+          onChanged={refreshTagihanLain}
+          target="keuangan"
+        />
+      </div>
     </>
   );
 }

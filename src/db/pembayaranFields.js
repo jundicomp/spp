@@ -17,6 +17,22 @@ export const SARAN_AKUN_PER_METODE = {
   'Virtual Account': 'Kas',
 };
 
+// Field yg BOLEH diedit admin lewat GenericEditModal di tabel Riwayat Pembayaran --
+// SENGAJA tidak termasuk RefType/RefNo/NISN/Nama Siswa/Jenis (identitas tagihan &
+// siswa yg dibayar) -- mengubahnya bisa membuat catatan pembayaran "menempel" ke
+// tagihan/siswa yg salah. Kolom yg tidak disebut di sini tetap aman (tidak ikut
+// tertimpa kosong) krn GenericEditModal.doUpdate() selalu menggabung dgn `row` asli
+// dulu sebelum ditimpa field yg genuinely diedit.
+export function buildPembayaranEditFields(akunOptions) {
+  return [
+    { key: 'Nominal', label: 'Nominal (Rp)', type: 'number', required: true },
+    { key: 'Tanggal Bayar', label: 'Tanggal Bayar', type: 'date', required: true },
+    { key: 'Metode', label: 'Metode', type: 'select', options: METODE_BAYAR_OPTIONS, required: true },
+    { key: 'Akun', label: 'Akun Kas/Bank Penerima', type: 'select', options: akunOptions },
+    { key: 'Keterangan', label: 'Keterangan', type: 'text' },
+  ];
+}
+
 export function normalizeSheetPembayaran(row, idx) {
   return {
     id: 'PMB-' + (row['No'] ?? idx),
