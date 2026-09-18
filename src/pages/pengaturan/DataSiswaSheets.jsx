@@ -4,6 +4,7 @@ import ManualForm from './ManualForm';
 import ExcelUpload from './ExcelUpload';
 import StoredDataTable from './StoredDataTable';
 import RombelTab from './RombelTab';
+import KenaikanKelasTab from './KenaikanKelasTab';
 import RiwayatSiswaTab from './RiwayatSiswaTab';
 import PortofolioSiswaTab from './PortofolioSiswaTab';
 import NotifikasiSiswaPerluTindakLanjut from '../../components/common/NotifikasiSiswaPerluTindakLanjut';
@@ -13,7 +14,7 @@ import useTabAccess from '../../hooks/useTabAccess';
 
 export default function DataSiswaSheets() {
   const { siswa, siswaLoaded, refreshSiswa } = useAppData();
-  const { tab, setTab, bolehTab } = useTabAccess('siswa', ['tabel', 'rombel', 'riwayat', 'portofolio', 'manual', 'excel']);
+  const { tab, setTab, bolehTab } = useTabAccess('siswa', ['tabel', 'rombel', 'kenaikan', 'riwayat', 'portofolio', 'manual', 'excel']);
   const [refreshKey, setRefreshKey] = useState(0);
   const bump = () => { setRefreshKey(k => k + 1); refreshSiswa(); };
 
@@ -71,6 +72,7 @@ export default function DataSiswaSheets() {
         <div className="seg-tabs">
           {bolehTab('tabel') && <button className={`seg-tab ${tab === 'tabel' ? 'active' : ''}`} onClick={() => setTab('tabel')}>📋 DATA SISWA (TABEL)</button>}
           {bolehTab('rombel') && <button className={`seg-tab ${tab === 'rombel' ? 'active' : ''}`} onClick={() => setTab('rombel')}>🏫 ROMBEL</button>}
+          {bolehTab('kenaikan') && <button className={`seg-tab ${tab === 'kenaikan' ? 'active' : ''}`} onClick={() => setTab('kenaikan')}>🎒 KENAIKAN KELAS</button>}
           {bolehTab('riwayat') && <button className={`seg-tab ${tab === 'riwayat' ? 'active' : ''}`} onClick={() => setTab('riwayat')}>🎓 RIWAYAT SISWA</button>}
           {bolehTab('portofolio') && <button className={`seg-tab ${tab === 'portofolio' ? 'active' : ''}`} onClick={() => setTab('portofolio')}>🪪 PORTOFOLIO</button>}
           {bolehTab('manual') && <button className={`seg-tab ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>📝 TAMBAH MANUAL</button>}
@@ -85,6 +87,7 @@ export default function DataSiswaSheets() {
           )}
           {tab === 'tabel' && bolehTab('tabel') && <StoredDataTable refreshKey={refreshKey} />}
           {tab === 'rombel' && bolehTab('rombel') && <RombelTab />}
+          {tab === 'kenaikan' && bolehTab('kenaikan') && <KenaikanKelasTab />}
           {tab === 'riwayat' && bolehTab('riwayat') && <RiwayatSiswaTab />}
           {tab === 'portofolio' && bolehTab('portofolio') && <PortofolioSiswaTab />}
           {tab === 'manual' && bolehTab('manual') && <ManualForm onSaved={bump} />}

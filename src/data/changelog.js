@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.29',
+    tanggal: '2026-09-18',
+    poin: [
+      'FITUR BARU -- Data Siswa: tab "🎒 Kenaikan Kelas" utk memproses naik kelas/tinggal kelas/lulus/pindah sekolah/berhenti utk banyak siswa sekaligus di awal tahun ajaran baru. Setiap siswa yang diproses otomatis tercatat rapi sbg riwayat -- Kelas/Tingkat, Rombel, Wali Kelas, dan Status setiap tahun ajaran TIDAK PERNAH ditimpa/dihapus, cuma ditambah terus setiap tahun (data siswa jadi "data induk" yang aman, riwayat kelas/rombelnya yang "bergerak" dicatat terpisah)',
+      'FITUR BARU -- Data Siswa: tab "🎓 Riwayat Siswa" dirombak total -- sekarang bisa cari SIAPA SAJA siswa (aktif maupun yang sudah lulus/pindah/berhenti) dan langsung lihat perjalanan lengkapnya dari Kelas 1 sampai sekarang/tamat, lengkap dgn Kelas, Rombel, Wali Kelas, dan Status tiap tahun ajaran. Daftar siswa Lulus/Pindah/Berhenti yang sudah ada sebelumnya tetap ada di bagian bawah',
+      'Perbaikan bug: Kartu SPP & Kartu Biaya Lain utk tahun ajaran YANG SUDAH LEWAT sekarang menampilkan Kelas & Rombel siswa PADA TAHUN ITU (kalau sudah pernah diproses lewat Kenaikan Kelas), BUKAN Kelas/Rombel siswa SAAT INI -- sebelumnya siswa yang sudah naik kelas akan salah menampilkan kelas barunya di kartu SPP tahun-tahun sebelumnya',
+    ],
+  },
+  {
     versi: '1.31.28',
     tanggal: '2026-09-18',
     poin: [

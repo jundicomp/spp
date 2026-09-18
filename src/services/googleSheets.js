@@ -203,6 +203,14 @@ export async function setActiveTahunAjaranOnSheet(no) {
   return json;
 }
 
+// ---- Riwayat Akademik & Status (histori Kelas/Rombel/Status per Tahun Ajaran) ----
+export const fetchRiwayatAkademikFromSheet = () => fetchFromSheet('riwayatAkademik');
+export const addRiwayatAkademikToSheet = (row) => addToSheet('riwayatAkademik', row);
+export const bulkAddRiwayatAkademikToSheet = (rows) => bulkAddToSheet('riwayatAkademik', rows);
+export const updateRiwayatAkademikInSheet = (row) => updateInSheet('riwayatAkademik', row);
+export const bulkUpdateRiwayatAkademikInSheet = (updates) => bulkUpdateInSheet('riwayatAkademik', updates);
+export const deleteRiwayatAkademikFromSheet = (no) => deleteFromSheet('riwayatAkademik', no);
+
 // ---- Log aktivitas ----
 export const fetchLogFromSheet = () => fetchFromSheet('log');
 

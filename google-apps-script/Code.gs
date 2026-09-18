@@ -84,6 +84,18 @@ const SHEETS = {
     name: 'Tahun Ajaran',
     headers: ['No', 'Label', 'Mulai', 'Selesai', 'Aktif'],
   },
+  riwayatAkademik: {
+    name: 'Riwayat Akademik',
+    // Riwayat "data bergerak" siswa -- SATU baris per (NISN + Tahun Ajaran), dibuat
+    // lewat fitur Proses Kenaikan Kelas Tahunan (menu Data Siswa > Kenaikan Kelas).
+    // Baris TIDAK ditimpa isinya kecuali utk mengisi "Status" akhir tahun (Naik Kelas/
+    // Tinggal Kelas/Lulus/Pindah Sekolah/Berhenti) pada baris tahun yg sedang diproses --
+    // baris tahun2 SEBELUMNYA dibiarkan permanen apa adanya. Sheet "Data Siswa" TETAP
+    // py Kelas/Tingkat, Rombel, Status -- itu cuma nilai CACHE "kondisi saat ini",
+    // disalin dari baris riwayat paling baru tiap kali diproses. Sheet INI-lah sumber
+    // kebenaran riwayat lengkap siswa dari Kelas 1 sampai tamat/keluar.
+    headers: ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran', 'Kelas/Tingkat', 'Rombel', 'Wali Kelas', 'Status', 'Tanggal', 'Keterangan'],
+  },
   users: {
     name: 'Users',
     // "Status" ditaruh di AKHIR (kompatibel mundur) -- baris lama yg belum punya nilai

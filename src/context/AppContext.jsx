@@ -13,11 +13,12 @@ import { normalizeSheetPengeluaran } from '../db/pengeluaranFields';
 import { normalizeSheetPemasukanLain } from '../db/pemasukanLainFields';
 import { normalizeSheetAkun } from '../db/akunBukuBesarFields';
 import { normalizeSheetBeasiswaKategori, normalizeSheetBeasiswaSiswa } from '../db/beasiswaFields';
+import { normalizeSheetRiwayatAkademik } from '../db/riwayatAkademikFields';
 import {
   fetchSiswaFromSheet, fetchKelasFromSheet, fetchGuruFromSheet,
   fetchTahunAjaranFromSheet, fetchProfilFromSheet, fetchTarifFromSheet, fetchAsetFromSheet,
   fetchTagihanSppFromSheet, fetchTagihanLainFromSheet, fetchPembayaranFromSheet, fetchPengeluaranFromSheet, fetchPemasukanLainFromSheet, fetchAkunFromSheet,
-  fetchBeasiswaKategoriFromSheet, fetchBeasiswaSiswaFromSheet,
+  fetchBeasiswaKategoriFromSheet, fetchBeasiswaSiswaFromSheet, fetchRiwayatAkademikFromSheet,
   setActiveTahunAjaranOnSheet, isConfigured, fetchAllFromSheet,
   fetchRolesFromSheet, addRoleToSheet, deleteRoleFromSheet,
   fetchHakAksesFromSheet, saveHakAksesRole,
@@ -129,6 +130,7 @@ const HAK_AKSES_TABS = {
   siswa: [
     { id: 'tabel', label: 'Data Siswa (Tabel)' },
     { id: 'rombel', label: 'Rombel' },
+    { id: 'kenaikan', label: 'Kenaikan Kelas' },
     { id: 'riwayat', label: 'Riwayat Siswa' },
     { id: 'portofolio', label: 'Portofolio' },
     { id: 'manual', label: 'Tambah Manual' },
@@ -287,6 +289,7 @@ export function AppProvider({ children }) {
   const akunRes = useSheetResource(fetchAkunFromSheet, normalizeSheetAkun, 'keuangan', defer);
   const beasiswaKategoriRes = useSheetResource(fetchBeasiswaKategoriFromSheet, normalizeSheetBeasiswaKategori, 'keuangan', defer);
   const beasiswaSiswaRes = useSheetResource(fetchBeasiswaSiswaFromSheet, normalizeSheetBeasiswaSiswa, 'keuangan', defer);
+  const riwayatAkademikRes = useSheetResource(fetchRiwayatAkademikFromSheet, normalizeSheetRiwayatAkademik, 'master', defer);
 
   // ---- Profil Sekolah: 1 rekaman tunggal, bukan daftar ----
   // TIDAK auto-fetch sendiri saat mount lagi (dulu +1 request terpisah) -- diisi
@@ -333,11 +336,13 @@ export function AppProvider({ children }) {
       guruRes.setFromBatch(semua.guru || []);
       asetRes.setFromBatch(semua.aset || []);
       tahunAjaranRes.setFromBatch(semua.tahunAjaran || []);
+      riwayatAkademikRes.setFromBatch(semua.riwayatAkademik || []);
       isiProfilDariRows(semua.profil || []);
       terapkanHakAksesJikaMasihTerbaru(tiketHakAkses, semua.roles || [], semua.hakAkses || []);
     } catch (err) {
       if (!withFallback) return; // polling berkala: diam saja, coba lagi siklus berikutnya
       siswaRes.refresh(); kelasRes.refresh(); guruRes.refresh(); asetRes.refresh(); tahunAjaranRes.refresh();
+      riwayatAkademikRes.refresh();
       refreshProfil();
       muatRolesDanHakAkses();
     }
@@ -461,6 +466,7 @@ export function AppProvider({ children }) {
     akun: akunRes.data, akunLoading: akunRes.loading, akunLoaded: akunRes.loaded, refreshAkun: akunRes.refresh,
     beasiswaKategori: beasiswaKategoriRes.data, beasiswaKategoriLoading: beasiswaKategoriRes.loading, beasiswaKategoriLoaded: beasiswaKategoriRes.loaded, refreshBeasiswaKategori: beasiswaKategoriRes.refresh,
     beasiswaSiswa: beasiswaSiswaRes.data, beasiswaSiswaLoading: beasiswaSiswaRes.loading, beasiswaSiswaLoaded: beasiswaSiswaRes.loaded, refreshBeasiswaSiswa: beasiswaSiswaRes.refresh,
+    riwayatAkademik: riwayatAkademikRes.data, riwayatAkademikLoading: riwayatAkademikRes.loading, riwayatAkademikLoaded: riwayatAkademikRes.loaded, refreshRiwayatAkademik: riwayatAkademikRes.refresh,
     allTagihan, tagihanTerbayar,
     profilSekolah, profilLoading, profilExists, refreshProfil,
     permissions: permissionsUntukTampil, terapkanPerubahanHakAkses, addRole, muatRolesDanHakAkses,

@@ -6,6 +6,7 @@ import SuggestionDropdown from '../../components/common/SuggestionDropdown';
 import { shareCardAsImage } from '../../utils/shareCardImage';
 import { bulanTahunAjaran } from '../../db/laporanHelpers';
 import { nominalEfektifTagihan } from '../../db/beasiswaFields';
+import { kelasRombelPadaTahun } from '../../db/riwayatAkademikFields';
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -208,7 +209,7 @@ function TahunSection({ namaSekolah, namaSiswa, kelasLabel, rombelLabel, tahunAj
 // riwayat -> langsung bayar) tidak perlu pindah-pindah menu. Isi/logikanya TIDAK
 // berubah sama sekali, cuma <Page> pembungkusnya dilepas krn sekarang jadi tab.
 export default function DataSiswaTab() {
-  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas, beasiswaSiswa, beasiswaKategori } = useAppData();
+  const { siswa, siswaLoading, siswaError, siswaLoaded, allTagihan, tagihanTerbayar, tagihanSppLoaded, tagihanLainLoaded, profilSekolah, kelas, beasiswaSiswa, beasiswaKategori, riwayatAkademik } = useAppData();
   const [term, setTerm] = useState('');
   const inputRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -251,17 +252,9 @@ export default function DataSiswaTab() {
   }, [term, siswa, filterKelas, filterRombel, kelas]);
 
   const selected = siswa.find(s => s.id === selectedId);
-  // Riwayat singkat: dulu label Rombel di Kartu ditebak dari daftar Kelas (`kelas.find(k =>
-  // k.tingkat === ...)`), yg keliru kalau 1 Tingkat py LEBIH DARI SATU Rombel -- selalu
-  // ambil Rombel PERTAMA yg ketemu, TIDAK PEDULI siswanya beneran di Rombel apa (v1.31.26
-  // memperbaiki ini dgn ikut cocokkan Rombel siswanya). TAPI itu masih py fallback ke
-  // tebakan lama kalau field Rombel siswa KOSONG (blm ditempatkan) -- diam2 "meminjam" nama
-  // Rombel siswa lain, seolah itu Rombel resminya. Sejak v1.31.27: sudah tidak menebak dari
-  // `kelas` sama sekali -- langsung pakai field Rombel siswa itu sendiri (s.rombel) apa
-  // adanya. Kalau memang belum diisi (siswa sudah py Kelas/Tingkat tapi belum ditempatkan
-  // ke Rombel spesifik lewat menu Pengaturan > Data Kelas & Rombel), tampilkan pesan JUJUR
-  // "Rombel belum ditentukan" -- BUKAN nama Rombel siswa lain.
-  const rombelLabel = selected ? (selected.rombel || 'Rombel belum ditentukan') : '-';
+  // Catatan histori (v1.31.27): label Rombel di Kartu SPP dulu ditebak/mengambil
+  // kondisi siswa SAAT INI apa adanya (lihat kelasRombelPadaTahun di
+  // riwayatAkademikFields.js utk versi terbaru yg sudah benar per-tahun-ajaran).
   const beasiswaSelected = selected ? beasiswaSiswa.find(b => b.nisn === selected.nisn) : null;
 
   const riwayatSiswa = useMemo(() => {
@@ -392,14 +385,24 @@ export default function DataSiswaTab() {
             </div></div>
           )}
 
-          {keuanganSiap && perTahunAjaran.map(([ta, items], idx) => (
-            <TahunSection
-              key={ta} namaSekolah={profilSekolah?.nama || 'MI Ikhlasiyah'} namaSiswa={selected.nama}
-              kelasLabel={selected.kelasTingkat ? `Kelas ${selected.kelasTingkat}` : '-'}
-              rombelLabel={rombelLabel}
-              tahunAjaran={ta} items={items} defaultOpen={idx === 0}
-            />
-          ))}
+          {keuanganSiap && perTahunAjaran.map(([ta, items], idx) => {
+            // PENTING: kelas/rombel yg ditampilkan HARUS kelas/rombel siswa PADA tahun
+            // ajaran itu (mis. Kelas 5 utk kartu SPP tahun lalu), BUKAN kelas/rombel
+            // siswa SAAT INI (selected.kelasTingkat/rombel) -- kalau siswa sudah naik
+            // ke Kelas 6, kartu SPP tahun lalu dulunya SALAH ikut menampilkan "Kelas 6".
+            // Diambil dari Riwayat Akademik kalau tahun itu sudah tercatat; kalau belum
+            // (data lama sblm fitur Riwayat Akademik ada), jatuhkan ke kondisi siswa
+            // saat ini apa adanya (perilaku lama, drpd kosong sama sekali).
+            const kondisiTahunItu = kelasRombelPadaTahun(selected.nisn, ta, riwayatAkademik, { kelasTingkat: selected.kelasTingkat, rombel: selected.rombel });
+            return (
+              <TahunSection
+                key={ta} namaSekolah={profilSekolah?.nama || 'MI Ikhlasiyah'} namaSiswa={selected.nama}
+                kelasLabel={kondisiTahunItu.kelasTingkat ? `Kelas ${kondisiTahunItu.kelasTingkat}` : '-'}
+                rombelLabel={kondisiTahunItu.rombel || 'Rombel belum ditentukan'}
+                tahunAjaran={ta} items={items} defaultOpen={idx === 0}
+              />
+            );
+          })}
         </>
       )}
 
