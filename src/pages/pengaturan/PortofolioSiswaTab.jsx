@@ -29,7 +29,7 @@ function StatChip({ value, label, variant }) {
 }
 
 export default function PortofolioSiswaTab() {
-  const { siswa, allTagihan, tagihanTerbayar, beasiswaSiswa } = useAppData();
+  const { siswa, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori } = useAppData();
   const [cari, setCari] = useState('');
   const [dipilih, setDipilih] = useState(null);
   const beasiswaDipilih = dipilih ? beasiswaSiswa.find(b => b.nisn === dipilih.nisn) : null;

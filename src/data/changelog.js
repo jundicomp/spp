@@ -4,6 +4,17 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.30',
+    tanggal: '2026-09-18',
+    poin: [
+      'Riwayat Pembaruan (Changelog) sekarang ditampilkan 10 versi per halaman, dilengkapi tombol "Sebelumnya" / "Berikutnya" -- sebelumnya semua riwayat digabung dalam 1 halaman panjang yang harus di-scroll terus',
+      'Notifikasi "⚠️ Siswa Perlu Tindak Lanjut" di Data Siswa sekarang cuma menampilkan 5 baris pertama supaya kartunya tidak memanjang -- sisanya bisa dilihat lewat tombol "Lihat Semua" yang membuka daftar lengkapnya dalam jendela terpisah',
+      'Perbaikan bug: tab "🪪 Portofolio" di Data Siswa blank/kosong begitu 1 siswa dipilih -- ada kesalahan kode yang bikin halaman gagal menghitung info keuangan siswa (kini sudah benar, profil siswa tampil lengkap lagi)',
+      'Perbaikan: tab "🎓 Riwayat Siswa" sekarang menampilkan pesan "tidak ditemukan" kalau nama/NISN yang dicari tidak cocok dengan siswa manapun -- sebelumnya kotak pencarian terlihat diam saja tanpa keterangan apa pun, jadi tampak seperti error',
+      'Data Siswa: form "Tambah Siswa" dan "Upload Excel" bukan lagi tab terpisah -- sekarang jadi tombol "+ Tambah Siswa" dan "📊 Upload Excel" langsung di tab Data Siswa (Tabel), dan form-nya terbuka sbg jendela (modal) supaya alurnya lebih ringkas',
+    ],
+  },
+  {
     versi: '1.31.29',
     tanggal: '2026-09-18',
     poin: [

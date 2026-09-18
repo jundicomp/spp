@@ -135,6 +135,15 @@ export default function RiwayatSiswaTab() {
                 </div>
               ))}
             </SuggestionDropdown>
+            {/* Sejak v1.31.30: dulu kalau tidak ada siswa yg cocok, dropdown ini
+                diam saja (tidak render apa-apa) -- terlihat spt fitur pencarian
+                "tidak berfungsi". Sekarang kasih pesan eksplisit, sama spt di
+                tab Portofolio Siswa. */}
+            <SuggestionDropdown anchorRef={inputRef} visible={!!term.trim() && suggestions.length === 0 && !selected}>
+              <div style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--muted)' }}>
+                Tidak ditemukan siswa dengan nama atau NISN mengandung "{term.trim()}". Coba kata kunci lain, atau cek ejaannya di menu Data Siswa (Tabel).
+              </div>
+            </SuggestionDropdown>
           </div>
 
           {selected && (

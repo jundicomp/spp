@@ -133,8 +133,10 @@ const HAK_AKSES_TABS = {
     { id: 'kenaikan', label: 'Kenaikan Kelas' },
     { id: 'riwayat', label: 'Riwayat Siswa' },
     { id: 'portofolio', label: 'Portofolio' },
-    { id: 'manual', label: 'Tambah Manual' },
-    { id: 'excel', label: 'Upload Excel' },
+    // Sejak v1.31.30: bukan tab terpisah lagi, tapi tetap dipakai sbg izin utk
+    // tombol "+ Tambah Siswa" / "📊 Upload Excel" di tab Data Siswa (Tabel).
+    { id: 'manual', label: 'Tombol Tambah Siswa' },
+    { id: 'excel', label: 'Tombol Upload Excel' },
   ],
 };
 

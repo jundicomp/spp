@@ -1,10 +1,15 @@
 import { useState } from 'react';
+import Modal from '../../components/common/Modal';
 import { SISWA_FIELDS, emptySiswaRow } from '../../db/siswaFields';
 import { addSiswaToSheet, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import SaveProgressModal from '../../components/common/SaveProgressModal';
 
-export default function ManualForm({ onSaved }) {
+// Sejak v1.31.29+perbaikan: dulu tab tersendiri di menu Data Siswa, sekarang jadi
+// MODAL yang dibuka lewat tombol "+ Tambah Siswa" di tab Data Siswa (Tabel) --
+// supaya semua aksi terkait tabel siswa (tambah/edit/hapus/upload) terkumpul di 1
+// tempat, bukan tersebar sbg tab terpisah-pisah.
+export default function ManualForm({ onClose, onSaved }) {
   const { toast } = useAppData();
   const [form, setForm] = useState(emptySiswaRow());
   const [saving, setSaving] = useState(false);
@@ -25,8 +30,8 @@ export default function ManualForm({ onSaved }) {
       await addSiswaToSheet(form);
       setPhase('done');
       await new Promise(r => setTimeout(r, 1100));
-      setForm(emptySiswaRow());
       onSaved && onSaved();
+      onClose();
     } catch (err) {
       toast(err.message, 'error');
     } finally {
@@ -36,12 +41,21 @@ export default function ManualForm({ onSaved }) {
   }
 
   return (
-    <div className="card">
-      <div className="card-head">
-        <div><h3>Tambah Data Siswa (Manual)</h3><p>Data langsung tersimpan ke baris baru di Google Sheets.</p></div>
-      </div>
-      <form onSubmit={submit}>
-        <div className="card-body">
+    <>
+      <Modal
+        title="Tambah Data Siswa"
+        subtitle="Data langsung tersimpan ke baris baru di Google Sheets."
+        onClose={onClose}
+        wide
+        actions={
+          <>
+            <button type="button" className="btn" onClick={() => setForm(emptySiswaRow())}>Bersihkan Form</button>
+            <button type="button" className="btn" onClick={onClose}>Batal</button>
+            <button type="submit" form="form-tambah-siswa-manual" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
+          </>
+        }
+      >
+        <form id="form-tambah-siswa-manual" onSubmit={submit}>
           <div className="form-grid">
             {SISWA_FIELDS.map(f => (
               <div key={f.key} className={`field ${f.type === 'textarea' ? 'span2' : ''}`}>
@@ -59,13 +73,9 @@ export default function ManualForm({ onSaved }) {
               </div>
             ))}
           </div>
-        </div>
-        <div className="card-body" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button type="button" className="btn" onClick={() => setForm(emptySiswaRow())}>Bersihkan Form</button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
-        </div>
-      </form>
+        </form>
+      </Modal>
       {phase && <SaveProgressModal phase={phase} />}
-    </div>
+    </>
   );
 }

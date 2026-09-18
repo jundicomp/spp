@@ -8,6 +8,8 @@ import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
 import { formatTanggalAngka } from '../../db/helpers';
 import EditSiswaModal from './EditSiswaModal';
+import ManualForm from './ManualForm';
+import ExcelUpload from './ExcelUpload';
 
 const ICON_EDIT = (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -22,13 +24,19 @@ const ICON_DELETE = (
 
 export default function StoredDataTable({ refreshKey }) {
   const { toast, refreshSiswa } = useAppData();
-  const { currentUser } = useAuth();
+  const { currentUser, canAccess } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [printingAll, setPrintingAll] = useState(false);
+  // Sejak v1.31.30: form "Tambah Siswa" dan "Upload Excel" pindah ke sini sbg
+  // modal (tombol di card-head) -- dulu tab terpisah di menu Data Siswa. Izin
+  // Hak Akses lama ('siswa.manual' / 'siswa.excel') tetap dipakai utk sembunyikan
+  // tombolnya, supaya granularitas hak akses yg sudah diatur Admin tidak hilang.
+  const [showTambah, setShowTambah] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const printId = 'print-' + useId().replace(/:/g, '');
 
   const load = useCallback(async () => {
@@ -101,7 +109,9 @@ export default function StoredDataTable({ refreshKey }) {
     <div className="card">
       <div className="card-head">
         <div><h3>Data Siswa (Tabel)</h3><p>Diambil langsung dari Google Sheets — bisa diubah atau dihapus dari sini.</p></div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {canAccess('siswa', 'manual') && <button className="btn btn-sm btn-primary" onClick={() => setShowTambah(true)}>+ Tambah Siswa</button>}
+          {canAccess('siswa', 'excel') && <button className="btn btn-sm" onClick={() => setShowUpload(true)}>📊 Upload Excel</button>}
           <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, 'Data Siswa', 'Data Siswa - MI Ikhlasiyah')} disabled={rows.length === 0}>📊 Excel</button>
           <button className="btn btn-sm" onClick={handlePrint} disabled={rows.length === 0}>🖨️ PDF</button>
           <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
@@ -133,6 +143,14 @@ export default function StoredDataTable({ refreshKey }) {
           onConfirm={doDelete}
           onClose={() => setDeleteRow(null)}
         />
+      )}
+
+      {showTambah && (
+        <ManualForm onClose={() => setShowTambah(false)} onSaved={() => { load(); refreshSiswa(); }} />
+      )}
+
+      {showUpload && (
+        <ExcelUpload onClose={() => setShowUpload(false)} onSaved={() => { load(); refreshSiswa(); }} />
       )}
     </div>
   );
