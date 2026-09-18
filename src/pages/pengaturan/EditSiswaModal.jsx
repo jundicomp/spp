@@ -41,7 +41,14 @@ export default function EditSiswaModal({ row, onClose, onSaved }) {
   async function doUpdate() {
     setSaving(true);
     try {
-      await updateSiswaInSheet({ ...form, No: row['No'] });
+      // PENTING: sebar `row` (data mentah ASLI dari Sheet) DULU, baru `form` (field yg
+      // memang ada di form Edit) di atasnya -- BUKAN kirim `form` saja. Server (updateRow_
+      // di Code.gs) MENIMPA SELURUH baris pakai persis apa yg dikirim; kolom yg TIDAK ada
+      // di SISWA_FIELDS (mis. "Rombel", yg diisi lewat menu terpisah Data Kelas & Rombel)
+      // otomatis jadi KOSONG kalau tidak ikut disertakan -- artinya SETIAP kali Edit lewat
+      // modal ini disimpan, Rombel siswa itu diam-diam ke-reset/hilang. Sama seperti
+      // perbaikan pola "spread row dulu" yg sudah dipakai di PindahRombelMassal (RombelTab.jsx).
+      await updateSiswaInSheet({ ...row, ...form, No: row['No'] });
       await addLogEntry({
         username: currentUser.username,
         namaUser: currentUser.nama,

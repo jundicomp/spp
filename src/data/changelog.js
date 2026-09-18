@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.28',
+    tanggal: '2026-09-18',
+    poin: [
+      'Cek Data dan Sistem: tab baru "👯 Cek NISN Kembar" -- mendeteksi NISN yang justru TERPAKAI di lebih dari 1 siswa sekaligus (kebalikan dari tab "Cek Data NISN" yang cuma mendeteksi NISN kosong). Setiap NISN kembar ditampilkan berkelompok, lengkap dengan peringatan berapa tagihan/pembayaran yang tercatat di NISN itu, dan 3 aksi per baris: 👁️ Lihat detail lengkap, ✏️ Edit, atau 🗑️ Hapus',
+      'Perbaikan bug: mengedit data siswa lewat menu Data Siswa (Tabel) -- termasuk lewat tab "Cek NISN Kembar" yang baru -- diam-diam MENGOSONGKAN Rombel siswa itu setiap kali disimpan, karena field Rombel tidak ikut ditulis ulang saat edit. Sekarang Rombel (dan kolom lain di luar form Edit) selalu ikut dipertahankan seperti semula',
+    ],
+  },
+  {
     versi: '1.31.27',
     tanggal: '2026-09-17',
     poin: [
