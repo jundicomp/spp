@@ -300,20 +300,36 @@ function bulkUpdateRows_(sheet, headers, updates) {
   }
 }
 
+// Cari nomor baris FISIK (index sheet, 1-based) yg kolom "No"-nya cocok dgn targetNo --
+// baca kolom "No" SEKALI (1 panggilan getValues), bukan sel-per-sel dlm loop (SANGAT
+// lambat utk sheet berbaris banyak -- tiap getRange().getValue() adalah 1 panggilan API
+// tersendiri; makin banyak baris di atas, makin lama utk sampai ke baris yg dicari).
+// Pola ini SUDAH dipakai di Code-Keuangan.gs -- fungsi ini menyusulkan pola yg sama ke
+// Code.gs (Data Induk), yg SEBELUMNYA masih pakai loop sel-per-sel di updateRow_/
+// deleteRow_/setActiveTahunAjaran_. Sheet siswa yg sudah beratus-ratus baris (mis. 282
+// siswa) bikin loop lama itu perlu ratusan panggilan API cuma utk 1 update/delete --
+// gejalanya: fitur spt "Pindah Rombel Massal" (yg update BANYAK siswa berturut-turut)
+// jadi sangat lambat bahkan macet, karena tiap siswa yg dipindah mengulang scan lambat
+// yg sama dari awal.
+function cariBarisByNo_(sheet, headers, targetNoRaw) {
+  const noCol = headers.indexOf('No') + 1;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  const targetNo = String(targetNoRaw);
+  const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+  for (let i = 0; i < nilaiNo.length; i++) {
+    if (String(nilaiNo[i][0]) === targetNo) return i + 2; // +2: index 0 = baris sheet ke-2
+  }
+  return -1;
+}
+
 // Cari baris via kolom "No", timpa semua kolom lain dgn nilai baru. "No" sendiri tidak berubah.
 function updateRow_(sheet, headers, rowObj) {
-  const noCol = headers.indexOf('No') + 1;
-  const targetNo = String(rowObj['No']);
-  const lastRow = sheet.getLastRow();
-  for (let r = 2; r <= lastRow; r++) {
-    const cellVal = String(sheet.getRange(r, noCol).getValue());
-    if (cellVal === targetNo) {
-      const newRow = headers.map(h => (h === 'No' ? rowObj['No'] : (rowObj[h] !== undefined ? rowObj[h] : '')));
-      sheet.getRange(r, 1, 1, headers.length).setValues([newRow]);
-      return true;
-    }
-  }
-  return false;
+  const r = cariBarisByNo_(sheet, headers, rowObj['No']);
+  if (r === -1) return false;
+  const newRow = headers.map(h => (h === 'No' ? rowObj['No'] : (rowObj[h] !== undefined ? rowObj[h] : '')));
+  sheet.getRange(r, 1, 1, headers.length).setValues([newRow]);
+  return true;
 }
 
 // Cari baris utk Role tsb (kolom "Role"), GABUNGKAN 1 perubahan (itemId: checked) ke
@@ -350,30 +366,26 @@ function upsertHakAksesRole_(sheet, headers, role, itemId, checked) {
 // Cari baris via kolom "No", hapus barisnya. Nomor baris lain SENGAJA tidak digeser ulang
 // (No hanya perlu unik, tidak harus berurutan tanpa celah).
 function deleteRow_(sheet, headers, targetNoRaw) {
-  const noCol = headers.indexOf('No') + 1;
-  const targetNo = String(targetNoRaw);
-  const lastRow = sheet.getLastRow();
-  for (let r = 2; r <= lastRow; r++) {
-    const cellVal = String(sheet.getRange(r, noCol).getValue());
-    if (cellVal === targetNo) {
-      sheet.deleteRow(r);
-      return true;
-    }
-  }
-  return false;
+  const r = cariBarisByNo_(sheet, headers, targetNoRaw);
+  if (r === -1) return false;
+  sheet.deleteRow(r);
+  return true;
 }
 
 // Set kolom "Aktif" = TRUE utk baris dgn No=targetNo, dan FALSE utk semua baris lain.
 // Dilakukan dalam satu operasi supaya tidak pernah ada 0 atau 2 tahun ajaran aktif sekaligus.
+// Dibaca+ditulis lewat SATU panggilan getValues/setValues masing2 (bukan loop sel-per-sel
+// spt sebelumnya) -- sheet Tahun Ajaran biasanya kecil, tapi pola ini tetap dipakai
+// konsisten dgn cariBarisByNo_/bulkUpdateRows_ di atas.
 function setActiveTahunAjaran_(sheet, headers, targetNo) {
   const noCol = headers.indexOf('No') + 1;
   const aktifCol = headers.indexOf('Aktif') + 1;
   const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
   const target = String(targetNo);
-  for (let r = 2; r <= lastRow; r++) {
-    const cellVal = String(sheet.getRange(r, noCol).getValue());
-    sheet.getRange(r, aktifCol).setValue(cellVal === target ? 'TRUE' : 'FALSE');
-  }
+  const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+  const nilaiAktifBaru = nilaiNo.map(r => [String(r[0]) === target ? 'TRUE' : 'FALSE']);
+  sheet.getRange(2, aktifCol, nilaiAktifBaru.length, 1).setValues(nilaiAktifBaru);
 }
 
 function jsonResponse_(obj) {

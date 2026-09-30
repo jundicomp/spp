@@ -3,7 +3,7 @@ import DataTable from '../../components/common/DataTable';
 import { hitungUsia } from '../../db/helpers';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
 import { useAppData } from '../../context/AppContext';
-import { fetchSiswaFromSheet, updateSiswaInSheet } from '../../services/googleSheets';
+import { fetchSiswaFromSheet, bulkUpdateSiswaInSheet } from '../../services/googleSheets';
 import SaveProgressModal from '../../components/common/SaveProgressModal';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 'Semua'];
@@ -64,20 +64,32 @@ function PindahRombelMassal() {
     setPhase('saving');
     try {
       // Ambil data MENTAH terbaru langsung dari Sheet (bukan dari state ternormalisasi)
-      // supaya field lain siswa (alamat, dst) tidak ikut hilang saat ditulis ulang --
-      // updateInSheet menimpa SATU BARIS PENUH sesuai header, jadi field yg tdk
-      // disebut akan kosong kalau kita cuma kirim sebagian.
+      // hanya utk menerjemahkan NISN -> "No" baris -- lalu SEMUA siswa terpilih dikirim
+      // dalam 1 REQUEST "bulkUpdate" (patch 2 kolom saja: Kelas/Tingkat & Rombel), BUKAN
+      // 1 request update per siswa berturut-turut spt sebelumnya. Alasan: tiap request
+      // "update" biasa (updateSiswaInSheet) membuat Apps Script mencari barisnya dari
+      // awal sheet -- kalau sheet siswa sudah beratus-ratus baris, dan yg dipindah
+      // banyak siswa sekaligus, waktu totalnya menumpuk (kelihatan spt macet di
+      // "Memindahkan..." lalu akhirnya gagal/timeout tanpa pesan jelas). "bulkUpdate"
+      // membaca kolom "No" SEKALI di sisi server lalu menerapkan semua patch dlm 1
+      // eksekusi -- jauh lebih cepat & tahan gagal utk banyak siswa sekaligus.
       const rawRows = await fetchSiswaFromSheet();
-      let sukses = 0;
-      for (const nisn of daftarNisn) {
+      const updates = [];
+      const nisnTidakKetemu = [];
+      daftarNisn.forEach(nisn => {
         const raw = rawRows.find(r => String(r['NISN'] ?? '').trim() === nisn);
-        if (!raw) continue;
-        await updateSiswaInSheet({ ...raw, 'Kelas/Tingkat': rombel.tingkat, Rombel: rombel.namaKelas });
-        sukses++;
-      }
+        if (!raw) { nisnTidakKetemu.push(nisn); return; }
+        updates.push({ no: raw['No'], patch: { 'Kelas/Tingkat': rombel.tingkat, Rombel: rombel.namaKelas } });
+      });
+      const hasil = await bulkUpdateSiswaInSheet(updates);
       setPhase('done');
       await new Promise(r => setTimeout(r, 1000));
-      toast(`${sukses} siswa berhasil dipindahkan ke Kelas ${rombel.tingkat} Rombel ${rombel.namaKelas}.`);
+      const pesanGagal = (hasil.noTidakDitemukan?.length || 0) + nisnTidakKetemu.length;
+      toast(
+        `${hasil.jumlahDiupdate} siswa berhasil dipindahkan ke Kelas ${rombel.tingkat} Rombel ${rombel.namaKelas}.`
+        + (pesanGagal > 0 ? ` (${pesanGagal} siswa gagal ditemukan di Sheet, coba muat ulang data.)` : ''),
+        pesanGagal > 0 ? 'error' : undefined
+      );
       setTerpilih({});
       refreshSiswa();
     } catch (err) {

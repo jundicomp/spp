@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import LongTextCell from './LongTextCell';
 
 /**
  * DataTable generik — padanan React dari createTableController() di app vanilla.
@@ -107,7 +108,11 @@ export default function DataTable({ columns, data, searchFn, pageSize = 10, page
               <tr key={rowKey ? rowKey(row) : idx}>
                 <td>{(pageSafe - 1) * pageSizeAktif + idx + 1}</td>
                 {columns.map(col => (
-                  <td key={col.key}>{col.render ? col.render(row, (pageSafe - 1) * pageSizeAktif + idx) : (col.accessor ? col.accessor(row) : row[col.key])}</td>
+                  <td key={col.key}>
+                    {col.render
+                      ? col.render(row, (pageSafe - 1) * pageSizeAktif + idx)
+                      : <LongTextCell value={col.accessor ? col.accessor(row) : row[col.key]} label={col.label} />}
+                  </td>
                 ))}
               </tr>
             ))}

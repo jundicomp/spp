@@ -4,6 +4,22 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.32',
+    tanggal: '2026-09-30',
+    poin: [
+      'Tampilan semua tabel data (Data Siswa, Log Histori, Riwayat Siswa, Beasiswa Siswa, Laporan Rombel, Riwayat Pembayaran, dll) dirapikan -- setiap baris sekarang SELALU 1 baris saja, tidak ada lagi teks yang membuat baris jadi tinggi/berantakan karena terpotong ke beberapa baris (termasuk nama yang panjang)',
+      'Kolom yang isinya panjang (misalnya Alamat di Data Siswa, atau Detail di Log Histori) sekarang dipotong otomatis + muncul tombol "Selengkapnya" yang membuka isi lengkapnya dalam jendela terpisah -- bisa dibuka juga lewat tablet/layar sentuh, bukan cuma dengan mouse',
+    ],
+  },
+  {
+    versi: '1.31.31',
+    tanggal: '2026-09-18',
+    poin: [
+      'PERBAIKAN PENTING (bikin app lambat/macet) -- "Pindah Rombel Massal" di Data Siswa > tab Rombel: dulu tiap siswa yang dipindahkan diproses SATU PER SATU ke Google Sheets, dan tiap prosesnya harus menyisir baris data siswa dari awal sampai ketemu -- kalau data siswa sudah ratusan baris dan yang dipindahkan banyak sekaligus, halaman bisa kelihatan macet lama di "Memindahkan..." lalu akhirnya gagal tanpa pesan jelas. Sekarang SEMUA siswa terpilih diproses dalam 1 kali kirim ke Google Sheets, jauh lebih cepat dan tidak mudah macet',
+      'PERBAIKAN PERFORMA (server/Google Apps Script) -- proses ubah data 1 baris (dipakai banyak fitur: edit siswa, hapus siswa, pindah rombel, dll) dan proses set Tahun Ajaran Aktif di backend Data Induk (Code.gs) diperbaiki supaya membaca daftar nomor baris SEKALI saja, bukan menyisir baris satu-per-satu -- perbaikan yang sama sudah lebih dulu ada di backend Keuangan, sekarang menyusul di backend Data Induk juga. Efeknya: semua proses ubah/hapus data siswa jadi lebih cepat, terutama kalau jumlah siswa sudah banyak',
+    ],
+  },
+  {
     versi: '1.31.30',
     tanggal: '2026-09-18',
     poin: [
