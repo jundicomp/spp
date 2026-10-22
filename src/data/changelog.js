@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.33',
+    tanggal: '2026-10-22',
+    poin: [
+      'Perbaikan bug: tabel Jurnal Pengeluaran dan Pemasukan Lain -- kolom Tanggal yang sebelumnya menampilkan format mentah (misalnya "2026-07-19T17:00:00.000Z") sekarang tampil rapi sbg tanggal biasa (dd-mm-yyyy), baik di tabelnya maupun saat di-Export ke Excel',
+      'Jurnal Pengeluaran dan Pemasukan Lain sekarang otomatis diurutkan dari tanggal paling lama ke paling baru -- sebelumnya urutan barisnya ikut urutan data ditambahkan ke Google Sheets, bukan urutan tanggal transaksinya',
+      'Tambahan pengaman: kalau karena sebab apa pun (jaringan lambat, dobel klik simpan, dll) ada data yang kebawa dobel dari Google Sheets, sistem sekarang otomatis membuang yang duplikat sebelum ditampilkan',
+    ],
+  },
+  {
     versi: '1.31.32',
     tanggal: '2026-09-30',
     poin: [

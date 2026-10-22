@@ -6,6 +6,7 @@ import { addLogEntry, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
+import { formatTanggalTampil, normalisasiTanggalUntukInput } from '../../db/helpers';
 
 const ICON_EDIT = (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -21,7 +22,7 @@ const ICON_DELETE = (
 export default function GenericStoredTable({
   title, subtitle, headers, fields, fetchFn, updateFn, deleteFn,
   moduleLabel, labelKey, searchFn, onChanged, extraActions, refreshSignal, target = 'master',
-  columnRenderers, headExtra,
+  columnRenderers, headExtra, defaultSortKey, defaultSortDir = 'asc',
 }) {
   const { toast } = useAppData();
   const { currentUser } = useAuth();
@@ -50,7 +51,30 @@ export default function GenericStoredTable({
     if (!isConfigured(target)) return;
     setLoading(true);
     try {
-      const data = await fetchFn();
+      const dataMentah = await fetchFn();
+      // Jaring pengaman -- kalau karena sebab apa pun (jaringan lambat, dobel-klik
+      // simpan, dll) ada baris dgn "No" sama persis kebawa dobel dari Sheets, buang
+      // yg duplikat di sini. "No" semestinya unik krn berasal dari nomor baris asli
+      // di Sheet, jadi aman dipakai sbg kunci dedup.
+      const dataUnik = Array.from(new Map(dataMentah.map(r => [r['No'], r])).values());
+      // Urutan defaultnya APA ADANYA dari Sheets (urutan baris ditambahkan), KECUALI
+      // pemanggil minta diurutkan (mis. Jurnal Pengeluaran diurutkan per Tanggal) --
+      // lihat prop defaultSortKey.
+      const data = defaultSortKey
+        ? [...dataUnik].sort((a, b) => {
+            const fieldDef = fields.find(f => f.key === defaultSortKey);
+            // Field bertipe tanggal: bandingkan versi ternormalisasi (yyyy-MM-dd)
+            // supaya urutannya benar2 kronologis, bukan asal urut teks mentahnya
+            // (data tanggal dari Sheets bisa berupa ISO+jam "2026-07-19T17:00:00.000Z").
+            const av = String(a[defaultSortKey] ?? '');
+            const bv = String(b[defaultSortKey] ?? '');
+            const an = fieldDef?.type === 'date' ? normalisasiTanggalUntukInput(av) : av;
+            const bn = fieldDef?.type === 'date' ? normalisasiTanggalUntukInput(bv) : bv;
+            if (an < bn) return defaultSortDir === 'asc' ? -1 : 1;
+            if (an > bn) return defaultSortDir === 'asc' ? 1 : -1;
+            return 0;
+          })
+        : dataUnik;
       setRows(data);
       setLoaded(true);
     } catch (err) {
@@ -58,7 +82,7 @@ export default function GenericStoredTable({
     } finally {
       setLoading(false);
     }
-  }, [toast, fetchFn]);
+  }, [toast, fetchFn, defaultSortKey, defaultSortDir, fields]);
 
   useEffect(() => { load(); }, [load, refreshSignal]);
 
@@ -83,11 +107,16 @@ export default function GenericStoredTable({
   }
 
   const columns = [
-    ...headers.filter(h => h !== 'No').map(h => (
-      columnRenderers && columnRenderers[h]
-        ? { key: h, label: h, render: columnRenderers[h] }
-        : { key: h, label: h, accessor: (r) => r[h] }
-    )),
+    ...headers.filter(h => h !== 'No').map(h => {
+      if (columnRenderers && columnRenderers[h]) return { key: h, label: h, render: columnRenderers[h] };
+      // Kolom bertipe tanggal (field.type === 'date') OTOMATIS diformat dd-mm-yyyy
+      // di sini -- tanpa ini, tabel nampilin string mentah dari Sheets apa adanya
+      // (mis. "2026-07-19T17:00:00.000Z"), krn GenericStoredTable dipakai banyak
+      // halaman & sebelumnya tidak ada satu pun yg format kolom tanggalnya sendiri.
+      const fieldDef = fields.find(f => f.key === h);
+      if (fieldDef?.type === 'date') return { key: h, label: h, accessor: (r) => formatTanggalTampil(r[h]) };
+      return { key: h, label: h, accessor: (r) => r[h] };
+    }),
     {
       key: 'aksi',
       label: 'Aksi',
@@ -103,6 +132,14 @@ export default function GenericStoredTable({
   ];
 
   const exportHeaders = headers.filter(h => h !== 'No');
+  // Versi rows KHUSUS utk export Excel -- kolom tanggal diformat dulu (dd-mm-yyyy)
+  // spy file-nya juga rapi, bukan nampilin string ISO mentah dari Sheets (sebelumnya
+  // export selalu ambil rows["Tanggal"] apa adanya, lepas dari format tampilan tabel).
+  const rowsUntukExport = rows.map(r => {
+    const hasil = { ...r };
+    fields.forEach(f => { if (f.type === 'date' && hasil[f.key] !== undefined) hasil[f.key] = formatTanggalTampil(hasil[f.key]); });
+    return hasil;
+  });
 
   return (
     <div className="card">
@@ -110,7 +147,7 @@ export default function GenericStoredTable({
         <div><h3>{title}</h3><p>{subtitle}</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
           {headExtra}
-          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rows, moduleLabel, moduleLabel)} disabled={rows.length === 0}>📊 Excel</button>
+          <button className="btn btn-sm" onClick={() => exportToExcel(exportHeaders, rowsUntukExport, moduleLabel, moduleLabel)} disabled={rows.length === 0}>📊 Excel</button>
           <button className="btn btn-sm" onClick={handlePrint} disabled={rows.length === 0}>🖨️ PDF</button>
           <button className="btn btn-sm" onClick={load} disabled={loading}>{loading ? 'Memuat...' : '↻ Muat Ulang'}</button>
         </div>

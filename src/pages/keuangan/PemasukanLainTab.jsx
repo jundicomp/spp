@@ -30,6 +30,7 @@ export default function PemasukanLainTab() {
         moduleLabel="Pemasukan Lain"
         labelKey="Keterangan"
         searchFn={(r, t) => String(r['Keterangan'] ?? '').toLowerCase().includes(t) || String(r['Kategori'] ?? '').toLowerCase().includes(t)}
+        defaultSortKey="Tanggal"
         onChanged={refreshPemasukanLain}
         refreshSignal={refreshSignal}
         target="keuangan"

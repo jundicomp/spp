@@ -33,6 +33,7 @@ export default function JurnalPengeluaranTab() {
         moduleLabel="Jurnal Pengeluaran"
         labelKey="Keterangan"
         searchFn={(r, t) => String(r['Keterangan'] ?? '').toLowerCase().includes(t) || String(r['Kategori'] ?? '').toLowerCase().includes(t)}
+        defaultSortKey="Tanggal"
         onChanged={refreshPengeluaran}
         refreshSignal={refreshSignal}
         target="keuangan"
