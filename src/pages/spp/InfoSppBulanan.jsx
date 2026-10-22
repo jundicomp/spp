@@ -4,6 +4,7 @@ import { statusTagihan } from '../../db/tagihanHelpers';
 import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { bulanTahunAjaran } from '../../db/laporanHelpers';
 import { BULAN_ID, formatRupiah, formatTanggalTampil, parseTanggalFleksibel } from '../../db/helpers';
+import { exportToExcel } from '../../utils/exportTable';
 import InfoCard from '../../components/common/InfoCard';
 import { IconMoney, IconCheckCircle, IconAlertTriangle } from '../../components/common/icons';
 
@@ -25,7 +26,7 @@ function StatusBadge({ status }) {
 // tidak relevan di sini -- lihat normalizeSheetTagihanLain di tagihanHelpers.js).
 // Disetujui lewat mockup (lihat CHANGELOG) sebelum dibangun.
 export default function InfoSppBulanan() {
-  const { siswa, allTagihan, pembayaran, tagihanTerbayar, beasiswaSiswa, beasiswaKategori, tahunAjaranAktif } = useAppData();
+  const { siswa, allTagihan, pembayaran, tagihanTerbayar, beasiswaSiswa, beasiswaKategori, tahunAjaranAktif, profilSekolah } = useAppData();
   const taLabel = tahunAjaranAktif?.label;
   const [bulanTerbuka, setBulanTerbuka] = useState(null); // `${monthIdx}-${calYear}` atau null
   const [kelasTerbuka, setKelasTerbuka] = useState(null); // tingkat (string) atau null
@@ -110,6 +111,43 @@ export default function InfoSppBulanan() {
   const totalTerbayarTahun = dataBulanan.reduce((s, b) => s + b.terbayar, 0);
   const totalTunggakanTahun = dataBulanan.reduce((s, b) => s + b.tunggakan, 0);
 
+  // Export Excel -- detail LENGKAP (semua bulan x semua kelas x semua siswa), format
+  // tabel yg sama dgn rincian per-siswa di layar (NISN/Nama/Nominal/Terbayar/Status/
+  // Tanggal Bayar Terakhir), ditambah kolom Bulan & Kelas supaya tetap jelas di luar
+  // tampilan accordion-nya, plus 1 baris ringkasan/total di kolom-kolom nilainya.
+  function exportExcelInfoSpp() {
+    const headers = ['Bulan', 'Kelas/Tingkat', 'NISN', 'Nama Siswa', 'Nominal', 'Terbayar', 'Tunggakan', 'Status', 'Tanggal Bayar Terakhir'];
+    const rows = [];
+    dataBulanan.forEach(b => {
+      b.perKelas.forEach(k => {
+        k.siswa.forEach(s => {
+          rows.push({
+            'Bulan': b.label,
+            'Kelas/Tingkat': `Kelas ${k.tingkat}`,
+            'NISN': s.nisn || '-',
+            'Nama Siswa': s.namaSiswa,
+            'Nominal': s.nominalEfektif,
+            'Terbayar': s.terbayar,
+            'Tunggakan': Math.max(0, s.nominalEfektif - s.terbayar),
+            'Status': s.status,
+            'Tanggal Bayar Terakhir': s.tanggalBayarTerakhir ? formatTanggalTampil(s.tanggalBayarTerakhir) : '-',
+          });
+        });
+      });
+    });
+    const footer = {
+      'Bulan': 'TOTAL',
+      'Nominal': totalTagihanTahun,
+      'Terbayar': totalTerbayarTahun,
+      'Tunggakan': totalTunggakanTahun,
+    };
+    exportToExcel(
+      headers, rows, 'Info SPP per Bulan',
+      [profilSekolah?.nama || 'MI Ikhlasiyah', 'Info SPP per Bulan', `Tahun Ajaran ${taLabel}`],
+      footer
+    );
+  }
+
   function klikBulan(b) {
     setBulanTerbuka(t => (t === b.key ? null : b.key));
     setKelasTerbuka(null); // ganti bulan -- tutup detail kelas yg mungkin masih terbuka
@@ -132,6 +170,7 @@ export default function InfoSppBulanan() {
     <div className="card" style={{ marginBottom: 20 }}>
       <div className="card-head">
         <div><h3>📅 Info SPP per Bulan</h3><p>Klik sebuah bulan untuk rincian per kelas, lalu klik sebuah kelas untuk daftar siswanya.</p></div>
+        <button type="button" className="btn btn-sm" onClick={exportExcelInfoSpp}>📊 Export Excel</button>
       </div>
       <div className="card-body">
         <div className="info-grid" style={{ marginBottom: 18 }}>

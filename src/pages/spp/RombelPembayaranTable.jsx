@@ -62,6 +62,22 @@ export default function RombelPembayaranTable() {
     return statusTagihan(cell.nominalEfektif, cell.terbayar);
   }
 
+  // % Lunas per siswa -- dari SELURUH bulan yg ADA tagihan di tahun ajaran ini (bulan
+  // tanpa tagihan tidak dihitung sbg pembagi), supaya rombel yg baru berjalan beberapa
+  // bulan tidak tampak rendah persentasenya. 100% -> ceklist hijau, bukan angka.
+  function pctLunas(nisn) {
+    let adaTagihan = 0;
+    let lunas = 0;
+    bulanList.forEach(b => {
+      const status = statusSel(nisn, b.monthIdx);
+      if (!status) return;
+      adaTagihan += 1;
+      if (status === 'Lunas') lunas += 1;
+    });
+    if (adaTagihan === 0) return null;
+    return Math.round((lunas / adaTagihan) * 100);
+  }
+
   if (!taLabel) {
     return <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada Tahun Ajaran yang diaktifkan.</p>;
   }
@@ -89,28 +105,37 @@ export default function RombelPembayaranTable() {
               <tr>
                 <th>No</th><th>NISN</th><th>Nama Lengkap</th><th>Rombel</th>
                 {bulanList.map(b => <th key={b.monthIdx}>{BULAN_SHORT[b.monthIdx]}</th>)}
+                <th>% Lunas</th>
               </tr>
             </thead>
             <tbody>
-              {siswaRombel.map((s, i) => (
-                <tr key={s.id}>
-                  <td>{i + 1}</td>
-                  <td>{s.nisn || '-'}</td>
-                  <td>{s.nama}</td>
-                  <td>{s.rombel}</td>
-                  {bulanList.map(b => {
-                    const status = statusSel(s.nisn, b.monthIdx);
-                    const judul = `${b.label} — ${status || 'Belum ada tagihan'}`;
-                    return (
-                      <td key={b.monthIdx} title={judul}>
-                        {status === 'Lunas' && <span className="rb-yes">✓</span>}
-                        {(status === 'Sebagian' || status === 'Belum Lunas') && <span className="rb-no">✕</span>}
-                        {!status && <span className="rb-none">–</span>}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {siswaRombel.map((s, i) => {
+                const pct = pctLunas(s.nisn);
+                return (
+                  <tr key={s.id}>
+                    <td>{i + 1}</td>
+                    <td>{s.nisn || '-'}</td>
+                    <td>{s.nama}</td>
+                    <td>{s.rombel}</td>
+                    {bulanList.map(b => {
+                      const status = statusSel(s.nisn, b.monthIdx);
+                      const judul = `${b.label} — ${status || 'Belum ada tagihan'}`;
+                      return (
+                        <td key={b.monthIdx} title={judul}>
+                          {status === 'Lunas' && <span className="rb-yes">✓</span>}
+                          {(status === 'Sebagian' || status === 'Belum Lunas') && <span className="rb-no">✕</span>}
+                          {!status && <span className="rb-none">–</span>}
+                        </td>
+                      );
+                    })}
+                    <td title={pct === null ? 'Belum ada tagihan' : `${pct}% bulan sudah lunas`}>
+                      {pct === null && <span className="rb-none">–</span>}
+                      {pct !== null && pct === 100 && <span className="rb-yes">✓</span>}
+                      {pct !== null && pct < 100 && <span className="rb-pct">{pct}%</span>}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

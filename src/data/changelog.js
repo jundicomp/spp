@@ -4,6 +4,16 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.38',
+    tanggal: '2026-10-22',
+    poin: [
+      'FITUR BARU -- tabel "Rekap Pembayaran SPP per Rombel" (di Dashboard SPP) sekarang punya 1 kolom tambahan "% Lunas" di paling kanan, menampilkan persentase bulan yang sudah lunas per siswa dari seluruh bulan yang sudah ada tagihannya. Begitu mencapai 100%, angkanya diganti tampilan ceklist hijau supaya langsung kelihatan siswa mana yang sudah lunas penuh.',
+      'FITUR BARU -- halaman "Dashboard Keuangan" ditambahkan di menu KEUANGAN (di posisi paling atas, di atas "Tagihan & Biaya"), menampilkan infografis interaktif yang sama dengan Ringkasan Keuangan di Dashboard utama (saldo kas, pemasukan/pengeluaran bulan ini, laba/rugi, piutang, tren 12 bulan, komposisi pemasukan, pengeluaran per kategori, saldo per akun kas/bank, dan aktivitas terbaru) -- sekarang Keuangan punya dashboard tersendiri, tidak perlu bolak-balik ke Dashboard utama.',
+      'FITUR BARU -- sidebar menu sekarang bisa diciutkan jadi tampilan icon saja lewat tombol ☰ (hamburger) di pojok kiri atas, supaya layar lebih lega untuk tabel-tabel lebar. Saat diciutkan, klik salah satu icon grup menu (SPP/Keuangan/Sarpras/Pengaturan) untuk membuka daftar menunya dalam bentuk panel kecil di sampingnya. Status ciutan/tidaknya diingat otomatis, jadi tidak perlu diatur ulang tiap buka halaman.',
+      'FITUR BARU -- kartu "Info SPP per Bulan" (Dashboard SPP) sekarang punya tombol "Export Excel" yang mengunduh rincian LENGKAP semua bulan x semua kelas x semua siswa dalam 1 file (kolom: Bulan, Kelas/Tingkat, NISN, Nama Siswa, Nominal, Terbayar, Tunggakan, Status, Tanggal Bayar Terakhir), dilengkapi 1 baris ringkasan/total di bagian paling bawah untuk kolom Nominal, Terbayar & Tunggakan.',
+    ],
+  },
+  {
     versi: '1.31.37',
     tanggal: '2026-10-22',
     poin: [

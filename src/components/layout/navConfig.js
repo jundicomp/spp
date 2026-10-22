@@ -16,6 +16,7 @@ export const NAV_STRUCTURE = [
   {
     id: 'keuangan', type: 'group', label: 'Keuangan', groupLabel: '💰 KEUANGAN', icon: '💰',
     items: [
+      { to: '/dashboard-keuangan', pageId: 'dashboard-keuangan', label: 'Dashboard Keuangan' },
       { to: '/tagihan', pageId: 'tagihan', label: 'Tagihan & Biaya' },
       { to: '/pemasukan-pengeluaran', pageId: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain' },
       { to: '/tunggakan', pageId: 'tunggakan', label: 'Rekap Tunggakan' },

@@ -14,8 +14,12 @@ a{text-decoration:none;color:inherit;}
 
 /* ---------- App shell ---------- */
 .app-shell{display:flex;min-height:100vh;}
-.sidebar{width:250px;flex-shrink:0;background:var(--green-dark);color:#EAF3EC;display:flex;flex-direction:column;}
+.sidebar{width:250px;flex-shrink:0;background:var(--green-dark);color:#EAF3EC;display:flex;flex-direction:column;transition:width .2s ease;}
+.sidebar.collapsed{width:64px;}
 .sidebar-head{display:flex;align-items:center;gap:10px;padding:18px;}
+.sidebar.collapsed .sidebar-head{flex-direction:column;gap:10px;padding:14px 8px;}
+.sidebar-toggle-btn{width:34px;height:34px;flex-shrink:0;border-radius:8px;border:none;background:rgba(255,255,255,.08);color:#EAF3EC;display:flex;align-items:center;justify-content:center;}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.16);}
 .brand-name{font-weight:800;font-size:15px;}
 .brand-sub{font-size:11px;opacity:.75;}
 .sidebar-nav{flex:1;overflow-y:auto;padding:10px 0 20px;}
@@ -34,6 +38,27 @@ a{text-decoration:none;color:inherit;}
 .nav-subgroup .nav-group-arrow{width:11px;height:11px;}
 .nav-subgroup .nav-group-items .nav-item{padding-left:52px;font-size:13px;}
 .sidebar-foot{padding:14px 18px;font-size:11px;opacity:.55;border-top:1px solid rgba(255,255,255,.1);}
+
+/* ---------- Sidebar ciutan (desktop, icon-only) ----------
+   Dipakai saat sidebar di-collapse lewat tombol hamburger (.sidebar-toggle-btn).
+   CSS TERPISAH dari .rail-* milik TabletRail (bukan reuse) krn .rail-flyout /
+   .tablet-overlay-bg sengaja disembunyikan paksa di lebar desktop, lihat
+   @media (min-width:1025px) di bagian Breakpoints bawah. */
+.sidebar-rail-icons{flex:1;overflow-y:auto;padding:10px 0 20px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.sidebar-rail-icon-btn{width:48px;height:48px;border:none;background:none;color:#EAF3EC;opacity:.85;display:flex;align-items:center;justify-content:center;border-radius:9px;border-left:3px solid transparent;flex-shrink:0;}
+.sidebar-rail-icon-btn:hover{background:rgba(255,255,255,.08);opacity:1;}
+.sidebar-rail-icon-btn.active{background:rgba(240,180,41,.16);border-left-color:var(--gold);opacity:1;}
+.sidebar-rail-icon-emoji{font-size:20px;line-height:1;}
+
+.sidebar-rail-flyout{position:fixed;top:0;bottom:0;left:64px;width:236px;background:#123D22;color:#EAF3EC;box-shadow:6px 0 20px rgba(0,0,0,.2);z-index:55;display:flex;flex-direction:column;padding:16px 0;}
+.sidebar-rail-flyout-head{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.85;padding:0 18px 12px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:6px;flex-shrink:0;}
+.sidebar-rail-flyout-body{padding:0 8px;}
+.sidebar-rail-link{display:block;padding:9px 12px;font-size:13px;color:#EAF3EC;opacity:.88;border-radius:7px;border-left:3px solid transparent;}
+.sidebar-rail-link:hover{background:rgba(255,255,255,.06);opacity:1;}
+.sidebar-rail-link.active{background:rgba(240,180,41,.14);border-left-color:var(--gold);opacity:1;font-weight:600;}
+.sidebar-rail-subgroup{margin-bottom:4px;}
+.sidebar-rail-subgroup-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.65;padding:8px 12px 4px 20px;}
+.sidebar-rail-subgroup .sidebar-rail-link{padding-left:26px;}
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:#fff;border-bottom:1px solid var(--border);}
@@ -296,6 +321,7 @@ tr:hover td{background:var(--row-hover);}
 .rb-yes{color:var(--green);font-weight:800;font-size:15px;}
 .rb-no{color:var(--red);font-weight:800;font-size:15px;}
 .rb-none{color:var(--border);font-weight:700;}
+.rb-pct{color:var(--muted);font-weight:800;font-size:13px;}
 .rb-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted);margin-top:12px;}
 .rb-legend span{display:inline-flex;align-items:center;gap:6px;}
 

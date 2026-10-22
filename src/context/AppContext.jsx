@@ -33,6 +33,7 @@ const HAK_AKSES_PAGES = [
   { id: 'changelog', label: 'Riwayat Pembaruan (Changelog)', grup: 'Umum' },
   { id: 'dashboard-spp', label: 'Dashboard SPP', grup: 'SPP' },
   { id: 'pembayaran', label: 'Pembayaran', grup: 'SPP' },
+  { id: 'dashboard-keuangan', label: 'Dashboard Keuangan', grup: 'Keuangan' },
   { id: 'tagihan', label: 'Tagihan & Biaya', grup: 'Keuangan' },
   { id: 'bersihkan-duplikat', label: 'Cek Data dan Sistem', grup: 'Keuangan' },
   { id: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain', grup: 'Keuangan' },
