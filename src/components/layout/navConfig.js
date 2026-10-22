@@ -17,7 +17,6 @@ export const NAV_STRUCTURE = [
     id: 'keuangan', type: 'group', label: 'Keuangan', groupLabel: '💰 KEUANGAN', icon: '💰',
     items: [
       { to: '/tagihan', pageId: 'tagihan', label: 'Tagihan & Biaya' },
-      { to: '/bersihkan-duplikat', pageId: 'bersihkan-duplikat', label: 'Cek Data dan Sistem' },
       { to: '/pemasukan-pengeluaran', pageId: 'pemasukan-pengeluaran', label: 'Pemasukan & Pengeluaran Lain' },
       { to: '/tunggakan', pageId: 'tunggakan', label: 'Rekap Tunggakan' },
       { to: '/beasiswa', pageId: 'beasiswa', label: 'Beasiswa' },
@@ -57,6 +56,7 @@ export const NAV_STRUCTURE = [
         items: [
           { to: '/koneksi-sheets', pageId: 'koneksi-sheets', label: 'Pengaturan Koneksi' },
           { to: '/pengaturan-sistem', pageId: 'pengaturan-sistem', label: 'Pengaturan Sistem' },
+          { to: '/bersihkan-duplikat', pageId: 'bersihkan-duplikat', label: 'Cek Data dan Sistem' },
           { to: '/log-histori', pageId: 'log-histori', label: 'Log Histori' },
         ],
       },

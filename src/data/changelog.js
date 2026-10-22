@@ -4,6 +4,16 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.37',
+    tanggal: '2026-10-22',
+    poin: [
+      'FITUR BARU -- Dashboard SPP sekarang punya kartu "Info SPP per Bulan": 12 kartu bulan (Juli-Juni) tahun ajaran aktif, masing-masing menampilkan persentase lunas, total tagihan, terbayar, dan tunggakan. Klik satu bulan untuk melihat rinciannya per Kelas/Tingkat, lalu klik satu kelas untuk melihat daftar siswanya lengkap dgn NISN, nominal, terbayar, status (Lunas/Sebagian/Belum Lunas), dan tanggal bayar terakhir.',
+      'FITUR BARU -- kartu "Ringkasan Keuangan" di Dashboard utama sekarang lebih lengkap: tambahan kartu Saldo Kas Total dan Laba/Rugi Bulan Ini (jadi 5 kartu ringkasan), grafik donat Komposisi Pemasukan (SPP / Biaya Lain Siswa / Pemasukan Lain), grafik batang Pengeluaran per Kategori bulan berjalan, daftar Saldo per Akun Kas/Bank, dan daftar Aktivitas Terbaru (8 transaksi terakhir gabungan dari Pembayaran, Pemasukan Lain & Pengeluaran).',
+      'Angka "Total Tunggakan" di Dashboard utama sekarang dihitung pakai cara yang SAMA dengan Neraca & Buku Besar (mempertimbangkan beasiswa dan tagihan yang belum jatuh tempo), supaya angkanya selalu konsisten di semua halaman.',
+      'Menu "Cek Data dan Sistem" dipindahkan dari grup KEUANGAN ke grup PENGATURAN > SYSTEM di navigasi -- lebih sesuai karena fitur ini soal perawatan/pemeriksaan data sistem, bukan transaksi keuangan.',
+    ],
+  },
+  {
     versi: '1.31.36',
     tanggal: '2026-10-22',
     poin: [

@@ -77,7 +77,6 @@ export default function Sidebar() {
 
         <NavGroup id="keuangan" label="💰 KEUANGAN" open={openGroups.keuangan} onToggle={toggle}>
           <Item to="/tagihan" canAccess={canAccess('tagihan')}>Tagihan &amp; Biaya</Item>
-          <Item to="/bersihkan-duplikat" canAccess={canAccess('bersihkan-duplikat')}>Cek Data dan Sistem</Item>
           <Item to="/pemasukan-pengeluaran" canAccess={canAccess('pemasukan-pengeluaran')}>Pemasukan &amp; Pengeluaran Lain</Item>
           <Item to="/tunggakan" canAccess={canAccess('tunggakan')}>Rekap Tunggakan</Item>
           <Item to="/beasiswa" canAccess={canAccess('beasiswa')}>Beasiswa</Item>
@@ -105,6 +104,7 @@ export default function Sidebar() {
           <NavGroup id="pgt-system" label="🖥️ SYSTEM" sub open={openGroups['pgt-system']} onToggle={toggle}>
             <Item to="/koneksi-sheets" canAccess={canAccess('koneksi-sheets')}>Pengaturan Koneksi</Item>
             <Item to="/pengaturan-sistem" canAccess={canAccess('pengaturan-sistem')}>Pengaturan Sistem</Item>
+            <Item to="/bersihkan-duplikat" canAccess={canAccess('bersihkan-duplikat')}>Cek Data dan Sistem</Item>
             <Item to="/log-histori" canAccess={canAccess('log-histori')}>Log Histori</Item>
           </NavGroup>
         </NavGroup>

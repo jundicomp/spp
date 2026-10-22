@@ -8,6 +8,7 @@ import { BULAN_SHORT, formatRupiah } from '../../db/helpers';
 import InfoCard from '../../components/common/InfoCard';
 import { IconGraduationCap, IconMoney, IconCheckCircle, IconAlertTriangle, IconPercent } from '../../components/common/icons';
 import RombelPembayaranTable from './RombelPembayaranTable';
+import InfoSppBulanan from './InfoSppBulanan';
 
 // Dashboard SPP -- infografis ringkasan SPP & Biaya Lain utk TAHUN AJARAN AKTIF,
 // dihitung REAL-TIME dari data siswa/tagihan/pembayaran yg sudah ada (bukan input
@@ -100,6 +101,8 @@ export default function DashboardSpp() {
             <InfoCard icon={IconAlertTriangle} color="c-red" value={formatRupiah(totalTunggakan)} label="Total Tunggakan" valueFontSize={19} />
             <InfoCard icon={IconPercent} color="c-gold" value={`${kepatuhan.toFixed(1)}%`} label="Tingkat Kepatuhan Bayar" />
           </div>
+
+          <InfoSppBulanan />
 
           <div className="dspp-grid">
             <div className="card" style={{ marginBottom: 0 }}>
