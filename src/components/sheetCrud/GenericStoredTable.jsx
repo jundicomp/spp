@@ -120,12 +120,18 @@ export default function GenericStoredTable({
       // pemisah sama sekali (mis. "250000"), beda sendiri dari tabel lain di app yg
       // sudah pakai formatRupiah().
       if (fieldDef?.type === 'currency') return { key: h, label: h, accessor: (r) => (r[h] === '' || r[h] === undefined || r[h] === null) ? '' : formatRupiah(r[h]) };
+      // Kolom bertipe pilihan (field.type === 'select', mis. Kategori/Status/Jenis)
+      // OTOMATIS dapat filter per-kolom berbentuk DROPDOWN (bukan kotak teks bebas) --
+      // isinya langsung dari daftar pilihan field itu sendiri (fieldDef.options), jadi
+      // selalu sinkron dgn pilihan yg ada di form Tambah/Edit, tidak perlu didaftar ulang.
+      if (fieldDef?.type === 'select' && fieldDef.options) return { key: h, label: h, accessor: (r) => r[h], filterType: 'select', filterOptions: fieldDef.options };
       return { key: h, label: h, accessor: (r) => r[h] };
     }),
     {
       key: 'aksi',
       label: 'Aksi',
       headerClassName: 'no-print',
+      filterable: false,
       render: (r) => (
         <div className="no-print" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {extraActions && extraActions(r)}
@@ -135,6 +141,12 @@ export default function GenericStoredTable({
       ),
     },
   ];
+
+  // Kolom tanggal PERTAMA yg ditemukan di `fields` dipakai otomatis utk filter
+  // rentang "Dari/Sampai" di atas tabel -- kalau modul ini tidak py field bertipe
+  // 'date' sama sekali (mis. Data Guru, Data Kelas, Akun), filternya otomatis tidak
+  // ditampilkan (lihat prop dateFilterKey di DataTable.jsx).
+  const fieldTanggalUtama = fields.find(f => f.type === 'date');
 
   const exportHeaders = headers.filter(h => h !== 'No');
   // Versi rows KHUSUS utk export Excel -- kolom tanggal diformat dulu (dd-mm-yyyy)
@@ -173,6 +185,8 @@ export default function GenericStoredTable({
             emptyMessage="Belum ada data tersimpan."
             rowKey={(r, i) => r['No'] ?? i}
             forceShowAll={printingAll}
+            dateFilterKey={fieldTanggalUtama?.key}
+            dateFilterLabel={fieldTanggalUtama?.label}
           />
         )}
       </div>

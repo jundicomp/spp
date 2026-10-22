@@ -254,7 +254,7 @@ export default function RombelTab() {
     { key: 'usiaLabel', label: 'Usia', accessor: r => r.usiaLabel },
     { key: 'lp', label: 'L/P', accessor: r => r.lp },
     { key: 'rombel', label: 'Rombel', accessor: r => r.rombel || '-' },
-    { key: 'wali', label: 'Wali Kelas', render: r => <span style={waliKelasByRombel[`${r.kelasTingkat}|${r.rombel}`] ? undefined : { color: 'var(--muted)', fontStyle: 'italic' }}>{r.wali}</span> },
+    { key: 'wali', label: 'Wali Kelas', accessor: r => r.wali || '-', render: r => <span style={waliKelasByRombel[`${r.kelasTingkat}|${r.rombel}`] ? undefined : { color: 'var(--muted)', fontStyle: 'italic' }}>{r.wali}</span> },
   ];
 
   function handlePrint() {

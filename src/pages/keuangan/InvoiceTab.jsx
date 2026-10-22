@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import DataTable from '../../components/common/DataTable';
 import { statusTagihan } from '../../db/tagihanHelpers';
-import { formatTanggalTampil } from '../../db/helpers';
+import { formatTanggalTampil, normalisasiTanggalUntukInput } from '../../db/helpers';
 import { exportToExcel } from '../../utils/exportTable';
 import { useAppData } from '../../context/AppContext';
 
@@ -37,9 +37,9 @@ export default function InvoiceTab() {
     { key: 'nisn', label: 'NISN', accessor: r => r.nisn },
     { key: 'label', label: 'Jenis', accessor: r => r.label },
     { key: 'nominal', label: 'Nominal', accessor: r => formatRupiah(r.nominal) },
-    { key: 'sisa', label: 'Sisa', render: r => <strong>{formatRupiah(r.sisa)}</strong>, sortable: true },
-    { key: 'jatuhTempo', label: 'Jatuh Tempo', render: r => formatTanggalTampil(r.jatuhTempo), sortable: true },
-    { key: 'status', label: 'Status', render: r => <span className={`badge ${STATUS_BADGE[r.status]}`}>{r.status}</span> },
+    { key: 'sisa', label: 'Sisa', accessor: r => r.sisa, render: r => <strong>{formatRupiah(r.sisa)}</strong>, sortable: true },
+    { key: 'jatuhTempo', label: 'Jatuh Tempo', accessor: r => normalisasiTanggalUntukInput(r.jatuhTempo), render: r => formatTanggalTampil(r.jatuhTempo), sortable: true },
+    { key: 'status', label: 'Status', accessor: r => r.status, render: r => <span className={`badge ${STATUS_BADGE[r.status]}`}>{r.status}</span>, filterType: 'select', filterOptions: Object.keys(STATUS_BADGE) },
   ];
 
   function exportExcelInvoice() {
@@ -77,6 +77,8 @@ export default function InvoiceTab() {
             emptyMessage="Tidak ada tagihan yang cocok dengan filter/pencarian ini."
             rowKey={r => r.id}
             defaultSortKey="jatuhTempo"
+            dateFilterKey="jatuhTempo"
+            dateFilterLabel="Jatuh Tempo"
           />
         )}
       </div>

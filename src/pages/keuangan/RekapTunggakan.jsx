@@ -4,7 +4,7 @@ import DataTable from '../../components/common/DataTable';
 import { useAppData } from '../../context/AppContext';
 import { statusTagihan } from '../../db/tagihanHelpers';
 import { nominalEfektifTagihan } from '../../db/beasiswaFields';
-import { formatRupiah, parseTanggalFleksibel, formatTanggalTampil } from '../../db/helpers';
+import { formatRupiah, parseTanggalFleksibel, formatTanggalTampil, normalisasiTanggalUntukInput } from '../../db/helpers';
 import { isConfigured } from '../../services/googleSheets';
 import { exportToExcel } from '../../utils/exportTable';
 import PemutihanModal from './PemutihanModal';
@@ -62,13 +62,13 @@ export default function RekapTunggakan() {
   const columns = [
     { key: 'namaSiswa', label: 'Nama Siswa', accessor: r => r.namaSiswa, sortable: true },
     { key: 'nisn', label: 'NISN', accessor: r => r.nisn },
-    { key: 'statusSiswa', label: 'Status Siswa', render: r => r.statusSiswa !== 'Aktif' ? <span className="badge badge-muted">{r.statusSiswa}</span> : <span className="badge badge-green">Aktif</span> },
+    { key: 'statusSiswa', label: 'Status Siswa', accessor: r => r.statusSiswa, render: r => r.statusSiswa !== 'Aktif' ? <span className="badge badge-muted">{r.statusSiswa}</span> : <span className="badge badge-green">Aktif</span>, filterType: 'select', filterOptions: STATUS_FILTER_OPTIONS.filter(s => s !== 'Semua Siswa') },
     { key: 'label', label: 'Jenis', accessor: r => r.label },
-    { key: 'sisa', label: 'Sisa', render: r => <strong style={{ color: 'var(--red)' }}>{formatRupiah(r.sisa)}</strong>, sortable: true },
-    { key: 'jatuhTempo', label: 'Jatuh Tempo', render: r => formatTanggalTampil(r.jatuhTempo), sortable: true },
-    { key: 'terlambat', label: 'Terlambat', accessor: r => `${r.terlambat} hari`, sortable: true },
+    { key: 'sisa', label: 'Sisa', accessor: r => r.sisa, render: r => <strong style={{ color: 'var(--red)' }}>{formatRupiah(r.sisa)}</strong>, sortable: true },
+    { key: 'jatuhTempo', label: 'Jatuh Tempo', accessor: r => normalisasiTanggalUntukInput(r.jatuhTempo), render: r => formatTanggalTampil(r.jatuhTempo), sortable: true },
+    { key: 'terlambat', label: 'Terlambat', accessor: r => r.terlambat, render: r => `${r.terlambat} hari`, sortable: true },
     {
-      key: 'aksi', label: 'Aksi', headerClassName: 'no-print',
+      key: 'aksi', label: 'Aksi', headerClassName: 'no-print', filterable: false,
       render: r => (
         <div className="no-print">
           <button className="btn btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => setPutihkanTarget(r)}>Putihkan</button>
@@ -126,6 +126,8 @@ export default function RekapTunggakan() {
               rowKey={r => r.id}
               defaultSortKey="terlambat"
               defaultSortDir="desc"
+              dateFilterKey="jatuhTempo"
+              dateFilterLabel="Jatuh Tempo"
             />
           )}
         </div>

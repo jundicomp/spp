@@ -127,6 +127,8 @@ export default function StoredDataTable({ refreshKey }) {
             emptyMessage="Belum ada data siswa di Sheet."
             rowKey={(r, i) => r['No'] ?? i}
             forceShowAll={printingAll}
+            dateFilterKey="Tanggal Lahir"
+            dateFilterLabel="Tanggal Lahir"
           />
         )}
       </div>

@@ -100,8 +100,8 @@ export default function RiwayatSiswaTab() {
     { key: 'nisn', label: 'NISN', accessor: r => r.nisn || '-' },
     { key: 'nama', label: 'Nama Lengkap', accessor: r => r.nama, sortable: true },
     { key: 'kelasTingkat', label: 'Kelas Terakhir', accessor: r => r.kelasTingkat || '-' },
-    { key: 'status', label: 'Status', render: r => <span className={`badge ${STATUS_BADGE[r.status] || 'badge-muted'}`}>{r.status}</span>, sortable: true },
-    { key: 'lihat', label: '', render: r => <button className="btn btn-sm" onClick={() => { setSelectedId(r.id); setTerm(r.nama); }}>Lihat Riwayat</button> },
+    { key: 'status', label: 'Status', accessor: r => r.status, render: r => <span className={`badge ${STATUS_BADGE[r.status] || 'badge-muted'}`}>{r.status}</span>, sortable: true, filterType: 'select', filterOptions: STATUS_NONAKTIF },
+    { key: 'lihat', label: '', filterable: false, render: r => <button className="btn btn-sm" onClick={() => { setSelectedId(r.id); setTerm(r.nama); }}>Lihat Riwayat</button> },
   ];
 
   function exportExcelRiwayat() {

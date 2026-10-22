@@ -5,7 +5,7 @@ import GenericEditModal from '../../components/sheetCrud/GenericEditModal';
 import PasswordConfirmModal from '../../components/common/PasswordConfirmModal';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { buildPembayaranEditFields } from '../../db/pembayaranFields';
+import { buildPembayaranEditFields, METODE_BAYAR_OPTIONS, METODE_PEMUTIHAN } from '../../db/pembayaranFields';
 import { akunAktivaOptions } from '../../db/akunBukuBesarFields';
 import { updatePembayaranInSheet, deletePembayaranFromSheet, addLogEntry } from '../../services/googleSheets';
 import { formatRupiah, formatTanggalTampil, normalisasiTanggalUntukInput, todayWIB } from '../../db/helpers';
@@ -163,13 +163,13 @@ export default function RiwayatPembayaranCard() {
             </div>
             <DataTable
               columns={[
-                { key: 'tanggalBayar', label: 'Tanggal', render: r => formatTanggalTampil(r.tanggalBayar), sortable: true },
+                { key: 'tanggalBayar', label: 'Tanggal', accessor: r => normalisasiTanggalUntukInput(r.tanggalBayar), render: r => formatTanggalTampil(r.tanggalBayar), sortable: true },
                 { key: 'namaSiswa', label: 'Nama Siswa', accessor: r => r.namaSiswa, sortable: true },
                 { key: 'jenis', label: 'Jenis', accessor: r => r.jenis },
                 { key: 'nominal', label: 'Nominal', accessor: r => r.nominal, render: r => formatRupiah(r.nominal), sortable: true },
-                { key: 'metode', label: 'Metode', accessor: r => r.metode },
+                { key: 'metode', label: 'Metode', accessor: r => r.metode, filterType: 'select', filterOptions: [...METODE_BAYAR_OPTIONS, METODE_PEMUTIHAN] },
                 {
-                  key: 'aksi', label: 'Aksi', headerClassName: 'no-print', render: r => (
+                  key: 'aksi', label: 'Aksi', headerClassName: 'no-print', filterable: false, render: r => (
                     <div className="no-print" style={{ display: 'flex', gap: 4 }}>
                       <button className="btn btn-sm" onClick={() => setLihatKwitansi(r)}>🧾 Kwitansi</button>
                       {isAdmin && <button className="btn-icon" title="Edit Pembayaran" onClick={() => setEditRow(r)}>✏️</button>}

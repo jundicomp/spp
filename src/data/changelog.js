@@ -4,6 +4,17 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.35',
+    tanggal: '2026-10-22',
+    poin: [
+      'FITUR BARU -- hampir semua tabel data di aplikasi (Jurnal Pengeluaran, Pemasukan Lain, Data Siswa, Data Guru, Data Kelas, Data Aset, Pemeliharaan Aset, Peminjaman Aset, Tarif, Tagihan Lain, Beasiswa, Riwayat Pembayaran, Invoice, Rekap Tunggakan, Log Histori, dll) sekarang punya filter per kolom -- muncul sbg kotak kecil (atau dropdown utk kolom kategori spt Status/Kategori/Jenis) tepat di bawah judul tiap kolom, bisa mencari/menyaring data lewat kolom tertentu saja tanpa harus pakai kotak pencarian umum',
+      'FITUR BARU -- tabel yang punya kolom tanggal (Jurnal Pengeluaran, Pemasukan Lain, Pemeliharaan Aset, Tagihan Lain, Invoice, Rekap Tunggakan, Data Siswa, Beasiswa Siswa, dll) sekarang punya filter rentang "Dari - Sampai" supaya bisa langsung melihat data di periode tertentu tanpa menyisir manual',
+      'Dropdown "Tampilkan X baris per halaman" (10/25/50/100/Semua) sekarang muncul konsisten di SEMUA tabel -- sebelumnya cuma ada di 2 tabel, tabel lainnya terpaku 10 baris per halaman',
+      'Tombol "✕ Hapus Filter" otomatis muncul kalau ada filter aktif (pencarian, filter kolom, atau filter tanggal) -- sekali klik membersihkan semuanya sekaligus',
+      'Paginasi (halaman 1/2/3/dst) sekarang juga menampilkan jumlah total baris yang cocok dengan filter yang sedang aktif',
+    ],
+  },
+  {
     versi: '1.31.34',
     tanggal: '2026-10-22',
     poin: [

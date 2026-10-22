@@ -112,7 +112,7 @@ export default function BeasiswaSiswaTab() {
               { key: 'namaSiswa', label: 'Nama Siswa', accessor: r => r.namaSiswa, sortable: true },
               { key: 'nisn', label: 'NISN', accessor: r => r.nisn },
               { key: 'kelasTingkat', label: 'Kelas', accessor: r => r.kelasTingkat ? `Kelas ${r.kelasTingkat}` : '-' },
-              { key: 'kategoriBeasiswa', label: 'Kategori Beasiswa', accessor: r => r.kategoriBeasiswa },
+              { key: 'kategoriBeasiswa', label: 'Kategori Beasiswa', accessor: r => r.kategoriBeasiswa, filterType: 'select', filterOptions: beasiswaKategori.map(k => k.nama) },
               { key: 'potongan', label: 'Potongan', accessor: r => `SPP ${formatRupiah(r.potonganSpp)} · Lain ${formatRupiah(r.potonganBiayaLain)}` },
               { key: 'tanggalMulai', label: 'Tanggal Mulai', accessor: r => formatTanggalTampil(r.tanggalMulai) },
               { key: 'keterangan', label: 'Keterangan', accessor: r => r.keterangan || '-' },
@@ -122,6 +122,8 @@ export default function BeasiswaSiswaTab() {
             searchFn={(r, t) => (r.namaSiswa || '').toLowerCase().includes(t) || (r.nisn || '').includes(t) || (r.kategoriBeasiswa || '').toLowerCase().includes(t)}
             emptyMessage="Belum ada siswa yang tercatat menerima beasiswa."
             rowKey={r => r.id}
+            dateFilterKey="tanggalMulai"
+            dateFilterLabel="Tanggal Mulai"
           />
         </div>
       </div>
