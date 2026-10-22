@@ -233,16 +233,45 @@ function appendRow_(sheet, headers, rowObj, textColumns) {
   // "Bersihkan Duplikat" salah kira banyak baris "sudah dibayar" krn No-nya kembar,
   // padahal cuma 1 pembayaran asli yg kebetulan cocok ke SEMUA baris berNo sama itu.
   // getScriptLock() memaksa proses LAIN nunggu gantian -- baca+tulis jadi ATOMIK.
+  //
+  // PERBAIKAN LANJUTAN (screening audit, v1.31.36) -- "nextNo" TIDAK LAGI dihitung dari
+  // sheet.getLastRow() (jumlah baris FISIK). Itu ternyata punya bug sendiri: begitu ADA
+  // baris yg terhapus di tengah sheet (hapus satuan, ATAU justru lewat fitur "Bersihkan
+  // Duplikat" / "Hapus Pembayaran Duplikat" sendiri!), jumlah baris fisik jadi lebih
+  // KECIL drpd nilai "No" TERTINGGI yg sebenarnya masih dipakai baris yg masih hidup --
+  // baris baru berikutnya bisa kebagian "No" yg SAMA dgn baris lain yg masih ada, jadi
+  // duplikat BARU muncul lagi walau sudah pernah dibersihkan. Sekarang dihitung dari
+  // nilai MAKSIMUM yg BENAR-BENAR ada di kolom "No" + 1 (lihat hitungNoBerikutnya_),
+  // tetap aman krn masih dipanggil di dalam lock yg sama.
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    const nextNo = sheet.getLastRow();
+    const nextNo = hitungNoBerikutnya_(sheet, headers);
     const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
     forceTextColumns_(sheet, headers, sheet.getLastRow() + 1, textColumns);
     sheet.appendRow(row);
   } finally {
     lock.releaseLock();
   }
+}
+
+// Nomor "No" berikutnya yg AMAN dipakai -- baca SEMUA nilai "No" yg BENAR-BENAR ada
+// SEKARANG di sheet (1x baca kolom, bukan sel-per-sel), ambil yg TERBESAR, lalu +1.
+// WAJIB dipanggil DI DALAM lock appendRow_ (bukan dikunci sendiri di sini) spy baca+
+// tulisnya tetap atomik. Sengaja TIDAK pakai sheet.getLastRow() (jumlah baris fisik) --
+// lihat catatan panjang di appendRow_ soal kenapa itu bisa bikin "No" baru kebentrok
+// dgn baris yg masih ada setelah ada baris lain yg terhapus di tengah sheet.
+function hitungNoBerikutnya_(sheet, headers) {
+  const noCol = headers.indexOf('No') + 1;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 1; // belum ada data sama sekali (baris 1 = header)
+  const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+  let noTertinggi = 0;
+  for (let i = 0; i < nilaiNo.length; i++) {
+    const n = Number(nilaiNo[i][0]);
+    if (!isNaN(n) && n > noTertinggi) noTertinggi = n;
+  }
+  return noTertinggi + 1;
 }
 
 function bulkUpdateRows_(sheet, headers, updates) {
@@ -337,10 +366,22 @@ function forceTextColumns_(sheet, headers, rowIndex, textColumns) {
 }
 
 function deleteRow_(sheet, headers, targetNoRaw) {
-  const r = cariBarisByNo_(sheet, headers, targetNoRaw);
-  if (r === -1) return false;
-  sheet.deleteRow(r);
-  return true;
+  // LockService ditambahkan (screening audit, v1.31.36) -- sebelumnya hapus SATUAN ini
+  // TIDAK dikunci, beda dari bulkDeleteRows_/appendRow_ yg sudah dikunci. Kalau hapus
+  // satuan ini kebetulan jalan BERSAMAAN dgn appendRow_/bulkDeleteRows_ (akar masalah
+  // race condition yg sama, lihat catatan panjang di appendRow_), mengunci di lock yg
+  // SAMA (getScriptLock scoped per-script) memastikan semuanya bergantian, tidak tumpang
+  // tindih.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const r = cariBarisByNo_(sheet, headers, targetNoRaw);
+    if (r === -1) return false;
+    sheet.deleteRow(r);
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Hapus BANYAK baris (by "No") sekaligus dlm 1 eksekusi -- lihat catatan panjang di

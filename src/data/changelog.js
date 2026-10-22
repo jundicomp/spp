@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.36',
+    tanggal: '2026-10-22',
+    poin: [
+      'Perbaikan bug di PENYIMPANAN DATA (skrip Google Apps Script) -- selama ini nomor urut ("No") baris baru yang ditambahkan (tagihan, pembayaran, pengeluaran, dll) dihitung dari JUMLAH baris yang ada di sheet, bukan dari nomor tertinggi yang benar-benar masih dipakai. Akibatnya, setelah ada baris yang dihapus (termasuk lewat fitur "Bersihkan Data Duplikat" sendiri!), baris baru berikutnya kadang kebagian nomor yang SAMA dengan baris lain yang masih ada -- memunculkan data "dobel" baru lagi walau sudah pernah dibersihkan. Sekarang nomor baru selalu dihitung dari nomor tertinggi yang benar-benar ada di sheet + 1, jadi tidak akan kebentrok lagi.',
+      'Perbaikan tambahan: menghapus satu baris data sekarang juga "dikunci" (seperti menambah/menghapus banyak baris sekaligus) supaya tidak berisiko tabrakan kalau kebetulan ada proses lain yang menulis ke sheet yang sama persis di saat bersamaan.',
+      'PENTING -- perbaikan ini ada di skrip Google Apps Script (Code.gs & Code-Keuangan.gs), BUKAN di aplikasi web-nya sendiri. Supaya perbaikan ini benar-benar aktif, kedua skrip itu perlu di-"Deploy > Manage deployments > New version" ulang di Google Apps Script Editor (tidak otomatis ikut ter-update seperti aplikasi webnya).',
+    ],
+  },
+  {
     versi: '1.31.35',
     tanggal: '2026-10-22',
     poin: [

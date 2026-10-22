@@ -255,15 +255,41 @@ function appendRow_(sheet, headers, rowObj) {
   // Sama persis dgn perbaikan di Code-Keuangan.gs: LockService WAJIB supaya penentuan
   // "No" berikutnya tidak tabrakan kalau 2 permintaan berjalan bersamaan (akar masalah
   // baris dobel berNo kembar -- lihat catatan lengkap di Code-Keuangan.gs).
+  //
+  // PERBAIKAN LANJUTAN (screening audit, v1.31.36) -- "nextNo" TIDAK LAGI dihitung dari
+  // sheet.getLastRow() (jumlah baris FISIK). Begitu ADA baris yg terhapus di tengah
+  // sheet, jumlah baris fisik jadi lebih KECIL drpd nilai "No" TERTINGGI yg sebenarnya
+  // masih dipakai baris yg masih hidup -- baris baru berikutnya bisa kebagian "No" yg
+  // SAMA dgn baris lain yg masih ada (duplikat BARU). Sekarang dihitung dari nilai
+  // MAKSIMUM yg BENAR-BENAR ada di kolom "No" + 1 (lihat hitungNoBerikutnya_ & catatan
+  // lengkapnya di Code-Keuangan.gs), tetap aman krn masih dipanggil di dalam lock yg sama.
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    const nextNo = sheet.getLastRow(); // baris 1 = header, jadi ini otomatis nomor urut berikutnya
+    const nextNo = hitungNoBerikutnya_(sheet, headers);
     const row = headers.map(h => (h === 'No' ? nextNo : (rowObj[h] !== undefined ? rowObj[h] : '')));
     sheet.appendRow(row);
   } finally {
     lock.releaseLock();
   }
+}
+
+// Nomor "No" berikutnya yg AMAN dipakai -- lihat catatan lengkap pada fungsi yg sama
+// di Code-Keuangan.gs. Baca SEMUA nilai "No" yg BENAR-BENAR ada sekarang (1x baca
+// kolom), ambil yg TERBESAR, lalu +1 -- sengaja TIDAK pakai sheet.getLastRow() (jumlah
+// baris fisik), yg bisa kebentrok dgn "No" yg masih dipakai setelah ada baris terhapus
+// di tengah sheet. WAJIB dipanggil DI DALAM lock appendRow_ supaya baca+tulis atomik.
+function hitungNoBerikutnya_(sheet, headers) {
+  const noCol = headers.indexOf('No') + 1;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 1; // belum ada data sama sekali (baris 1 = header)
+  const nilaiNo = sheet.getRange(2, noCol, lastRow - 1, 1).getValues();
+  let noTertinggi = 0;
+  for (let i = 0; i < nilaiNo.length; i++) {
+    const n = Number(nilaiNo[i][0]);
+    if (!isNaN(n) && n > noTertinggi) noTertinggi = n;
+  }
+  return noTertinggi + 1;
 }
 
 // Update BANYAK baris sekaligus (per "No") dlm 1 eksekusi -- tiap update = { no, patch:
@@ -366,10 +392,19 @@ function upsertHakAksesRole_(sheet, headers, role, itemId, checked) {
 // Cari baris via kolom "No", hapus barisnya. Nomor baris lain SENGAJA tidak digeser ulang
 // (No hanya perlu unik, tidak harus berurutan tanpa celah).
 function deleteRow_(sheet, headers, targetNoRaw) {
-  const r = cariBarisByNo_(sheet, headers, targetNoRaw);
-  if (r === -1) return false;
-  sheet.deleteRow(r);
-  return true;
+  // LockService ditambahkan (screening audit, v1.31.36) -- lihat catatan lengkap pada
+  // fungsi yg sama di Code-Keuangan.gs (sebelumnya hapus satuan ini tidak dikunci,
+  // berisiko race condition kalau jalan bersamaan dgn appendRow_).
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const r = cariBarisByNo_(sheet, headers, targetNoRaw);
+    if (r === -1) return false;
+    sheet.deleteRow(r);
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Set kolom "Aktif" = TRUE utk baris dgn No=targetNo, dan FALSE utk semua baris lain.
