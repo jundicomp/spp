@@ -3,8 +3,8 @@ export const BEASISWA_KATEGORI_HEADERS = ['No', 'Nama Kategori', 'Keterangan', '
 export const BEASISWA_KATEGORI_FIELDS = [
   { key: 'Nama Kategori', label: 'Nama Kategori', type: 'text', required: true, placeholder: 'mis. Anak Yatim, Dhuafa, Anak Guru, Kebutuhan Khusus' },
   { key: 'Keterangan', label: 'Keterangan Manfaat', type: 'text', required: true, placeholder: 'mis. Gratis SPP penuh, atau potongan Rp 50.000 biaya lainnya' },
-  { key: 'Potongan SPP (Rp)', label: 'Potongan SPP (Rp)', type: 'number', placeholder: 'Nominal potongan per bulan, mis. 100000. Isi nominal SPP penuh utk gratis total' },
-  { key: 'Potongan Biaya Lain (Rp)', label: 'Potongan Biaya Lain (Rp)', type: 'number', placeholder: 'Nominal potongan, mis. 50000' },
+  { key: 'Potongan SPP (Rp)', label: 'Potongan SPP (Rp)', type: 'currency', placeholder: 'Nominal potongan per bulan, mis. 100000. Isi nominal SPP penuh utk gratis total' },
+  { key: 'Potongan Biaya Lain (Rp)', label: 'Potongan Biaya Lain (Rp)', type: 'currency', placeholder: 'Nominal potongan, mis. 50000' },
 ];
 
 export function emptyBeasiswaKategoriRow() {

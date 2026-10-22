@@ -9,7 +9,7 @@ export function buildPemeliharaanFields(asetOptions) {
     { key: 'Nama Aset', label: 'Nama Aset', type: 'select', options: asetOptions, required: true },
     { key: 'Tanggal', label: 'Tanggal', type: 'date', required: true },
     { key: 'Jenis Pemeliharaan', label: 'Jenis Pemeliharaan', type: 'select', options: JENIS_PEMELIHARAAN_OPTIONS, required: true },
-    { key: 'Biaya', label: 'Biaya (Rp)', type: 'number' },
+    { key: 'Biaya', label: 'Biaya (Rp)', type: 'currency' },
     { key: 'Keterangan', label: 'Keterangan', type: 'text', placeholder: 'mis. Ganti roda kursi yang patah' },
     { key: 'Status', label: 'Status', type: 'select', options: STATUS_PEMELIHARAAN_OPTIONS, required: true },
   ];

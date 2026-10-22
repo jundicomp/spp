@@ -51,7 +51,7 @@ export default function GenericManualForm({ fields, emptyRow, addFn, onSaved, ti
               ) : f.type === 'image' ? (
                 <ImageField value={form[f.key]} onChange={v => setField(f.key, v)} label={f.label} />
               ) : (
-                <input type={f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder || ''} />
+                <input type={f.type === 'currency' ? 'number' : f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} placeholder={f.placeholder || ''} />
               )}
             </div>
           ))}

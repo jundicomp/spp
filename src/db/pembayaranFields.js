@@ -25,7 +25,7 @@ export const SARAN_AKUN_PER_METODE = {
 // dulu sebelum ditimpa field yg genuinely diedit.
 export function buildPembayaranEditFields(akunOptions) {
   return [
-    { key: 'Nominal', label: 'Nominal (Rp)', type: 'number', required: true },
+    { key: 'Nominal', label: 'Nominal (Rp)', type: 'currency', required: true },
     { key: 'Tanggal Bayar', label: 'Tanggal Bayar', type: 'date', required: true },
     { key: 'Metode', label: 'Metode', type: 'select', options: METODE_BAYAR_OPTIONS, required: true },
     { key: 'Akun', label: 'Akun Kas/Bank Penerima', type: 'select', options: akunOptions },

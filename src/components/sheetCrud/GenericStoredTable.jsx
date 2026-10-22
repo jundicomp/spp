@@ -6,7 +6,7 @@ import { addLogEntry, isConfigured } from '../../services/googleSheets';
 import { useAppData } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, printElementById } from '../../utils/exportTable';
-import { formatTanggalTampil, normalisasiTanggalUntukInput } from '../../db/helpers';
+import { formatTanggalTampil, normalisasiTanggalUntukInput, formatRupiah } from '../../db/helpers';
 
 const ICON_EDIT = (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -115,6 +115,11 @@ export default function GenericStoredTable({
       // halaman & sebelumnya tidak ada satu pun yg format kolom tanggalnya sendiri.
       const fieldDef = fields.find(f => f.key === h);
       if (fieldDef?.type === 'date') return { key: h, label: h, accessor: (r) => formatTanggalTampil(r[h]) };
+      // Kolom bertipe uang (field.type === 'currency') OTOMATIS diformat "Rp 250.000"
+      // (pakai titik pemisah ribuan) -- sebelumnya nilai mentah tampil polos tanpa
+      // pemisah sama sekali (mis. "250000"), beda sendiri dari tabel lain di app yg
+      // sudah pakai formatRupiah().
+      if (fieldDef?.type === 'currency') return { key: h, label: h, accessor: (r) => (r[h] === '' || r[h] === undefined || r[h] === null) ? '' : formatRupiah(r[h]) };
       return { key: h, label: h, accessor: (r) => r[h] };
     }),
     {
@@ -137,7 +142,13 @@ export default function GenericStoredTable({
   // export selalu ambil rows["Tanggal"] apa adanya, lepas dari format tampilan tabel).
   const rowsUntukExport = rows.map(r => {
     const hasil = { ...r };
-    fields.forEach(f => { if (f.type === 'date' && hasil[f.key] !== undefined) hasil[f.key] = formatTanggalTampil(hasil[f.key]); });
+    fields.forEach(f => {
+      if (hasil[f.key] === undefined) return;
+      if (f.type === 'date') hasil[f.key] = formatTanggalTampil(hasil[f.key]);
+      // Kolom uang juga diformat sama persis dgn yg tampil di tabel ("Rp 250.000")
+      // supaya file Excel-nya rapi juga, bukan cuma angka mentah tanpa pemisah ribuan.
+      else if (f.type === 'currency' && hasil[f.key] !== '') hasil[f.key] = formatRupiah(hasil[f.key]);
+    });
     return hasil;
   });
 

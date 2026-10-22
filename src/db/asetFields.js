@@ -23,7 +23,7 @@ export const ASET_FIELDS = [
   { key: 'Baik', label: 'Jumlah Kondisi Baik', type: 'number' },
   { key: 'Rusak Ringan', label: 'Jumlah Rusak Ringan (RR)', type: 'number' },
   { key: 'Rusak Berat', label: 'Jumlah Rusak Berat (RB)', type: 'number' },
-  { key: 'Harga Estimasi', label: 'Harga Estimasi per Unit (Rp)', type: 'number', placeholder: 'mis. 250000 -- opsional, utk hitung total nilai Sarpras' },
+  { key: 'Harga Estimasi', label: 'Harga Estimasi per Unit (Rp)', type: 'currency', placeholder: 'mis. 250000 -- opsional, utk hitung total nilai Sarpras' },
   { key: 'Tahun Perolehan', label: 'Tahun Perolehan', type: 'number', placeholder: 'mis. 2024' },
   { key: 'Keterangan', label: 'Keterangan', type: 'text' },
   { key: 'Gambar', label: 'Foto Aset', type: 'image' },

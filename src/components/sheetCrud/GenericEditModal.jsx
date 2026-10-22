@@ -95,7 +95,7 @@ export default function GenericEditModal({ row, fields, updateFn, moduleLabel, l
               ) : f.type === 'image' ? (
                 <ImageField value={form[f.key]} onChange={v => setField(f.key, v)} label={f.label} />
               ) : (
-                <input type={f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} />
+                <input type={f.type === 'currency' ? 'number' : f.type} value={form[f.key]} onChange={e => setField(f.key, e.target.value)} />
               )}
             </div>
           ))}

@@ -7,14 +7,14 @@ export const TAGIHAN_LAIN_HEADERS = ['No', 'NISN', 'Nama Siswa', 'Tahun Ajaran',
 // (identitas siswa & jenis biaya yg ditagih). Kolom yg tidak disebut di sini tetap
 // aman krn GenericEditModal.doUpdate() selalu menggabung dgn `row` asli dulu.
 export const TAGIHAN_LAIN_EDIT_FIELDS = [
-  { key: 'Nominal', label: 'Nominal (Rp)', type: 'number', required: true },
+  { key: 'Nominal', label: 'Nominal (Rp)', type: 'currency', required: true },
   { key: 'Wajib', label: 'Wajib?', type: 'select', options: ['Ya', 'Tidak'], required: true },
   { key: 'Jatuh Tempo', label: 'Jatuh Tempo', type: 'date' },
   { key: 'Keterangan', label: 'Keterangan', type: 'text' },
   // Kosongkan kalau tagihan ini dibayar sekaligus (bukan dicicil) -- lihat catatan
   // yg sama di tarifFields.js (Nilai Cicilan). Mengubahnya di sini HANYA berlaku
   // utk tagihan yg SUDAH terbit ini -- tidak mengubah Tarif templatenya.
-  { key: 'Cicilan', label: 'Nilai Cicilan (Rp)', type: 'number', placeholder: 'Kosongkan jika dibayar sekaligus' },
+  { key: 'Cicilan', label: 'Nilai Cicilan (Rp)', type: 'currency', placeholder: 'Kosongkan jika dibayar sekaligus' },
   // Sejak v1.31.24 -- lihat catatan lengkap di tarifFields.js (field yg sama di Tarif).
   // Di sini HANYA berlaku utk tagihan yg SUDAH terbit ini, tidak mengubah templatenya.
   { key: 'Nominal Tetap', label: 'Nominal Tetap Saat Bayar?', type: 'select', options: ['Ya', 'Tidak'] },

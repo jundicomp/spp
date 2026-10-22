@@ -15,12 +15,12 @@ export function buildTarifFields(tahunAjaranOptions) {
     { key: 'Jenis', label: 'Jenis Biaya', type: 'text', required: true, placeholder: 'mis. SPP Bulanan, Uang Pangkal, Seragam' },
     { key: 'Tipe', label: 'Tipe', type: 'select', options: TIPE_TARIF_OPTIONS, required: true },
     { key: 'Kelas/Tingkat', label: 'Berlaku untuk Kelas/Tingkat', type: 'select', options: KELAS_TINGKAT_TARIF_OPTIONS, required: true },
-    { key: 'Nominal', label: 'Nominal (Rp)', type: 'number', required: true },
+    { key: 'Nominal', label: 'Nominal (Rp)', type: 'currency', required: true },
     { key: 'Wajib', label: 'Wajib?', type: 'select', options: ['Ya', 'Tidak'], required: true },
     // Opsional -- kosongkan kalau biaya ini memang dibayar sekaligus (bukan dicicil).
     // Kalau diisi, form Catat Pembayaran akan otomatis mengisi nominal bayar sebesar
     // nilai ini (bukan langsung sisa tagihan penuh) saat tagihan dari tarif ini dipilih.
-    { key: 'Cicilan', label: 'Nilai Cicilan (Rp)', type: 'number', placeholder: 'Kosongkan jika dibayar sekaligus' },
+    { key: 'Cicilan', label: 'Nilai Cicilan (Rp)', type: 'currency', placeholder: 'Kosongkan jika dibayar sekaligus' },
     // Sejak v1.31.24 -- dulu SPP dikunci PERMANEN (v1.31.23) & Tagihan Lain dikunci
     // OTOMATIS kalau py Nilai Cicilan (v1.31.22), TANPA cara mengatur sendiri. Field
     // ini kasih kontrol eksplisit ke Admin: "Ya" = nominal saat Catat Pembayaran

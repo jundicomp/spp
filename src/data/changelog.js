@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.34',
+    tanggal: '2026-10-22',
+    poin: [
+      'Semua kolom nominal uang (Jurnal Pengeluaran, Pemasukan Lain, Pemeliharaan Aset, Harga Estimasi Aset, Tarif/Cicilan SPP & Biaya Lain, Potongan Beasiswa) sekarang tampil rapi pakai format "Rp 250.000" (pakai titik pemisah ribuan) -- sebelumnya di beberapa tabel angkanya tampil polos tanpa pemisah (mis. "250000"), sekarang seragam di semua tabel, termasuk saat di-Export ke Excel',
+    ],
+  },
+  {
     versi: '1.31.33',
     tanggal: '2026-10-22',
     poin: [

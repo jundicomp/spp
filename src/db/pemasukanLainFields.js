@@ -16,7 +16,7 @@ export const PEMASUKAN_LAIN_FIELDS = [
   { key: 'Tanggal', label: 'Tanggal', type: 'date', required: true },
   { key: 'Kategori', label: 'Kategori', type: 'select', options: KATEGORI_PEMASUKAN_LAIN_OPTIONS, required: true },
   { key: 'Keterangan', label: 'Keterangan', type: 'text', required: true, placeholder: 'mis. Donasi wali murid kelas 3' },
-  { key: 'Nominal', label: 'Nominal (Rp)', type: 'number', required: true },
+  { key: 'Nominal', label: 'Nominal (Rp)', type: 'currency', required: true },
 ];
 
 export function emptyPemasukanLainRow() {
