@@ -322,6 +322,7 @@ tr:hover td{background:var(--row-hover);}
 .rb-no{color:var(--red);font-weight:800;font-size:15px;}
 .rb-none{color:var(--border);font-weight:700;}
 .rb-pct{color:var(--muted);font-weight:800;font-size:13px;}
+.rb-pct-full{color:var(--green);}
 .rb-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted);margin-top:12px;}
 .rb-legend span{display:inline-flex;align-items:center;gap:6px;}
 

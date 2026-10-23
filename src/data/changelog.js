@@ -4,6 +4,14 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.39',
+    tanggal: '2026-10-23',
+    poin: [
+      'Kartu "Rekap Pembayaran SPP per Rombel" (Dashboard SPP) sekarang punya judul sendiri, filter Tahun Ajaran (bisa lihat rekap tahun ajaran lain, tidak terpaku ke tahun ajaran aktif saja), dan tombol "Export Excel" yang mengunduh rekap SEMUA rombel sekaligus dalam 1 file (status tiap bulan ditulis kata penuh -- Lunas/Sebagian/Belum Lunas -- plus 1 baris rata-rata % Lunas semua siswa di bagian bawah).',
+      'Perbaikan tampilan: kolom "% Lunas" sekarang SELALU menampilkan angka persentase (termasuk saat sudah 100%) -- sebelumnya (v1.31.38) begitu mencapai 100% angkanya diganti ceklist, ternyata kurang jelas dibaca, jadi dikembalikan tampil sebagai angka "100%" berwarna hijau.',
+    ],
+  },
+  {
     versi: '1.31.38',
     tanggal: '2026-10-22',
     poin: [

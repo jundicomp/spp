@@ -4,14 +4,27 @@ import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { statusTagihan } from '../../db/tagihanHelpers';
 import { bulanTahunAjaran } from '../../db/laporanHelpers';
 import { BULAN_ID, BULAN_SHORT } from '../../db/helpers';
+import { exportToExcel } from '../../utils/exportTable';
 
 // "Rekap Pembayaran per Rombel" -- ceklist Lunas/Belum per siswa x per bulan,
 // 1 rombel per layar (bukan semua siswa sekaligus, supaya tabelnya tetap muat
 // & enak dibaca walau sekolahnya banyak rombel). Ditambahkan di Dashboard SPP
-// sejak v1.31.16 atas permintaan langsung, lihat CHANGELOG.
+// sejak v1.31.16 atas permintaan langsung, lihat CHANGELOG. Sejak v1.31.38 jadi
+// kartu MANDIRI (judul + toolbar sendiri, bukan lagi dibungkus card dari luar
+// oleh DashboardSpp.jsx) supaya filter Tahun Ajaran & tombol Export Excel punya
+// tempat yg jelas, konsisten dgn pola kartu "Info SPP per Bulan".
 export default function RombelPembayaranTable() {
-  const { siswa, kelas, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori, tahunAjaranAktif } = useAppData();
-  const taLabel = tahunAjaranAktif?.label;
+  const { siswa, kelas, allTagihan, tagihanTerbayar, beasiswaSiswa, beasiswaKategori, tahunAjaran, tahunAjaranAktif, profilSekolah } = useAppData();
+
+  // Filter Tahun Ajaran -- default ikut TA aktif, tapi bisa dipilih manual ke TA
+  // lain (mis. lihat rekap tahun ajaran lampau). Pola SAMA dgn NeracaTab/laporan
+  // keuangan lain: state null = "ikut TA aktif", baru di-override kalau user pilih.
+  const [taLabelSel, setTaLabelSel] = useState(null);
+  const taLabel = taLabelSel || tahunAjaranAktif?.label;
+
+  const daftarTahunAjaran = useMemo(() => {
+    return tahunAjaran.slice().sort((a, b) => b.label.localeCompare(a.label, 'id', { numeric: true }));
+  }, [tahunAjaran]);
 
   const daftarRombel = useMemo(() => {
     return kelas.slice().sort((a, b) => {
@@ -34,9 +47,24 @@ export default function RombelPembayaranTable() {
       .sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
   }, [siswa, rombelAktif]);
 
+  // Semua siswa (lintas rombel) terurut sama persis spt urutan navigasi rombel --
+  // dipakai KHUSUS utk Export Excel (supaya 1 file berisi SEMUA rombel sekaligus,
+  // bukan cuma rombel yg sedang tampil di layar).
+  const siswaSemuaRombel = useMemo(() => {
+    const list = [];
+    daftarRombel.forEach(r => {
+      siswa
+        .filter(s => s.kelasTingkat === r.tingkat && s.rombel === r.namaKelas)
+        .slice()
+        .sort((a, b) => a.nama.localeCompare(b.nama, 'id'))
+        .forEach(s => list.push({ ...s, _rombelLabel: `Kelas ${r.tingkat} — ${r.namaKelas}` }));
+    });
+    return list;
+  }, [siswa, daftarRombel]);
+
   // Peta status SPP per siswa per bulan, dihitung 1 kali dari SELURUH tagihan SPP
-  // tahun ajaran aktif -- bukan per-baris tabel -- supaya pindah2 rombel (Next/Prev)
-  // tetap cepat & angkanya konsisten dgn grafik2 Dashboard SPP di atasnya.
+  // tahun ajaran YG DIPILIH -- bukan per-baris tabel -- supaya pindah2 rombel
+  // (Next/Prev) tetap cepat & angkanya konsisten dgn grafik2 Dashboard SPP di atasnya.
   const statusBulananPerSiswa = useMemo(() => {
     if (!taLabel) return {};
     const cutoffMs = Date.now();
@@ -64,7 +92,8 @@ export default function RombelPembayaranTable() {
 
   // % Lunas per siswa -- dari SELURUH bulan yg ADA tagihan di tahun ajaran ini (bulan
   // tanpa tagihan tidak dihitung sbg pembagi), supaya rombel yg baru berjalan beberapa
-  // bulan tidak tampak rendah persentasenya. 100% -> ceklist hijau, bukan angka.
+  // bulan tidak tampak rendah persentasenya. Selalu ditulis angka "100%" dkk -- BUKAN
+  // ceklist -- supaya tetap jelas terbaca sbg persentase di semua kondisi.
   function pctLunas(nisn) {
     let adaTagihan = 0;
     let lunas = 0;
@@ -78,74 +107,133 @@ export default function RombelPembayaranTable() {
     return Math.round((lunas / adaTagihan) * 100);
   }
 
-  if (!taLabel) {
-    return <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada Tahun Ajaran yang diaktifkan.</p>;
+  // Export Excel -- SEMUA rombel sekaligus (bukan cuma yg sedang tampil di layar),
+  // kolom sama persis dgn tabel di layar (per bulan + % Lunas), tapi isi sel bulan
+  // ditulis kata penuh (Lunas/Sebagian/Belum Lunas/-) supaya jelas dibaca di Excel
+  // tanpa perlu legenda simbol. Baris terakhir diisi rata-rata % Lunas semua siswa.
+  function exportExcelRombel() {
+    const headers = ['NISN', 'Nama Lengkap', 'Kelas / Rombel', ...bulanList.map(b => BULAN_SHORT[b.monthIdx]), '% Lunas'];
+    let totalAdaTagihan = 0;
+    let totalLunas = 0;
+    const rows = siswaSemuaRombel.map(s => {
+      const row = { 'NISN': s.nisn || '-', 'Nama Lengkap': s.nama, 'Kelas / Rombel': s._rombelLabel };
+      bulanList.forEach(b => {
+        const status = statusSel(s.nisn, b.monthIdx);
+        row[BULAN_SHORT[b.monthIdx]] = status || '-';
+        if (status) {
+          totalAdaTagihan += 1;
+          if (status === 'Lunas') totalLunas += 1;
+        }
+      });
+      const pct = pctLunas(s.nisn);
+      row['% Lunas'] = pct === null ? '-' : `${pct}%`;
+      return row;
+    });
+    const footer = {
+      'NISN': 'RATA-RATA SEMUA SISWA',
+      '% Lunas': totalAdaTagihan > 0 ? `${Math.round((totalLunas / totalAdaTagihan) * 100)}%` : '-',
+    };
+    exportToExcel(
+      headers, rows, `Rekap Pembayaran SPP per Rombel - ${taLabel.replace('/', '-')}`,
+      [profilSekolah?.nama || 'MI Ikhlasiyah', 'Rekap Pembayaran SPP per Rombel', `Tahun Ajaran ${taLabel}`],
+      footer
+    );
   }
-  if (daftarRombel.length === 0) {
-    return <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada data Rombel. Atur dulu lewat menu <strong>Data Kelas &amp; Rombel</strong>.</p>;
+
+  if (!taLabel) {
+    return (
+      <div className="card" style={{ marginTop: 16, marginBottom: 0 }}>
+        <div className="card-head"><div><h3 style={{ fontSize: 13.5 }}>📋 Rekap Pembayaran SPP per Rombel</h3></div></div>
+        <div className="card-body"><p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada Tahun Ajaran yang diaktifkan.</p></div>
+      </div>
+    );
   }
 
   return (
-    <>
-      <div className="rb-toolbar">
-        <button type="button" className="btn btn-sm" onClick={() => setRombelIdx(i => Math.max(0, i - 1))} disabled={idxAman === 0}>◀ Sebelumnya</button>
-        <select value={idxAman} onChange={e => setRombelIdx(Number(e.target.value))}>
-          {daftarRombel.map((r, i) => <option key={r.id} value={i}>Kelas {r.tingkat} — Rombel {r.namaKelas}</option>)}
-        </select>
-        <button type="button" className="btn btn-sm" onClick={() => setRombelIdx(i => Math.min(daftarRombel.length - 1, i + 1))} disabled={idxAman === daftarRombel.length - 1}>Berikutnya ▶</button>
-        <span className="rb-toolbar-info">{siswaRombel.length} siswa di rombel ini</span>
+    <div className="card" style={{ marginTop: 16, marginBottom: 0 }}>
+      <div className="card-head">
+        <div>
+          <h3 style={{ fontSize: 13.5 }}>📋 Rekap Pembayaran SPP per Rombel</h3>
+          <p>Ceklist hijau = sudah lunas bulan itu, silang merah = belum/baru sebagian</p>
+        </div>
+        <div className="card-toolbar">
+          <select
+            value={taLabel}
+            onChange={e => { setTaLabelSel(e.target.value); setRombelIdx(0); }}
+            style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13 }}
+            title="Filter Tahun Ajaran"
+          >
+            {daftarTahunAjaran.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
+          </select>
+          <button type="button" className="btn btn-sm" onClick={exportExcelRombel} disabled={daftarRombel.length === 0}>📊 Export Excel</button>
+        </div>
       </div>
+      <div className="card-body">
+        {daftarRombel.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada data Rombel. Atur dulu lewat menu <strong>Data Kelas &amp; Rombel</strong>.</p>
+        ) : (
+          <>
+            <div className="rb-toolbar">
+              <button type="button" className="btn btn-sm" onClick={() => setRombelIdx(i => Math.max(0, i - 1))} disabled={idxAman === 0}>◀ Sebelumnya</button>
+              <select value={idxAman} onChange={e => setRombelIdx(Number(e.target.value))}>
+                {daftarRombel.map((r, i) => <option key={r.id} value={i}>Kelas {r.tingkat} — Rombel {r.namaKelas}</option>)}
+              </select>
+              <button type="button" className="btn btn-sm" onClick={() => setRombelIdx(i => Math.min(daftarRombel.length - 1, i + 1))} disabled={idxAman === daftarRombel.length - 1}>Berikutnya ▶</button>
+              <span className="rb-toolbar-info">{siswaRombel.length} siswa di rombel ini</span>
+            </div>
 
-      {siswaRombel.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada siswa yang terdaftar di rombel ini.</p>
-      ) : (
-        <div className="table-scroll">
-          <table className="rb-table">
-            <thead>
-              <tr>
-                <th>No</th><th>NISN</th><th>Nama Lengkap</th><th>Rombel</th>
-                {bulanList.map(b => <th key={b.monthIdx}>{BULAN_SHORT[b.monthIdx]}</th>)}
-                <th>% Lunas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {siswaRombel.map((s, i) => {
-                const pct = pctLunas(s.nisn);
-                return (
-                  <tr key={s.id}>
-                    <td>{i + 1}</td>
-                    <td>{s.nisn || '-'}</td>
-                    <td>{s.nama}</td>
-                    <td>{s.rombel}</td>
-                    {bulanList.map(b => {
-                      const status = statusSel(s.nisn, b.monthIdx);
-                      const judul = `${b.label} — ${status || 'Belum ada tagihan'}`;
+            {siswaRombel.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--muted)' }}>Belum ada siswa yang terdaftar di rombel ini.</p>
+            ) : (
+              <div className="table-scroll">
+                <table className="rb-table">
+                  <thead>
+                    <tr>
+                      <th>No</th><th>NISN</th><th>Nama Lengkap</th><th>Rombel</th>
+                      {bulanList.map(b => <th key={b.monthIdx}>{BULAN_SHORT[b.monthIdx]}</th>)}
+                      <th>% Lunas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {siswaRombel.map((s, i) => {
+                      const pct = pctLunas(s.nisn);
                       return (
-                        <td key={b.monthIdx} title={judul}>
-                          {status === 'Lunas' && <span className="rb-yes">✓</span>}
-                          {(status === 'Sebagian' || status === 'Belum Lunas') && <span className="rb-no">✕</span>}
-                          {!status && <span className="rb-none">–</span>}
-                        </td>
+                        <tr key={s.id}>
+                          <td>{i + 1}</td>
+                          <td>{s.nisn || '-'}</td>
+                          <td>{s.nama}</td>
+                          <td>{s.rombel}</td>
+                          {bulanList.map(b => {
+                            const status = statusSel(s.nisn, b.monthIdx);
+                            const judul = `${b.label} — ${status || 'Belum ada tagihan'}`;
+                            return (
+                              <td key={b.monthIdx} title={judul}>
+                                {status === 'Lunas' && <span className="rb-yes">✓</span>}
+                                {(status === 'Sebagian' || status === 'Belum Lunas') && <span className="rb-no">✕</span>}
+                                {!status && <span className="rb-none">–</span>}
+                              </td>
+                            );
+                          })}
+                          <td title={pct === null ? 'Belum ada tagihan' : `${pct}% bulan sudah lunas`}>
+                            {pct === null && <span className="rb-none">–</span>}
+                            {pct !== null && <span className={'rb-pct' + (pct === 100 ? ' rb-pct-full' : '')}>{pct}%</span>}
+                          </td>
+                        </tr>
                       );
                     })}
-                    <td title={pct === null ? 'Belum ada tagihan' : `${pct}% bulan sudah lunas`}>
-                      {pct === null && <span className="rb-none">–</span>}
-                      {pct !== null && pct === 100 && <span className="rb-yes">✓</span>}
-                      {pct !== null && pct < 100 && <span className="rb-pct">{pct}%</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-      <div className="rb-legend">
-        <span><span className="rb-yes">✓</span> Sudah Lunas</span>
-        <span><span className="rb-no">✕</span> Belum Lunas / Baru Sebagian</span>
-        <span><span className="rb-none">–</span> Belum Ada Tagihan Bulan Itu</span>
+            <div className="rb-legend">
+              <span><span className="rb-yes">✓</span> Sudah Lunas</span>
+              <span><span className="rb-no">✕</span> Belum Lunas / Baru Sebagian</span>
+              <span><span className="rb-none">–</span> Belum Ada Tagihan Bulan Itu</span>
+            </div>
+          </>
+        )}
       </div>
-    </>
+    </div>
   );
 }

@@ -157,12 +157,7 @@ export default function DashboardSpp() {
             </div>
           </div>
 
-          <div className="card" style={{ marginTop: 16, marginBottom: 0 }}>
-            <div className="card-head"><div><h3 style={{ fontSize: 13.5 }}>Rekap Pembayaran SPP per Rombel</h3><p>Ceklist hijau = sudah lunas bulan itu, silang merah = belum/baru sebagian</p></div></div>
-            <div className="card-body">
-              <RombelPembayaranTable />
-            </div>
-          </div>
+          <RombelPembayaranTable />
         </>
       )}
     </Page>
