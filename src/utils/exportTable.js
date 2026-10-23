@@ -3,28 +3,9 @@ import ExcelJS from 'exceljs';
 const HIJAU_HEADER = 'FF123D22'; // sama dgn --green-dark tema aplikasi
 const BORDER_TIPIS = { style: 'thin', color: { argb: 'FFAAAAAA' } };
 const BORDER_SEMUA_SISI = { top: BORDER_TIPIS, bottom: BORDER_TIPIS, left: BORDER_TIPIS, right: BORDER_TIPIS };
+const FORMAT_RIBUAN = '#,##0'; // titik pemisah ribuan (ikut locale Excel si pembuka), tanpa simbol Rp
 
-// Ekspor array baris (objek dgn key = nama header) ke file .xlsx yg RAPI: ada judul,
-// header berlatar hijau tua tulisan putih tebal, border di semua sel, lebar kolom
-// otomatis menyesuaikan konten. Pakai library "exceljs" (bukan "xlsx"/SheetJS) --
-// versi gratis SheetJS TERBUKTI tidak menyimpan style sel sama sekali (sudah diuji),
-// exceljs genuinely open-source dan mendukung ini.
-// title: string (1 baris judul, spt sebelumnya) ATAU array string (multi-baris,
-// mis. ['MI Ikhlasiyah', 'Laporan Pembayaran', 'Tanggal: 15-09-2026']) -- baris
-// pertama ditulis besar/tebal (judul utama), baris berikutnya lebih kecil (subjudul).
-// footer: opsional, objek { [namaHeader]: nilai } utk 1 baris ringkasan/total yg
-// ditambahkan PALING BAWAH stlh semua baris data (mis. { Nominal: 'Rp 1.000.000' }
-// -- kolom lain yg tidak disebut dibiarkan kosong), ditulis tebal dgn latar beda
-// supaya jelas ini baris total, bukan data transaksi biasa.
-export async function exportToExcel(headers, rows, filename, title, footer) {
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Data');
-
-  // Kolom "No" (nomor urut 1,2,3,...) ditambahkan OTOMATIS di sini -- di paling depan --
-  // supaya SEMUA pemanggil export dapat kolom ini tanpa perlu diubah satu-satu.
-  // Sengaja nomor urut BARU (1..N sesuai urutan tampil di file ini), BUKAN kolom "No"
-  // mentah dari Google Sheets -- karena itu bisa berlubang/tidak berurutan kalau
-  // pernah ada baris dihapus, dan akan membingungkan dibaca di Excel.
+function buildSheet(ws, headers, rows, title, footer) {
   const sudahAdaNomor = headers[0] === 'No';
   const headersFinal = sudahAdaNomor ? headers : ['No', ...headers];
 
@@ -36,12 +17,12 @@ export async function exportToExcel(headers, rows, filename, title, footer) {
     titleCell.value = line;
     titleCell.font = i === 0
       ? { bold: true, size: 14, color: { argb: HIJAU_HEADER } }
-      : { bold: false, size: 11, color: { argb: 'FF5B6B61' } }; // --muted
+      : { bold: false, size: 11, color: { argb: 'FF5B6B61' } };
     titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
     ws.getRow(baris).height = i === 0 ? 26 : 18;
   });
   if (titleLines.length > 0) {
-    ws.addRow([]); // baris kosong pemisah antara judul & tabel
+    ws.addRow([]);
   }
 
   const headerRow = ws.addRow(headersFinal);
@@ -60,8 +41,13 @@ export async function exportToExcel(headers, rows, filename, title, footer) {
     row.eachCell(cell => {
       cell.border = BORDER_SEMUA_SISI;
       cell.alignment = { vertical: 'middle' };
+      // Angka (nominal rupiah, jumlah, dll) otomatis diberi titik pemisah ribuan
+      // ala Excel (ikut locale yg buka filenya) -- TANPA simbol "Rp" apapun, dan
+      // nilainya tetap angka asli (bukan teks) supaya SUM/filter/sort tetap jalan.
+      if (typeof cell.value === 'number') {
+        cell.numFmt = FORMAT_RIBUAN;
+      }
     });
-    // Zebra tipis spy konsisten dgn tampilan tabel di aplikasi (baris genap sedikit beda warna)
     if (idx % 2 === 1) {
       row.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFBF6DE' } }; });
     }
@@ -73,8 +59,11 @@ export async function exportToExcel(headers, rows, filename, title, footer) {
     footerRowObj.eachCell(cell => {
       cell.border = BORDER_SEMUA_SISI;
       cell.font = { bold: true, color: { argb: HIJAU_HEADER } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF3EC' } }; // --green-soft
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF3EC' } };
       cell.alignment = { vertical: 'middle' };
+      if (typeof cell.value === 'number') {
+        cell.numFmt = FORMAT_RIBUAN;
+      }
     });
   }
 
@@ -84,8 +73,10 @@ export async function exportToExcel(headers, rows, filename, title, footer) {
     ws.getColumn(i + 1).width = Math.min(Math.max(kontenTerpanjang + 3, 10), 45);
   });
 
-  ws.views = [{ state: 'frozen', ySplit: titleLines.length > 0 ? titleLines.length + 2 : 1 }]; // baris header tetap terlihat saat scroll
+  ws.views = [{ state: 'frozen', ySplit: titleLines.length > 0 ? titleLines.length + 2 : 1 }];
+}
 
+async function saveWorkbook(wb, filename) {
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
@@ -98,11 +89,44 @@ export async function exportToExcel(headers, rows, filename, title, footer) {
   URL.revokeObjectURL(url);
 }
 
-// Cetak SATU elemen (dicari lewat id) secara terisolasi -- sidebar/topbar/kartu lain
-// otomatis disembunyikan saat proses cetak, tanpa perlu bikin halaman/tab baru.
-// Pola: tempel class "printing-mode" di <body> + "print-target" di elemen tujuan,
-// browser native print (Ctrl+P / window.print) cuma akan menampilkan elemen itu --
-// dari situ pengguna bisa pilih "Simpan sebagai PDF" di dialog cetaknya.
+// Nama tab Excel tidak boleh lebih dari 31 karakter & tidak boleh berisi
+// karakter : \ / ? * [ ] -- fungsi ini membersihkan nama + menghindari duplikat
+// (mis. dua rombel bernama sama) dengan menambah " (2)", " (3)", dst.
+function sanitizeSheetName(name, namaTerpakai) {
+  let bersih = String(name ?? 'Sheet').replace(/[:\\/?*[\]]/g, '-').trim();
+  if (!bersih) bersih = 'Sheet';
+  if (bersih.length > 31) bersih = bersih.slice(0, 31);
+  let kandidat = bersih;
+  let counter = 2;
+  while (namaTerpakai.has(kandidat.toLowerCase())) {
+    const suffix = ` (${counter})`;
+    kandidat = bersih.slice(0, 31 - suffix.length) + suffix;
+    counter += 1;
+  }
+  namaTerpakai.add(kandidat.toLowerCase());
+  return kandidat;
+}
+
+export async function exportToExcel(headers, rows, filename, title, footer) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Data');
+  buildSheet(ws, headers, rows, title, footer);
+  await saveWorkbook(wb, filename);
+}
+
+// Export multi-tab: satu file Excel dengan beberapa worksheet/tab sekaligus.
+// sheets: [{ name, headers, rows, title, footer }, ...] -- tiap entri jadi 1 tab.
+export async function exportToExcelMultiSheet(sheets, filename) {
+  const wb = new ExcelJS.Workbook();
+  const namaTerpakai = new Set();
+  sheets.forEach(s => {
+    const namaAman = sanitizeSheetName(s.name, namaTerpakai);
+    const ws = wb.addWorksheet(namaAman);
+    buildSheet(ws, s.headers, s.rows, s.title, s.footer);
+  });
+  await saveWorkbook(wb, filename);
+}
+
 export function printElementById(elementId) {
   const el = document.getElementById(elementId);
   if (!el) { console.warn('printElementById: elemen tidak ditemukan:', elementId); return; }
@@ -117,6 +141,5 @@ export function printElementById(elementId) {
   }
   window.addEventListener('afterprint', cleanup);
   window.print();
-  // Jaring pengaman -- sebagian browser lama tidak selalu memicu 'afterprint'.
   setTimeout(cleanup, 4000);
 }

@@ -4,6 +4,15 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.41',
+    tanggal: '2026-10-23',
+    poin: [
+      'Export Excel "Rekap Pembayaran SPP per Rombel" sekarang memisahkan setiap kelas/rombel ke TAB/SHEET-nya sendiri-sendiri dalam 1 file (sebelumnya semua rombel digabung jadi 1 halaman "Data" saja) -- supaya setiap wali kelas bisa langsung buka tab rombelnya masing-masing, lengkap dengan judul & baris total tersendiri per rombel.',
+      'Semua nilai rupiah di Export Excel (nominal per bulan, Total) sekarang otomatis diberi titik pemisah ribuan (contoh: 50.000) TANPA simbol "Rp" di depannya, dan nilainya tetap angka asli (bukan teks) sehingga tetap bisa dijumlah/difilter langsung di Excel.',
+      'Perbaikan bug: kolom nama kelas/rombel pada Export Excel sebelumnya menampilkan teks dobel (contoh: "Kelas 1 — Kelas 1 Kordoba") karena nama rombel di data sekolah memang sudah lengkap. Sekarang sudah diperbaiki (nama rombel ditampilkan apa adanya di judul & nama tab, tidak dobel lagi).',
+    ],
+  },
+  {
     versi: '1.31.40',
     tanggal: '2026-10-23',
     poin: [

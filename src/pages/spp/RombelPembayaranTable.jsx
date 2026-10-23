@@ -4,7 +4,7 @@ import { nominalEfektifTagihan } from '../../db/beasiswaFields';
 import { statusTagihan } from '../../db/tagihanHelpers';
 import { bulanTahunAjaran } from '../../db/laporanHelpers';
 import { BULAN_ID, BULAN_SHORT } from '../../db/helpers';
-import { exportToExcel } from '../../utils/exportTable';
+import { exportToExcelMultiSheet } from '../../utils/exportTable';
 
 // "Rekap Pembayaran per Rombel" -- ceklist Lunas/Belum per siswa x per bulan,
 // 1 rombel per layar (bukan semua siswa sekaligus, supaya tabelnya tetap muat
@@ -46,21 +46,6 @@ export default function RombelPembayaranTable() {
       .slice()
       .sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
   }, [siswa, rombelAktif]);
-
-  // Semua siswa (lintas rombel) terurut sama persis spt urutan navigasi rombel --
-  // dipakai KHUSUS utk Export Excel (supaya 1 file berisi SEMUA rombel sekaligus,
-  // bukan cuma rombel yg sedang tampil di layar).
-  const siswaSemuaRombel = useMemo(() => {
-    const list = [];
-    daftarRombel.forEach(r => {
-      siswa
-        .filter(s => s.kelasTingkat === r.tingkat && s.rombel === r.namaKelas)
-        .slice()
-        .sort((a, b) => a.nama.localeCompare(b.nama, 'id'))
-        .forEach(s => list.push({ ...s, _rombelLabel: `Kelas ${r.tingkat} — ${r.namaKelas}` }));
-    });
-    return list;
-  }, [siswa, daftarRombel]);
 
   // Peta status SPP per siswa per bulan, dihitung 1 kali dari SELURUH tagihan SPP
   // tahun ajaran YG DIPILIH -- bukan per-baris tabel -- supaya pindah2 rombel
@@ -107,50 +92,72 @@ export default function RombelPembayaranTable() {
     return Math.round((lunas / adaTagihan) * 100);
   }
 
-  // Export Excel -- SEMUA rombel sekaligus (bukan cuma yg sedang tampil di layar).
-  // Sejak v1.31.40, kolom per-bulan diisi NOMINAL (angka), bukan kata status lagi --
-  // kalau Lunas diisi nominal tagihan bulan itu, kalau belum/baru sebagian diisi 0 --
-  // supaya bisa langsung dijumlah/difilter di Excel. Kolom "Total" (jumlah 12 bulan)
-  // ditambahkan SEBELUM kolom "% Lunas". Baris terakhir = total semua siswa per bulan
-  // + total keseluruhan + rata-rata % Lunas.
+  // Export Excel -- SEMUA rombel sekaligus, TAPI sejak v1.31.41 masing2 rombel
+  // dipisah jadi TAB/SHEET sendiri (bukan digabung di 1 halaman) supaya tiap
+  // wali kelas bisa langsung buka tab rombelnya sendiri, dan kolom "Kelas /
+  // Rombel" yg dulu dobel teksnya (krn namaKelas di data asli sudah lengkap,
+  // mis. "Kelas 1 Kordoba") jadi tidak perlu lagi -- nama rombelnya sudah
+  // jelas dari nama tab + judul sheet masing2. Kolom per-bulan diisi NOMINAL
+  // (angka) -- kalau Lunas diisi nominal tagihan bulan itu, kalau belum/baru
+  // sebagian diisi 0 -- supaya bisa langsung dijumlah/difilter di Excel, dan
+  // nilainya otomatis diberi titik pemisah ribuan (lihat exportTable.js).
   function exportExcelRombel() {
-    const headers = ['NISN', 'Nama Lengkap', 'Kelas / Rombel', ...bulanList.map(b => BULAN_SHORT[b.monthIdx]), 'Total', '% Lunas'];
-    let totalAdaTagihan = 0;
-    let totalLunas = 0;
-    let grandTotal = 0;
-    const totalPerBulan = {};
-    bulanList.forEach(b => { totalPerBulan[BULAN_SHORT[b.monthIdx]] = 0; });
-    const rows = siswaSemuaRombel.map(s => {
-      const row = { 'NISN': s.nisn || '-', 'Nama Lengkap': s.nama, 'Kelas / Rombel': s._rombelLabel };
-      let totalSiswa = 0;
-      bulanList.forEach(b => {
-        const status = statusSel(s.nisn, b.monthIdx);
-        const nilai = status === 'Lunas' ? (statusBulananPerSiswa[s.nisn]?.[b.monthIdx]?.nominalEfektif || 0) : 0;
-        row[BULAN_SHORT[b.monthIdx]] = nilai;
-        totalSiswa += nilai;
-        totalPerBulan[BULAN_SHORT[b.monthIdx]] += nilai;
-        if (status) {
-          totalAdaTagihan += 1;
-          if (status === 'Lunas') totalLunas += 1;
-        }
+    const headers = ['NISN', 'Nama Lengkap', ...bulanList.map(b => BULAN_SHORT[b.monthIdx]), 'Total', '% Lunas'];
+    const sheets = daftarRombel.map(r => {
+      const siswaRombelIni = siswa
+        .filter(s => s.kelasTingkat === r.tingkat && s.rombel === r.namaKelas)
+        .slice()
+        .sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+
+      let totalAdaTagihan = 0;
+      let totalLunas = 0;
+      let grandTotal = 0;
+      const totalPerBulan = {};
+      bulanList.forEach(b => { totalPerBulan[BULAN_SHORT[b.monthIdx]] = 0; });
+
+      const rows = siswaRombelIni.map(s => {
+        const row = { 'NISN': s.nisn || '-', 'Nama Lengkap': s.nama };
+        let totalSiswa = 0;
+        bulanList.forEach(b => {
+          const status = statusSel(s.nisn, b.monthIdx);
+          const nilai = status === 'Lunas' ? (statusBulananPerSiswa[s.nisn]?.[b.monthIdx]?.nominalEfektif || 0) : 0;
+          row[BULAN_SHORT[b.monthIdx]] = nilai;
+          totalSiswa += nilai;
+          totalPerBulan[BULAN_SHORT[b.monthIdx]] += nilai;
+          if (status) {
+            totalAdaTagihan += 1;
+            if (status === 'Lunas') totalLunas += 1;
+          }
+        });
+        row['Total'] = totalSiswa;
+        grandTotal += totalSiswa;
+        const pct = pctLunas(s.nisn);
+        row['% Lunas'] = pct === null ? '-' : `${pct}%`;
+        return row;
       });
-      row['Total'] = totalSiswa;
-      grandTotal += totalSiswa;
-      const pct = pctLunas(s.nisn);
-      row['% Lunas'] = pct === null ? '-' : `${pct}%`;
-      return row;
+
+      const footer = {
+        'NISN': 'TOTAL ROMBEL',
+        ...totalPerBulan,
+        'Total': grandTotal,
+        '% Lunas': totalAdaTagihan > 0 ? `${Math.round((totalLunas / totalAdaTagihan) * 100)}%` : '-',
+      };
+
+      // PENTING: nama tab & judul sheet pakai r.namaKelas APA ADANYA (sama spt
+      // kolom "Rombel" di tabel layar, lihat s.rombel di bawah) -- TIDAK ditambah
+      // prefix "Kelas X —" lagi, karena di data asli namaKelas sudah lengkap
+      // (mis. "Kelas 1 Kordoba"), bukan cuma "Kordoba". Prefix tambahan itulah
+      // yg dulu bikin teksnya dobel ("Kelas 1 — Kelas 1 Kordoba").
+      return {
+        name: r.namaKelas,
+        headers,
+        rows,
+        title: [profilSekolah?.nama || 'MI Ikhlasiyah', `Rekap Pembayaran SPP - ${r.namaKelas}`, `Tahun Ajaran ${taLabel}`],
+        footer,
+      };
     });
-    const footer = {
-      'NISN': 'TOTAL SEMUA SISWA',
-      ...totalPerBulan,
-      'Total': grandTotal,
-      '% Lunas': totalAdaTagihan > 0 ? `${Math.round((totalLunas / totalAdaTagihan) * 100)}%` : '-',
-    };
-    exportToExcel(
-      headers, rows, `Rekap Pembayaran SPP per Rombel - ${taLabel.replace('/', '-')}`,
-      [profilSekolah?.nama || 'MI Ikhlasiyah', 'Rekap Pembayaran SPP per Rombel', `Tahun Ajaran ${taLabel}`],
-      footer
-    );
+
+    exportToExcelMultiSheet(sheets, `Rekap Pembayaran SPP per Rombel - ${taLabel.replace('/', '-')}`);
   }
 
   if (!taLabel) {
