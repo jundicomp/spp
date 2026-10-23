@@ -4,6 +4,13 @@
 // rilis baru, tambahkan 1 entri baru di PALING ATAS array ini.
 export const CHANGELOG = [
   {
+    versi: '1.31.40',
+    tanggal: '2026-10-23',
+    poin: [
+      'Export Excel "Rekap Pembayaran SPP per Rombel" disempurnakan: kolom tiap bulan sekarang diisi NOMINAL ANGKA (bukan kata "Lunas"/"Belum Lunas" lagi) -- kalau bulan itu sudah lunas diisi nominal tagihannya, kalau belum/baru sebagian diisi 0 -- supaya bisa langsung dijumlah atau difilter di Excel. Ditambahkan juga kolom "Total" (jumlah 12 bulan per siswa) tepat sebelum kolom "% Lunas", dan baris paling bawah sekarang berisi total per bulan + total keseluruhan semua siswa, bukan cuma rata-rata persentase saja.',
+    ],
+  },
+  {
     versi: '1.31.39',
     tanggal: '2026-10-23',
     poin: [

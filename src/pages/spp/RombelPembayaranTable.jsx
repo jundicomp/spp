@@ -107,30 +107,43 @@ export default function RombelPembayaranTable() {
     return Math.round((lunas / adaTagihan) * 100);
   }
 
-  // Export Excel -- SEMUA rombel sekaligus (bukan cuma yg sedang tampil di layar),
-  // kolom sama persis dgn tabel di layar (per bulan + % Lunas), tapi isi sel bulan
-  // ditulis kata penuh (Lunas/Sebagian/Belum Lunas/-) supaya jelas dibaca di Excel
-  // tanpa perlu legenda simbol. Baris terakhir diisi rata-rata % Lunas semua siswa.
+  // Export Excel -- SEMUA rombel sekaligus (bukan cuma yg sedang tampil di layar).
+  // Sejak v1.31.40, kolom per-bulan diisi NOMINAL (angka), bukan kata status lagi --
+  // kalau Lunas diisi nominal tagihan bulan itu, kalau belum/baru sebagian diisi 0 --
+  // supaya bisa langsung dijumlah/difilter di Excel. Kolom "Total" (jumlah 12 bulan)
+  // ditambahkan SEBELUM kolom "% Lunas". Baris terakhir = total semua siswa per bulan
+  // + total keseluruhan + rata-rata % Lunas.
   function exportExcelRombel() {
-    const headers = ['NISN', 'Nama Lengkap', 'Kelas / Rombel', ...bulanList.map(b => BULAN_SHORT[b.monthIdx]), '% Lunas'];
+    const headers = ['NISN', 'Nama Lengkap', 'Kelas / Rombel', ...bulanList.map(b => BULAN_SHORT[b.monthIdx]), 'Total', '% Lunas'];
     let totalAdaTagihan = 0;
     let totalLunas = 0;
+    let grandTotal = 0;
+    const totalPerBulan = {};
+    bulanList.forEach(b => { totalPerBulan[BULAN_SHORT[b.monthIdx]] = 0; });
     const rows = siswaSemuaRombel.map(s => {
       const row = { 'NISN': s.nisn || '-', 'Nama Lengkap': s.nama, 'Kelas / Rombel': s._rombelLabel };
+      let totalSiswa = 0;
       bulanList.forEach(b => {
         const status = statusSel(s.nisn, b.monthIdx);
-        row[BULAN_SHORT[b.monthIdx]] = status || '-';
+        const nilai = status === 'Lunas' ? (statusBulananPerSiswa[s.nisn]?.[b.monthIdx]?.nominalEfektif || 0) : 0;
+        row[BULAN_SHORT[b.monthIdx]] = nilai;
+        totalSiswa += nilai;
+        totalPerBulan[BULAN_SHORT[b.monthIdx]] += nilai;
         if (status) {
           totalAdaTagihan += 1;
           if (status === 'Lunas') totalLunas += 1;
         }
       });
+      row['Total'] = totalSiswa;
+      grandTotal += totalSiswa;
       const pct = pctLunas(s.nisn);
       row['% Lunas'] = pct === null ? '-' : `${pct}%`;
       return row;
     });
     const footer = {
-      'NISN': 'RATA-RATA SEMUA SISWA',
+      'NISN': 'TOTAL SEMUA SISWA',
+      ...totalPerBulan,
+      'Total': grandTotal,
       '% Lunas': totalAdaTagihan > 0 ? `${Math.round((totalLunas / totalAdaTagihan) * 100)}%` : '-',
     };
     exportToExcel(
